@@ -1,0 +1,24 @@
+[package]
+name = "tab-cli"
+version = "0.1.0"
+authors = ["Austin Jones <austinbaysjones@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tab-common = { path = "../tab-common" }
+
+clap = "2.33.2"
+# async / websockets
+tungstenite = "0.11.1"
+async-tungstenite = { version = "*", features = ["tokio-runtime"] }
+tokio = "0.2.22"
+
+# logging
+log = "0.4"
+simplelog = "0.8"
+
+# error management
+anyhow = "1.0"
+thiserror = "1.0"
