@@ -5,7 +5,7 @@ use tab_api::{
     response::Response,
     tab::{CreateTabMetadata, TabMetadata},
 };
-use tokio::{runtime::Runtime, sync::mpsc::Sender};
+use tokio::{sync::mpsc::Sender};
 
 pub struct CreateTabEndpoint;
 

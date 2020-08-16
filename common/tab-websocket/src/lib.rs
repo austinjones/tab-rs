@@ -1,6 +1,6 @@
-use futures::{Future, Sink, SinkExt, Stream, StreamExt};
+use futures::{Future};
 use serde::{de::DeserializeOwned, Serialize};
-use std::borrow::Borrow;
+
 use tungstenite::Message;
 
 pub fn decode<T: DeserializeOwned>(

@@ -2,7 +2,7 @@ use crate::runtime::{DaemonRuntime, TabRuntime};
 use futures::future::{AbortHandle, Abortable};
 use futures::{pin_mut, StreamExt};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     sync::Arc,
 };
 use tab_api::{response::Response, tab::TabId};
