@@ -27,3 +27,5 @@ simplelog = "0.8"
 # error management
 anyhow = "1.0"
 thiserror = "1.0"
+
+crossterm = "0.17"
