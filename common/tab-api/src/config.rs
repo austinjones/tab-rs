@@ -67,6 +67,21 @@ pub fn load_config() -> anyhow::Result<Config> {
     Ok(config)
 }
 
+pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
+    let path = daemon_file()?;
+
+    if !path.is_file() {
+        log::debug!("File {:?} does not exist", path.as_path());
+        return Ok(None);
+    }
+
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let config = serde_yaml::from_reader(reader)?;
+
+    Ok(Some(config))
+}
+
 pub fn write_config(path: &Path, config: &Config) -> Result<()> {
     let file = File::create(path)?;
     let writer = BufWriter::new(file);

@@ -1,5 +1,5 @@
 [package]
-name = "tab-common"
+name = "tab-api"
 version = "0.1.0"
 authors = ["Austin Jones <austinbaysjones@gmail.com>"]
 edition = "2018"

@@ -1,10 +1,10 @@
-use log::{debug, error, info};
+use log::{debug, error};
 use std::{
     fs::File,
     io::{BufReader, BufWriter},
     path::PathBuf,
 };
-use tab_common::config::{daemon_file, DaemonConfig};
+use tab_api::config::{daemon_file, DaemonConfig};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
