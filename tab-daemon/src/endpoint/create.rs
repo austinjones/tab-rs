@@ -15,7 +15,7 @@ impl Endpoint for CreateTabEndpoint {
 
     async fn handle(
         session: &mut DaemonSession,
-        action: &Self::Request,
+        action: Self::Request,
         mut response_sink: Sender<Response>,
     ) -> anyhow::Result<()> {
         // check if the session is active
@@ -28,7 +28,7 @@ impl Endpoint for CreateTabEndpoint {
             return Ok(());
         }
 
-        let tab = session.runtime().create_tab(action).await?;
+        let tab = session.runtime().create_tab(&action).await?;
         response_sink
             .send(Response::TabUpdate(tab.metadata().clone()))
             .await?;

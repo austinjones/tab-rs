@@ -13,13 +13,13 @@ impl Endpoint for SubscribeEndpoint {
 
     async fn handle(
         session: &mut DaemonSession,
-        action: &Self::Request,
+        action: Self::Request,
         response_sink: Sender<Response>,
     ) -> anyhow::Result<()> {
         // check if the session is active
         // create an https://docs.rs/futures/0.3.5/futures/future/struct.Abortable.html
         // save in session, for termination
-        session.subscribe(action, response_sink).await?;
+        session.subscribe(&action, response_sink).await?;
         Ok(())
     }
 }

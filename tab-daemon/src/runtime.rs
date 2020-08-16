@@ -1,10 +1,18 @@
 use futures::Stream;
 use log::info;
-use std::{collections::VecDeque, process::Stdio, sync::Arc};
+use std::{
+    collections::VecDeque,
+    process::Stdio,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 use tab_api::{
-    chunk::{Chunk, ChunkType},
+    chunk::{Chunk, ChunkType, StdinChunk},
     tab::{CreateTabMetadata, TabId, TabMetadata},
 };
+use tokio::sync::broadcast::RecvError;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     process::{Child, ChildStderr, ChildStdin, ChildStdout, Command},
@@ -93,12 +101,16 @@ impl TabRuntime {
 pub struct TabProcess {
     child: Child,
     tx: Sender<Chunk>,
+    tx_stdin: tokio::sync::mpsc::Sender<StdinChunk>,
     scrollback: Arc<RwLock<ScrollbackBuffer>>,
 }
 
 impl TabProcess {
     pub async fn new() -> anyhow::Result<TabProcess> {
-        let mut child = Command::new("fish")
+        // let mut child = Command::new("fish")
+        //     .args(&["--interactive", "--debug=debug,proc-internal-proc"])
+        let mut child = Command::new("bash")
+            // .args(&["--interactive"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -110,14 +122,25 @@ impl TabProcess {
         // scrollback writer
         tokio::spawn(Self::write_scrollback(scrollback.clone(), rx));
 
+        let write_index = Arc::new(AtomicUsize::new(0));
         // stdout reader
         if let Some(stdout) = child.stdout.take() {
-            tokio::spawn(Self::read_channel(stdout, ChunkType::Stdout, tx.clone()));
+            tokio::spawn(Self::read_channel(
+                write_index.clone(),
+                stdout,
+                ChunkType::Stdout,
+                tx.clone(),
+            ));
         }
 
         // stderr reader
         if let Some(stderr) = child.stderr.take() {
-            tokio::spawn(Self::read_channel(stderr, ChunkType::Stdout, tx.clone()));
+            tokio::spawn(Self::read_channel(
+                write_index.clone(),
+                stderr,
+                ChunkType::Stderr,
+                tx.clone(),
+            ));
         }
 
         if let Some(stdin) = child.stdin.take() {
@@ -127,6 +150,7 @@ impl TabProcess {
         Ok(TabProcess {
             child,
             tx,
+            tx_stdin,
             scrollback,
         })
     }
@@ -134,8 +158,8 @@ impl TabProcess {
     pub async fn read(&self) -> impl Stream<Item = Chunk> {
         use async_stream::stream;
 
-        let scrollback = self.scrollback.clone();
         let mut subscription = self.tx.subscribe();
+        let scrollback = self.scrollback.clone();
         stream! {
             let mut accept_index = 0usize;
 
@@ -143,58 +167,90 @@ impl TabProcess {
                 let scrollback = scrollback.read().await;
                 for chunk in scrollback.chunks() {
                     accept_index = chunk.index + 1;
+                    info!("scrollback chunk: {:?}", chunk);
                     yield chunk.clone();
                 }
             }
 
-            for chunk in subscription.recv().await {
-                if chunk.index >= accept_index {
-                    accept_index = chunk.index + 1;
-                    yield chunk;
+            info!("done with scrollback!");
+
+            loop {
+                let message = subscription.recv().await;
+                match message {
+                    Ok(chunk) => {
+                        info!("recv chunk: {:?}", chunk);
+                        if chunk.index >= accept_index {
+                            accept_index = chunk.index + 1;
+                            yield chunk;
+                        } else {
+                            info!("ignoring out-of-order chunk! {:?}", chunk);
+                        }
+                    },
+                    Err(RecvError::Lagged(_)) => {}
+                    Err(RecvError::Closed) => { break; }
                 }
             }
+
+            info!("done with subscription")
         }
     }
 
+    pub async fn write(&self, chunk: StdinChunk) -> anyhow::Result<()> {
+        // todo: do better than cloning each time.  maybe keep a copy in the tab session?
+        let mut tx = self.tx_stdin.clone();
+        tx.send(chunk).await?;
+        Ok(())
+    }
+
     async fn read_channel(
+        index: Arc<AtomicUsize>,
         mut channel: impl AsyncReadExt + Unpin,
         channel_type: ChunkType,
         tx: Sender<Chunk>,
     ) {
-        let mut index = 0usize;
-
+        let index = index.as_ref();
         let mut buffer = vec![0u8; CHUNK_LEN];
         while let Ok(read) = channel.read(buffer.as_mut_slice()).await {
             if read == 0 {
                 continue;
             }
 
+            info!("Read {} bytes from {:?}", read, channel_type);
+
             let mut buf = vec![0; read];
             buf.copy_from_slice(&buffer[0..read]);
 
             let chunk = Chunk {
-                index,
+                index: index.load(Ordering::SeqCst),
                 channel: channel_type.clone(),
                 data: buf,
             };
 
             // TODO: deal with error handling
             tx.send(chunk).expect("Failed to send chunk");
-            index += 1;
+            index.fetch_add(1, Ordering::SeqCst);
         }
     }
 
     async fn write_stdin(
         mut stdin: impl AsyncWriteExt + Unpin,
-        mut rx: tokio::sync::mpsc::Receiver<Chunk>,
+        mut rx: tokio::sync::mpsc::Receiver<StdinChunk>,
     ) {
+        stdin
+            .write("echo from-rust\n".as_bytes())
+            .await
+            .expect("stdin write failed");
+
         while let Some(mut chunk) = rx.recv().await {
+            info!("writing stdin chunk: {:?}", &chunk);
             // TODO: deal with error handling
             stdin
                 .write(chunk.data.as_mut_slice())
                 .await
                 .expect("Stdin write failed");
         }
+
+        info!("stdin loop terminated");
     }
 
     async fn write_scrollback(scrollback: ArcLockScrollbackBuffer, mut rx: Receiver<Chunk>) {
@@ -223,8 +279,10 @@ impl ScrollbackBuffer {
     }
 
     pub fn push(&mut self, mut chunk: Chunk) {
-        if let Some(back_len) = self.queue.back().map(Chunk::len) {
-            if self.size - back_len + chunk.len() > self.min_capacity {
+        if let Some(front_len) = self.queue.front().map(Chunk::len) {
+            if self.size > front_len + chunk.len()
+                && self.size - front_len + chunk.len() > self.min_capacity
+            {
                 self.queue.pop_back();
             }
         }
@@ -232,14 +290,15 @@ impl ScrollbackBuffer {
         // If we get several small buffers of the same channel, concat them.
         // This saves a lot of overhead for chunk id / channel storage over the websocket.
         // It does cause the client to 'miss' chunks, but that is part of the API contract.
-        if let Some(front) = self.queue.front_mut() {
-            if front.channel == chunk.channel && front.len() + chunk.len() < MAX_CHUNK_LEN {
-                front.data.append(&mut chunk.data);
+        if let Some(back) = self.queue.back_mut() {
+            if back.channel == chunk.channel && back.len() + chunk.len() < MAX_CHUNK_LEN {
+                back.data.append(&mut chunk.data);
+                back.index = chunk.index;
                 return;
             }
         }
 
-        self.queue.push_front(chunk)
+        self.queue.push_back(chunk)
     }
 
     pub fn chunks(&self) -> impl Iterator<Item = &Chunk> {
