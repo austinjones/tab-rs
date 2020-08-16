@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "tab-cli",
-    "tab-common",
-    "tab-daemon"
+    "tab-daemon",
+    "common/tab-api",
+    "common/tab-websocket"
 ]

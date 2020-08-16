@@ -1,18 +1,35 @@
-use async_tungstenite::accept_async;
+use async_tungstenite::{tokio::TokioAdapter, WebSocketStream};
 use daemonfile::DaemonFile;
-use log::{info, LevelFilter};
+use endpoint::handle_request;
+use futures::sink::SinkExt;
+use futures::{
+    stream::{SplitSink, StreamExt},
+    Sink,
+};
+use log::{error, info, LevelFilter};
+use runtime::DaemonRuntime;
+use session::DaemonSession;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
-use std::time::Duration;
-use tab_common::config::{daemon_log, DaemonConfig};
-use tokio::stream::StreamExt;
+use std::{borrow::Borrow, cell::RefCell, rc::Rc, sync::Arc, time::Duration};
+use tab_api::{
+    config::{daemon_log, DaemonConfig},
+    request::Request,
+    response::Response,
+};
+use tab_websocket::{decode, encode, encode_with};
 use tokio::{
     net::{TcpListener, TcpStream},
+    sync::mpsc::Sender,
     task,
 };
+use tungstenite::Message;
 
 mod daemonfile;
+mod endpoint;
+mod runtime;
+mod session;
 
-#[tokio::main]
+#[tokio::main(core_threads = 4, max_threads = 16)]
 async fn main() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
@@ -41,15 +58,28 @@ async fn main() -> anyhow::Result<()> {
     info!("Daemon pid: {}", pid);
     info!("Daemon port: {}", port);
 
+    let runtime = Arc::new(DaemonRuntime::new());
     task::spawn(async move {
-        while let Ok((stream, _addr)) = server.accept().await {
-            // TODO: only accept connections from loopback address
-            task::spawn(accept_connection(stream));
+        let runtime = runtime.clone();
+        loop {
+            info!("waiting for connection.");
+            let connect = server.accept().await;
+            match connect {
+                Ok((stream, _addr)) => {
+                    // TODO: only accept connections from loopback address
+                    info!("connection opened from {:?}", _addr);
+                    task::spawn(accept_connection(runtime.clone(), stream));
+                }
+                Err(e) => {
+                    error!("tcp connection failed: {}", e);
+                    break;
+                }
+            }
         }
     });
 
     // TODO: intelligent shutdown behavior
-    tokio::time::delay_for(Duration::from_millis(30000)).await;
+    tokio::time::delay_for(Duration::from_millis(60000)).await;
 
     info!("tab daemon shutting down...");
     drop(daemon_file);
@@ -57,15 +87,37 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn accept_connection(stream: TcpStream) -> anyhow::Result<()> {
+async fn accept_connection(runtime: Arc<DaemonRuntime>, stream: TcpStream) -> anyhow::Result<()> {
     let addr = stream.peer_addr()?;
-    let mut connection = async_tungstenite::tokio::accept_async(stream).await?;
+    let websocket = async_tungstenite::tokio::accept_async(stream).await?;
+    let (tx, mut rx) = websocket.split();
 
+    let tx = process_responses(tx).await;
+    // let mut websocket = parse_bincode(websocket);
     info!("connection opened from `{}`", addr);
 
-    while let Some(msg) = connection.next().await {
-        let msg = msg?;
+    let mut session = DaemonSession::new(runtime);
+
+    while let Some(msg) = rx.next().await {
+        let msg = decode(msg)?;
+        handle_request(msg, &mut session, tx.clone()).await?
     }
 
     Ok(())
+}
+
+/// Convert the socket into a mpsc sender.  This allows asynchronous subscriptions to stdin/stderr
+async fn process_responses(
+    mut socket: SplitSink<WebSocketStream<TokioAdapter<TcpStream>>, Message>,
+) -> tokio::sync::mpsc::Sender<Response> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(32);
+    task::spawn(async move {
+        while let Some(message) = rx.next().await {
+            // TODO: log errors
+            let serialized_message = encode(message).unwrap();
+            socket.send(serialized_message).await.unwrap();
+        }
+    });
+
+    tx
 }
