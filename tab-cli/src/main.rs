@@ -1,9 +1,7 @@
 use async_tungstenite::tokio::connect_async;
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches};
 use crossterm::{
-    cursor::MoveTo,
     terminal::{enable_raw_mode, size},
-    Command,
 };
 use futures::sink::SinkExt;
 use futures::{stream::StreamExt, Future, Sink, Stream};
@@ -11,22 +9,22 @@ use log::{info, LevelFilter};
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 use std::{io::Write, time::Duration};
 use tab_api::{
-    chunk::{Chunk, ChunkType, StdinChunk},
+    chunk::{ChunkType, StdinChunk},
     config::load_daemon_file,
     request::Request,
     response::Response,
     tab::{CreateTabMetadata, TabId},
 };
-use tab_websocket::{decode, decode_with, encode_with};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tab_websocket::{decode_with, encode_with};
+use tokio::io::{AsyncReadExt};
 use tokio::time::delay_for;
-use tungstenite::Message;
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     println!("Starting.");
 
-    let matches = init();
+    let _matches = init();
     run().await?;
 
     info!("Complete.  Shutting down");
@@ -139,7 +137,7 @@ async fn recv_loop(
         // info!("message: {:?}", message);
 
         match message {
-            Response::Chunk(tab_id, chunk) => match chunk.channel {
+            Response::Chunk(_tab_id, chunk) => match chunk.channel {
                 ChunkType::Stdout => {
                     let mut index = 0;
                     for line in chunk.data.split(|e| *e == b'\n') {
@@ -162,8 +160,8 @@ async fn recv_loop(
                     stderr.write_all(chunk.data.as_slice())?;
                 }
             },
-            Response::TabUpdate(tab) => {}
-            Response::TabList(tabs) => {}
+            Response::TabUpdate(_tab) => {}
+            Response::TabList(_tabs) => {}
         }
     }
 

@@ -8,9 +8,8 @@
 //! to implement the splitting ourselves in order to be able to implement
 //! AsRawFd for the split types.
 
-use bytes::{Buf, BufMut};
 use futures::{lock::BiLock, ready};
-use std::io::{self, Read, Write};
+use std::io::{self};
 use std::{
     os::unix::io::{AsRawFd, RawFd},
     task::{Context, Poll},
@@ -70,10 +69,6 @@ impl AsAsyncPtyFd for &mut AsyncPtyMasterWriteHalf {
         let l = ready!(self.handle.poll_lock(cx));
         Poll::Ready(l.as_raw_fd())
     }
-}
-
-fn would_block() -> io::Error {
-    io::Error::new(io::ErrorKind::WouldBlock, "would block")
 }
 
 impl AsyncRead for AsyncPtyMasterReadHalf {

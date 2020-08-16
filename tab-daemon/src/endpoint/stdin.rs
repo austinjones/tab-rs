@@ -1,12 +1,8 @@
 use super::Endpoint;
 use crate::session::DaemonSession;
 use async_trait::async_trait;
-use tab_api::{
-    chunk::StdinChunk,
-    response::Response,
-    tab::{CreateTabMetadata, TabId, TabMetadata},
-};
-use tokio::{runtime::Runtime, sync::mpsc::Sender};
+use tab_api::{chunk::StdinChunk, response::Response, tab::TabId};
+use tokio::sync::mpsc::Sender;
 
 pub struct StdinEndpoint;
 
@@ -17,7 +13,7 @@ impl Endpoint for StdinEndpoint {
     async fn handle(
         session: &mut DaemonSession,
         (tab, data): Self::Request,
-        mut response_sink: Sender<Response>,
+        _response_sink: Sender<Response>,
     ) -> anyhow::Result<()> {
         // check if the session is active
         // create an https://docs.rs/futures/0.3.5/futures/future/struct.Abortable.html

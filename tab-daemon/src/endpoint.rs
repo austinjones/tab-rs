@@ -1,9 +1,9 @@
 use crate::session::DaemonSession;
 use async_trait::async_trait;
 use create::CreateTabEndpoint;
-use futures::Sink;
+
 use log::info;
-use std::fmt::Debug;
+
 use stdin::StdinEndpoint;
 use subscribe::SubscribeEndpoint;
 use tab_api::{request::Request, response::Response};
@@ -37,14 +37,14 @@ pub async fn handle_request(
             // maybe a random key saved in the daemonfile?
         }
         Request::Subscribe(tab) => SubscribeEndpoint::handle(session, tab, response_sink).await?,
-        Request::Unsubscribe(tab) => {}
+        Request::Unsubscribe(_tab) => {}
         Request::Stdin(tab, data) => {
             StdinEndpoint::handle(session, (tab, data), response_sink).await?
         }
         Request::CreateTab(metadata) => {
             CreateTabEndpoint::handle(session, metadata, response_sink).await?
         }
-        Request::CloseTab(tab) => unimplemented!(),
+        Request::CloseTab(_tab) => unimplemented!(),
         Request::ListTabs => {
             response_sink.send(Response::TabList(vec![])).await?;
         }

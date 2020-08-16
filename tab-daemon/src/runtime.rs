@@ -2,7 +2,7 @@ use futures::Stream;
 use log::info;
 use std::{
     collections::VecDeque,
-    process::{Command, Stdio},
+    process::{Command},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -15,15 +15,13 @@ use tab_api::{
 use tokio::sync::broadcast::RecvError;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    process::{Child, ChildStderr, ChildStdin, ChildStdout},
-    stream,
     sync::{
         broadcast::{Receiver, Sender},
         RwLock,
     },
 };
 use tab_pty_process::CommandExt;
-use tab_pty_process::{AsyncPtyFd, AsyncPtyMaster, PtyMaster};
+use tab_pty_process::{AsyncPtyMaster, PtyMaster};
 
 static CHUNK_LEN: usize = 2048;
 static MAX_CHUNK_LEN: usize = 2048;

@@ -33,8 +33,8 @@
 //! [tokio-process](https://github.com/alexcrichton/tokio-process) crate.
 
 use async_trait::async_trait;
-use futures::future::FlattenStream;
-use futures::{Future, Stream};
+
+use futures::Future;
 use io::{Read, Write};
 use libc::{c_int, c_ushort};
 use mio::event::Evented;
@@ -53,7 +53,7 @@ use std::{
     task::{Context, Poll},
 };
 use tokio::io::PollEvented;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::signal::unix::{signal, Signal, SignalKind};
 mod split;
 pub use split::{AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf};
@@ -419,7 +419,7 @@ pub trait AsAsyncPtyFd {
 }
 
 impl AsAsyncPtyFd for AsyncPtyMaster {
-    fn as_async_pty_fd(&self, cx: &mut Context<'_>) -> Poll<RawFd> {
+    fn as_async_pty_fd(&self, _cx: &mut Context<'_>) -> Poll<RawFd> {
         Poll::Ready(self.as_raw_fd())
     }
 }
@@ -658,10 +658,10 @@ impl CommandExtInternal for process::Command {
         self.stderr(slave);
 
         // XXX any need to close slave handles in the parent process beyond
-        // what's done here?
+        // what's done here
 
-        self.before_exec(move || {
-            unsafe {
+        unsafe {
+            self.pre_exec(move || {
                 if raw {
                     let mut attrs: libc::termios = mem::zeroed();
 
@@ -689,10 +689,9 @@ impl CommandExtInternal for process::Command {
                 if libc::ioctl(0, libc::TIOCSCTTY.into(), 1) != 0 {
                     return Err(io::Error::last_os_error());
                 }
-            }
-
-            Ok(())
-        });
+                Ok(())
+            });
+        }
 
         Ok(Child::new(self.spawn()?))
     }

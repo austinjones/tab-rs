@@ -4,22 +4,19 @@ use endpoint::handle_request;
 use futures::sink::SinkExt;
 use futures::{
     stream::{SplitSink, StreamExt},
-    Sink,
 };
 use log::{error, info, LevelFilter};
 use runtime::DaemonRuntime;
 use session::DaemonSession;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
-use std::{borrow::Borrow, cell::RefCell, rc::Rc, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tab_api::{
     config::{daemon_log, DaemonConfig},
-    request::Request,
     response::Response,
 };
-use tab_websocket::{decode, encode, encode_with};
+use tab_websocket::{decode, encode};
 use tokio::{
     net::{TcpListener, TcpStream},
-    sync::mpsc::Sender,
     task,
 };
 use tungstenite::Message;

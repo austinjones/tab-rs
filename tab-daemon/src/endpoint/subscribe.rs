@@ -1,9 +1,9 @@
 use super::Endpoint;
 use crate::session::DaemonSession;
 use async_trait::async_trait;
-use std::rc::Rc;
+
 use tab_api::{response::Response, tab::TabId};
-use tokio::{runtime::Runtime, sync::mpsc::Sender};
+use tokio::{sync::mpsc::Sender};
 
 pub struct SubscribeEndpoint;
 
