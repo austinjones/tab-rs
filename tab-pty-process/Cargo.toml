@@ -1,0 +1,27 @@
+# Forked from https://github.com/pkgw/stund/
+# Copyright 2019 Peter Williams <peter@newton.cx>
+# Licensed under the MIT License.
+
+[package]
+name = "tab-pty-process"
+publish = false
+version = "0.4.0"
+authors = ["Austin Jones <implaustin@gmail.com>", "Alex Crichton <alex@alexcrichton.com>", "Peter Williams <peter@newton.cx>"]
+description = "Interact with a child process through a pseudo-TTY, asynchronously using Tokio"
+repository = "https://github.com/austinjones/tab-rs/"
+readme = "README.md"
+keywords = ["pseudotty", "tokio"]
+categories = ["asynchronous", "os::unix-apis"]
+license = "MIT/Apache-2.0"
+edition = "2018"
+
+[dependencies]
+bytes = "0.4.11"
+futures = { version = "0.3", features = ["unstable", "bilock"] }
+libc = "0.2"
+mio = "0.6"
+tokio = { version = "0.2", features = ["io-util", "io-driver", "signal"] }
+async-trait = "0.1"
+
+[dev-dependencies]
+errno = "0.2"

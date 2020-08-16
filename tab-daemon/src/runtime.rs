@@ -2,7 +2,7 @@ use futures::Stream;
 use log::info;
 use std::{
     collections::VecDeque,
-    process::Stdio,
+    process::{Command, Stdio},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -15,13 +15,15 @@ use tab_api::{
 use tokio::sync::broadcast::RecvError;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    process::{Child, ChildStderr, ChildStdin, ChildStdout, Command},
+    process::{Child, ChildStderr, ChildStdin, ChildStdout},
     stream,
     sync::{
         broadcast::{Receiver, Sender},
         RwLock,
     },
 };
+use tab_pty_process::CommandExt;
+use tab_pty_process::{AsyncPtyFd, AsyncPtyMaster, PtyMaster};
 
 static CHUNK_LEN: usize = 2048;
 static MAX_CHUNK_LEN: usize = 2048;
@@ -45,6 +47,7 @@ impl DaemonRuntime {
         let metadata = TabMetadata {
             id: id as u16,
             name: create.name.clone(),
+            dimensions: create.dimensions.clone(),
         };
         let tab_runtime = Arc::new(TabRuntime::new(metadata).await?);
 
@@ -74,8 +77,8 @@ pub struct TabRuntime {
 impl TabRuntime {
     pub async fn new(metadata: TabMetadata) -> anyhow::Result<Self> {
         let runtime = Self {
+            process: TabProcess::new(metadata.dimensions.clone()).await?,
             metadata,
-            process: TabProcess::new().await?,
         };
 
         Ok(runtime)
@@ -99,22 +102,25 @@ impl TabRuntime {
 }
 
 pub struct TabProcess {
-    child: Child,
+    child: tab_pty_process::Child,
     tx: Sender<Chunk>,
     tx_stdin: tokio::sync::mpsc::Sender<StdinChunk>,
     scrollback: Arc<RwLock<ScrollbackBuffer>>,
 }
 
 impl TabProcess {
-    pub async fn new() -> anyhow::Result<TabProcess> {
+    pub async fn new(dimensions: (u16, u16)) -> anyhow::Result<TabProcess> {
         // let mut child = Command::new("fish")
         //     .args(&["--interactive", "--debug=debug,proc-internal-proc"])
-        let mut child = Command::new("bash")
-            // .args(&["--interactive"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+        let pty = AsyncPtyMaster::open()?;
+
+        let mut child = Command::new("bash");
+        let child = child.spawn_pty_async(&pty)?;
+
+        pty.resize(dimensions).await.expect("failed to resize pty");
+
+        let (read, write) = pty.split();
+
         let scrollback: ArcLockScrollbackBuffer = Arc::new(RwLock::new(ScrollbackBuffer::new()));
 
         let (tx, rx) = tokio::sync::broadcast::channel(OUTPUT_CHANNEL_SIZE);
@@ -124,28 +130,13 @@ impl TabProcess {
 
         let write_index = Arc::new(AtomicUsize::new(0));
         // stdout reader
-        if let Some(stdout) = child.stdout.take() {
-            tokio::spawn(Self::read_channel(
-                write_index.clone(),
-                stdout,
-                ChunkType::Stdout,
-                tx.clone(),
-            ));
-        }
-
-        // stderr reader
-        if let Some(stderr) = child.stderr.take() {
-            tokio::spawn(Self::read_channel(
-                write_index.clone(),
-                stderr,
-                ChunkType::Stderr,
-                tx.clone(),
-            ));
-        }
-
-        if let Some(stdin) = child.stdin.take() {
-            tokio::spawn(Self::write_stdin(stdin, rx_stdin));
-        }
+        tokio::spawn(Self::read_channel(
+            write_index.clone(),
+            read,
+            ChunkType::Stdout,
+            tx.clone(),
+        ));
+        tokio::spawn(Self::write_stdin(write, rx_stdin));
 
         Ok(TabProcess {
             child,
@@ -236,6 +227,7 @@ impl TabProcess {
         mut stdin: impl AsyncWriteExt + Unpin,
         mut rx: tokio::sync::mpsc::Receiver<StdinChunk>,
     ) {
+        //TODO: remove debugging statement
         stdin
             .write("echo from-rust\n".as_bytes())
             .await
@@ -243,11 +235,23 @@ impl TabProcess {
 
         while let Some(mut chunk) = rx.recv().await {
             info!("writing stdin chunk: {:?}", &chunk);
+
+            // TODO: refactor this into a shared sender struct
+            // tx.send(Chunk {
+            //     index: index.load(Ordering::SeqCst),
+            //     channel: ChunkType::Stdout,
+            //     data: chunk.data.clone(),
+            // })
+            // .expect("stdin echo failed");
+            // index.fetch_add(1, Ordering::SeqCst);
+
             // TODO: deal with error handling
             stdin
                 .write(chunk.data.as_mut_slice())
                 .await
                 .expect("Stdin write failed");
+
+            stdin.flush().await.expect("stdin flush failed");
         }
 
         info!("stdin loop terminated");

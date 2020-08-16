@@ -1,10 +1,15 @@
 use async_tungstenite::tokio::connect_async;
 use clap::{App, Arg, ArgMatches, SubCommand};
+use crossterm::{
+    cursor::MoveTo,
+    terminal::{enable_raw_mode, size},
+    Command,
+};
 use futures::sink::SinkExt;
 use futures::{stream::StreamExt, Future, Sink, Stream};
 use log::{info, LevelFilter};
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
-use std::time::Duration;
+use std::{io::Write, time::Duration};
 use tab_api::{
     chunk::{Chunk, ChunkType, StdinChunk},
     config::load_daemon_file,
@@ -14,7 +19,7 @@ use tab_api::{
 };
 use tab_websocket::{decode, decode_with, encode_with};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::{process::Command, time::delay_for};
+use tokio::time::delay_for;
 use tungstenite::Message;
 
 #[tokio::main]
@@ -89,6 +94,7 @@ async fn send_loop(
     tx.send(Request::ListTabs).await?;
     tx.send(Request::CreateTab(CreateTabMetadata {
         name: "foo".to_string(),
+        dimensions: size()?,
     }))
     .await?;
 
@@ -124,8 +130,9 @@ async fn recv_loop(
 ) -> anyhow::Result<()> {
     info!("Waiting on messages...");
 
-    let mut stdout = tokio::io::stdout();
-    let mut stderr = tokio::io::stderr();
+    let mut stdout = std::io::stdout();
+    let mut stderr = std::io::stderr();
+    enable_raw_mode().expect("failed to enable raw mode");
 
     while let Some(message) = rx.next().await {
         let message = message.await?;
@@ -134,10 +141,25 @@ async fn recv_loop(
         match message {
             Response::Chunk(tab_id, chunk) => match chunk.channel {
                 ChunkType::Stdout => {
-                    stdout.write_all(chunk.data.as_slice()).await?;
+                    let mut index = 0;
+                    for line in chunk.data.split(|e| *e == b'\n') {
+                        stdout.write(line)?;
+
+                        index += line.len();
+                        if index < chunk.data.len() {
+                            let next = chunk.data[index];
+
+                            if next == b'\n' {
+                                stdout.write("\r\n".as_bytes())?;
+                                index += 1;
+                            }
+                        }
+                    }
+
+                    stdout.flush()?;
                 }
                 ChunkType::Stderr => {
-                    stderr.write_all(chunk.data.as_slice()).await?;
+                    stderr.write_all(chunk.data.as_slice())?;
                 }
             },
             Response::TabUpdate(tab) => {}
@@ -149,6 +171,6 @@ async fn recv_loop(
 }
 
 async fn start_daemon() -> anyhow::Result<()> {
-    Command::new("tab-daemon").spawn()?.await?;
+    // Command::new("tab-daemon").spawn()?.await?;
     Ok(())
 }
