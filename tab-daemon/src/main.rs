@@ -29,7 +29,7 @@ mod endpoint;
 mod runtime;
 mod session;
 
-#[tokio::main(core_threads = 4, max_threads = 16)]
+#[tokio::main(max_threads = 32)]
 async fn main() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
@@ -113,6 +113,7 @@ async fn process_responses(
     let (tx, mut rx) = tokio::sync::mpsc::channel(32);
     task::spawn(async move {
         while let Some(message) = rx.next().await {
+            info!("send message: {:?}", message);
             // TODO: log errors
             let serialized_message = encode(message).unwrap();
             socket.send(serialized_message).await.unwrap();
