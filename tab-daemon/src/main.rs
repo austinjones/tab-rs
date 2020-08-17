@@ -2,9 +2,7 @@ use async_tungstenite::{tokio::TokioAdapter, WebSocketStream};
 use daemonfile::DaemonFile;
 use endpoint::handle_request;
 use futures::sink::SinkExt;
-use futures::{
-    stream::{SplitSink, StreamExt},
-};
+use futures::stream::{SplitSink, StreamExt};
 use log::{error, info, LevelFilter};
 use runtime::DaemonRuntime;
 use session::DaemonSession;
@@ -12,17 +10,20 @@ use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::{sync::Arc, time::Duration};
 use tab_api::{
     config::{daemon_log, DaemonConfig},
+    request::Request,
     response::Response,
 };
-use tab_websocket::{decode, encode};
+use tab_websocket::{decode, encode, encode_or_close, server::spawn_server};
 use tokio::{
     net::{TcpListener, TcpStream},
     task,
+    time::delay_for,
 };
-use tungstenite::Message;
+use tungstenite::{Error, Message};
 
 mod daemonfile;
 mod endpoint;
+mod pty_process;
 mod runtime;
 mod session;
 
@@ -65,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
                 Ok((stream, _addr)) => {
                     // TODO: only accept connections from loopback address
                     info!("connection opened from {:?}", _addr);
+                    // task::spawn(accept_connection(runtime.clone(), stream));
                     task::spawn(accept_connection(runtime.clone(), stream));
                 }
                 Err(e) => {
@@ -86,19 +88,17 @@ async fn main() -> anyhow::Result<()> {
 
 async fn accept_connection(runtime: Arc<DaemonRuntime>, stream: TcpStream) -> anyhow::Result<()> {
     let addr = stream.peer_addr()?;
-    let websocket = async_tungstenite::tokio::accept_async(stream).await?;
-    let (tx, mut rx) = websocket.split();
 
-    let tx = process_responses(tx).await;
-    // let mut websocket = parse_bincode(websocket);
     info!("connection opened from `{}`", addr);
 
     let mut session = DaemonSession::new(runtime);
+    let (mut rx_request, tx_response) = spawn_server(stream, Response::is_close).await?;
 
-    while let Some(msg) = rx.next().await {
-        let msg = decode(msg)?;
-        handle_request(msg, &mut session, tx.clone()).await?
+    while let Some(msg) = rx_request.recv().await {
+        handle_request(msg, &mut session, tx_response.clone()).await?
     }
+
+    info!("connection closed from `{}`", addr);
 
     Ok(())
 }
@@ -112,9 +112,15 @@ async fn process_responses(
         while let Some(message) = rx.next().await {
             info!("send message: {:?}", message);
             // TODO: log errors
-            let serialized_message = encode(message).unwrap();
-            socket.send(serialized_message).await.unwrap();
+            let serialized_message = encode_or_close(message, Response::is_close).unwrap();
+            match socket.send(serialized_message).await {
+                Ok(_) => {}
+                Err(Error::ConnectionClosed) => {}
+                Err(e) => panic!(format!("websocket send error: {}", e)),
+            }
         }
+
+        info!("response processor shutdown");
     });
 
     tx

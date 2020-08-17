@@ -2,7 +2,7 @@ use crate::session::DaemonSession;
 use async_trait::async_trait;
 use create::CreateTabEndpoint;
 
-use log::info;
+use log::{error, info};
 
 use stdin::StdinEndpoint;
 use subscribe::SubscribeEndpoint;
@@ -38,7 +38,7 @@ pub async fn handle_request(
         }
         Request::Subscribe(tab) => SubscribeEndpoint::handle(session, tab, response_sink).await?,
         Request::Unsubscribe(_tab) => {}
-        Request::Stdin(tab, data) => {
+        Request::Input(tab, data) => {
             StdinEndpoint::handle(session, (tab, data), response_sink).await?
         }
         Request::CreateTab(metadata) => {
@@ -48,6 +48,7 @@ pub async fn handle_request(
         Request::ListTabs => {
             response_sink.send(Response::TabList(vec![])).await?;
         }
+        Request::Close => error!("close message should not be sent to server"),
     }
 
     info!("end request: {:?}", description);
