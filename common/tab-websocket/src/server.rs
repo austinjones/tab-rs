@@ -9,6 +9,7 @@ use crate::{
     common::{self, send_close},
     WebSocket,
 };
+use common::should_terminate;
 use log::{debug, error, info, trace};
 use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
@@ -40,8 +41,10 @@ pub async fn spawn_server<
                         break;
                     }
 
-                    let response = request.unwrap();
-                    if let Err(e) = response {
+                    trace!("request received: {:?}", &request);
+
+                    let request = request.unwrap();
+                    if let Err(e) = request {
                         match e {
                             Error::ConnectionClosed | Error::AlreadyClosed | Error::Protocol(_)=> {
                                 break;
@@ -53,7 +56,12 @@ pub async fn spawn_server<
                         }
                     }
 
-                    server_process_request(&mut websocket, response.unwrap(), &mut tx_request).await;
+                    let request = request.unwrap();
+                    if should_terminate(&request) {
+                        break;
+                    }
+
+                    server_process_request(&mut websocket, request, &mut tx_request).await;
                 },
                 response = rx_response.recv() => {
                     if !response.is_some()  {
@@ -62,11 +70,13 @@ pub async fn spawn_server<
                     }
 
                     let response = response.unwrap();
+
                     if is_close(&response) {
                         common::send_close(&mut websocket).await;
                         continue;
                     }
 
+                    debug!("send message: {:?}", &response);
                     common::send_message(&mut websocket, response).await;
                 },
                 _ = ctrl_c() => {
@@ -82,12 +92,11 @@ pub async fn spawn_server<
 }
 
 async fn server_process_request<Request: DeserializeOwned>(
-    websocket: &mut WebSocket,
+    _websocket: &mut WebSocket,
     response: tungstenite::Message,
     target: &mut Sender<Request>,
 ) {
-    if let Message::Close(frame) = response {
-        // respond_to_close(websocket, frame).await;
+    if let Message::Close(_) = response {
         return;
     }
 

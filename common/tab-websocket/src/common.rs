@@ -30,3 +30,11 @@ pub async fn send_close(websocket: &mut WebSocket) {
         }
     }
 }
+
+pub fn should_terminate(message: &Message) -> bool {
+    if let Message::Close(_) = message {
+        true
+    } else {
+        false
+    }
+}

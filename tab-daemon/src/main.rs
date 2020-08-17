@@ -102,26 +102,3 @@ async fn accept_connection(runtime: Arc<DaemonRuntime>, stream: TcpStream) -> an
 
     Ok(())
 }
-
-/// Convert the socket into a mpsc sender.  This allows asynchronous subscriptions to stdin/stderr
-async fn process_responses(
-    mut socket: SplitSink<WebSocketStream<TokioAdapter<TcpStream>>, Message>,
-) -> tokio::sync::mpsc::Sender<Response> {
-    let (tx, mut rx) = tokio::sync::mpsc::channel(32);
-    task::spawn(async move {
-        while let Some(message) = rx.next().await {
-            info!("send message: {:?}", message);
-            // TODO: log errors
-            let serialized_message = encode_or_close(message, Response::is_close).unwrap();
-            match socket.send(serialized_message).await {
-                Ok(_) => {}
-                Err(Error::ConnectionClosed) => {}
-                Err(e) => panic!(format!("websocket send error: {}", e)),
-            }
-        }
-
-        info!("response processor shutdown");
-    });
-
-    tx
-}

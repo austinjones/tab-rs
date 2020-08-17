@@ -19,6 +19,7 @@ pub struct DaemonFile {
 }
 
 impl DaemonFile {
+    // TODO: doesn't work if ~/.tab doesn't exist for some reason
     pub fn new(config: &DaemonConfig) -> anyhow::Result<DaemonFile> {
         let daemon_file = daemon_file()?;
 

@@ -9,6 +9,7 @@ use futures::{
 };
 use log::{info, trace, LevelFilter};
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
+use state::ClientState;
 use std::{io::Write, time::Duration};
 use tab_api::{
     chunk::InputChunk,
@@ -28,6 +29,7 @@ use tokio::{
     time::delay_for,
 };
 use tungstenite::Message;
+mod state;
 
 pub fn main() -> anyhow::Result<()> {
     let mut runtime = Runtime::new()?;
@@ -100,8 +102,9 @@ async fn run() -> anyhow::Result<()> {
 
     // let rx = rx.map(|msg| decode_with::<Response>(msg));
 
-    tokio::spawn(send_loop(tx));
-    recv_loop(rx).await?;
+    let state = ClientState::default();
+    tokio::spawn(send_loop(tx.clone()));
+    recv_loop(tx, rx).await?;
 
     tx_close.send(Request::Close).await?;
 
@@ -146,7 +149,7 @@ async fn forward_stdin(mut tx: Sender<Request>) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn recv_loop(mut rx: Receiver<Response>) -> anyhow::Result<()> {
+async fn recv_loop(mut tx: Sender<Request>, mut rx: Receiver<Response>) -> anyhow::Result<()> {
     trace!("Waiting on messages...");
 
     let mut stdout = std::io::stdout();
