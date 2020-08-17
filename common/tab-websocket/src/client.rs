@@ -6,6 +6,7 @@ use futures::{future::ready, Future, SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{common, WebSocket};
+use common::should_terminate;
 use log::{debug, error, info, trace};
 use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
@@ -34,6 +35,8 @@ pub async fn spawn_client<
                         break;
                     }
 
+                    trace!("response received: {:?}", &response);
+
                     let response = response.unwrap();
                     if let Err(e) = response {
                         match e {
@@ -47,7 +50,13 @@ pub async fn spawn_client<
                         }
                     }
 
-                    client_process_response(&mut websocket, response.unwrap(), &mut tx_response).await;
+                    let response = response.unwrap();
+
+                    if should_terminate(&response) {
+                        break;
+                    }
+
+                    client_process_response(&mut websocket, response, &mut tx_response).await;
                 },
                 request = rx_request.recv() => {
                     if !request.is_some()  {
@@ -56,6 +65,7 @@ pub async fn spawn_client<
                     }
 
                     let request = request.unwrap();
+
                     if is_close(&request) {
                         common::send_close(&mut websocket).await;
                         continue;
@@ -76,12 +86,11 @@ pub async fn spawn_client<
 }
 
 async fn client_process_response<Response: DeserializeOwned>(
-    websocket: &mut WebSocket,
+    _websocket: &mut WebSocket,
     response: tungstenite::Message,
     target: &mut Sender<Response>,
 ) {
-    if let Message::Close(frame) = response {
-        // respond_to_close(websocket, frame).await;
+    if let Message::Close(_) = response {
         return;
     }
 

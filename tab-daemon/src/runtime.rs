@@ -1,11 +1,11 @@
-use crate::pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtySender};
+use crate::pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtySender, PtyResponse};
 use futures::Stream;
 use log::info;
 use std::{
     collections::VecDeque,
     process::{Command, ExitStatus},
     sync::{
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicUsize, Ordering, AtomicBool},
         Arc,
     },
 };
@@ -23,11 +23,6 @@ use tokio::{
         RwLock,
     },
 };
-
-static CHUNK_LEN: usize = 2048;
-static MAX_CHUNK_LEN: usize = 2048;
-static OUTPUT_CHANNEL_SIZE: usize = 32;
-static STDIN_CHANNEL_SIZE: usize = 32;
 
 pub struct DaemonRuntime {
     tabs: RwLock<Vec<Arc<TabRuntime>>>,
@@ -59,12 +54,13 @@ impl DaemonRuntime {
 
     pub async fn get_tab(&self, index: usize) -> Option<Arc<TabRuntime>> {
         let tabs = self.tabs.read().await;
-        tabs.get(index).map(|arc| arc.clone())
+        tabs.get(index).map(|arc| arc.clone()).filter(|tab| tab.is_running())
     }
 
     pub async fn find_tab(&self, name: &str) -> Option<Arc<TabRuntime>> {
         let tabs = self.tabs.read().await;
         tabs.iter()
+            .filter(|tab| tab.is_running())
             .find(|tab| tab.name() == name)
             .map(|arc| arc.clone())
     }
@@ -72,7 +68,8 @@ impl DaemonRuntime {
 
 pub struct TabRuntime {
     metadata: TabMetadata,
-    pty_sender: PtySender
+    pty_sender: PtySender,
+    is_running: Arc<AtomicBool>
 }
 
 impl TabRuntime {
@@ -84,8 +81,25 @@ impl TabRuntime {
 
         let (tx, rx) = PtyProcess::spawn(pty_options).await?;
         
+        let is_running = Arc::new(AtomicBool::new(true));
+
+        let mut rx_close = tx.subscribe().await;
+        let is_running_close = is_running.clone();
+        let id = metadata.id;
+        tokio::task::spawn(async move {
+            while let Ok(msg) = rx_close.recv().await {
+                if let PtyResponse::Terminated(_) = msg {
+                    break;
+                }
+            }
+
+            info!("tab {} terminated", id);
+            is_running_close.store(false, Ordering::SeqCst);
+        });
+
         let runtime = Self {
             metadata,
+            is_running,
             pty_sender: tx
         };
 
@@ -106,5 +120,9 @@ impl TabRuntime {
 
     pub fn pty_sender(&self) -> &PtySender {
         &self.pty_sender
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(Ordering::SeqCst)
     }
 }
