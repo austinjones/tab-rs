@@ -1,10 +1,10 @@
-use crate::runtime::{DaemonRuntime, TabRuntime};
+use crate::{
+    pty_process::PtyResponse,
+    runtime::{DaemonRuntime, TabRuntime},
+};
 use futures::future::{AbortHandle, Abortable};
 use futures::{pin_mut, StreamExt};
-use std::{
-    collections::{HashMap},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 use tab_api::{response::Response, tab::TabId};
 use tokio::sync::mpsc::Sender;
 
@@ -57,13 +57,22 @@ impl DaemonSession {
         tab_runtime: Arc<TabRuntime>,
         mut tx: Sender<Response>,
     ) {
-        let stream = tab_runtime.process().read().await;
+        let stream = tab_runtime.pty_sender().subscribe().await;
         pin_mut!(stream);
-        while let Some(chunk) = stream.next().await {
-            let message = Response::Chunk(tab.clone(), chunk);
-
-            // TODO: error handling
-            tx.send(message).await.expect("send failed");
+        while let Ok(response) = stream.recv().await {
+            match response {
+                PtyResponse::Output(chunk) => {
+                    // TODO: error handling
+                    let message = Response::Output(tab.clone(), chunk);
+                    tx.send(message).await.expect("send failed");
+                }
+                PtyResponse::Terminated(_) => {
+                    tx.send(Response::TabTerminated(tab))
+                        .await
+                        .expect("send termination failed");
+                    break;
+                }
+            }
         }
     }
 }

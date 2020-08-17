@@ -5,7 +5,7 @@ use tab_api::{
     response::Response,
     tab::{CreateTabMetadata, TabMetadata},
 };
-use tokio::{sync::mpsc::Sender};
+use tokio::sync::mpsc::Sender;
 
 pub struct CreateTabEndpoint;
 
@@ -29,7 +29,7 @@ impl Endpoint for CreateTabEndpoint {
             return Ok(());
         }
 
-        let tab = session.runtime().create_tab(&action).await?;
+        let (tab, _) = session.runtime().create_tab(&action).await?;
         response_sink
             .send(Response::TabUpdate(tab.metadata().clone()))
             .await?;

@@ -9,8 +9,10 @@ edition = "2018"
 [dependencies]
 
 tungstenite = "0.11"
+async-tungstenite = { version = "*", features = ["tokio-runtime"] }
 tokio = { version = "0.2", features = ["stream"] }
 futures = "0.3"
 anyhow = "1.0"
 bincode = "1.3"
 serde = "1.0"
+log = "0.4"

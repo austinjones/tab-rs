@@ -1,14 +1,14 @@
 use super::Endpoint;
-use crate::session::DaemonSession;
+use crate::{pty_process::PtyRequest, session::DaemonSession};
 use async_trait::async_trait;
-use tab_api::{chunk::StdinChunk, response::Response, tab::TabId};
+use tab_api::{chunk::InputChunk, response::Response, tab::TabId};
 use tokio::sync::mpsc::Sender;
 
 pub struct StdinEndpoint;
 
 #[async_trait]
 impl Endpoint for StdinEndpoint {
-    type Request = (TabId, StdinChunk);
+    type Request = (TabId, InputChunk);
 
     async fn handle(
         session: &mut DaemonSession,
@@ -19,7 +19,9 @@ impl Endpoint for StdinEndpoint {
         // create an https://docs.rs/futures/0.3.5/futures/future/struct.Abortable.html
         // save in session, for termination
         if let Some(tab) = session.runtime().get_tab(tab.0 as usize).await {
-            tab.process().write(data).await?;
+            let pty_request = PtyRequest::Input(data);
+            let mut sender = tab.pty_sender().clone();
+            sender.send(pty_request).await?;
         } else {
             println!("No tab with id {:?}", tab);
         }

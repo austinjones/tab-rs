@@ -1,5 +1,5 @@
 use crate::{
-    chunk::StdinChunk,
+    chunk::InputChunk,
     tab::{CreateTabMetadata, TabId},
 };
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ pub enum Request {
     Unsubscribe(TabId),
 
     /// Sends the stdin data to the given tab
-    Stdin(TabId, StdinChunk),
+    Input(TabId, InputChunk),
 
     /// Terminates the shell on the given tab
     CreateTab(CreateTabMetadata),
@@ -29,4 +29,17 @@ pub enum Request {
 
     /// Lists all active tabs
     ListTabs,
+
+    /// Closes the websocket
+    Close,
+}
+
+impl Request {
+    pub fn is_close(&self) -> bool {
+        if let Request::Close = self {
+            true
+        } else {
+            false
+        }
+    }
 }
