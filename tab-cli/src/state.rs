@@ -1,5 +1,7 @@
+use tab_api::tab::TabId;
+
 pub struct ClientState {
-    pub selected_tab: Option<usize>,
+    pub selected_tab: Option<TabId>,
     pub awaiting_tab: Option<String>,
 }
 

@@ -29,6 +29,8 @@ use tokio::{
     time::delay_for,
 };
 use tungstenite::Message;
+mod service;
+mod services;
 mod state;
 
 pub fn main() -> anyhow::Result<()> {
@@ -44,7 +46,7 @@ async fn main_async() -> anyhow::Result<()> {
     println!("Starting.");
 
     let _matches = init();
-    run().await?;
+    // run_tab("foo").await?;
 
     info!("Complete.  Shutting down");
     Ok(())
@@ -77,7 +79,7 @@ fn init() -> ArgMatches<'static> {
         .get_matches()
 }
 
-async fn run() -> anyhow::Result<()> {
+async fn run_tab(name: String) -> anyhow::Result<()> {
     info!("Loading daemon file");
     let daemon_file = load_daemon_file()?;
     if daemon_file.is_none() {
@@ -93,8 +95,8 @@ async fn run() -> anyhow::Result<()> {
     let daemon_file = load_daemon_file()?.expect("daemon file should be present");
     let server_url = format!("ws://127.0.0.1:{}", daemon_file.port);
 
-    let (tx, rx) = spawn_client(server_url.as_str(), Request::is_close).await?;
-    let mut tx_close = tx.clone();
+    // let (tx, rx) = spawn_client(server_url.as_str(), Request::is_close).await?;
+    // let mut tx_close = tx.clone();
     // let (websocket, _) = connect_async(server_url).await?;
 
     // let (tx, rx) = websocket.split();
@@ -103,94 +105,29 @@ async fn run() -> anyhow::Result<()> {
     // let rx = rx.map(|msg| decode_with::<Response>(msg));
 
     let state = ClientState::default();
-    tokio::spawn(send_loop(tx.clone()));
-    recv_loop(tx, rx).await?;
+    // tokio::spawn(send_loop(tx.clone()));
+    // recv_loop(tx, rx).await?;
 
-    tx_close.send(Request::Close).await?;
-
-    Ok(())
-}
-
-async fn send_loop(mut tx: Sender<Request>) -> anyhow::Result<()> {
-    tx.send(Request::Auth(vec![])).await?;
-    tx.send(Request::ListTabs).await?;
-    tx.send(Request::CreateTab(CreateTabMetadata {
-        name: "foo".to_string(),
-        dimensions: size()?,
-    }))
-    .await?;
-
-    forward_stdin(tx).await?;
-
-    trace!("send_loop shutdown");
+    // tx_close.send(Request::Close).await?;
 
     Ok(())
 }
 
-async fn forward_stdin(mut tx: Sender<Request>) -> anyhow::Result<()> {
-    let mut stdin = tokio::io::stdin();
-    let mut buffer = vec![0u8; 512];
+// async fn send_loop(mut tx: Sender<Request>) -> anyhow::Result<()> {
+//     tx.send(Request::Auth(vec![])).await?;
+//     tx.send(Request::ListTabs).await?;
+//     tx.send(Request::CreateTab(CreateTabMetadata {
+//         name: "foo".to_string(),
+//         dimensions: size()?,
+//     }))
+//     .await?;
 
-    while let Ok(read) = stdin.read(buffer.as_mut_slice()).await {
-        if read == 0 {
-            continue;
-        }
+//     forward_stdin(tx).await?;
 
-        let mut buf = vec![0; read];
-        buf.copy_from_slice(&buffer[0..read]);
+//     trace!("send_loop shutdown");
 
-        let chunk = InputChunk { data: buf };
-        // TODO: use selected tab
-        tx.send(Request::Input(TabId(0), chunk)).await?;
-    }
-
-    trace!("forward_stdin shutdown");
-
-    Ok(())
-}
-
-async fn recv_loop(mut tx: Sender<Request>, mut rx: Receiver<Response>) -> anyhow::Result<()> {
-    trace!("Waiting on messages...");
-
-    let mut stdout = std::io::stdout();
-    enable_raw_mode().expect("failed to enable raw mode");
-
-    while let Some(message) = rx.recv().await {
-        // info!("message: {:?}", message);
-
-        match message {
-            Response::Output(_tab_id, chunk) => {
-                let mut index = 0;
-                for line in chunk.data.split(|e| *e == b'\n') {
-                    stdout.write(line)?;
-
-                    index += line.len();
-                    if index < chunk.data.len() {
-                        let next = chunk.data[index];
-
-                        if next == b'\n' {
-                            stdout.write("\r\n".as_bytes())?;
-                            index += 1;
-                        }
-                    }
-                }
-
-                stdout.flush()?;
-            }
-            Response::TabUpdate(_tab) => {}
-            Response::TabList(_tabs) => {}
-            Response::TabTerminated(_tab) => {
-                // TODO: filter to active tab
-                break;
-            }
-            Response::Close => {}
-        }
-    }
-
-    trace!("recv_loop shutdown");
-
-    Ok(())
-}
+//     Ok(())
+// }
 
 async fn start_daemon() -> anyhow::Result<()> {
     // Command::new("tab-daemon").spawn()?.await?;
