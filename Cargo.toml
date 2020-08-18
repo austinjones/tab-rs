@@ -3,5 +3,6 @@ members = [
     "tab-cli",
     "tab-daemon",
     "common/tab-api",
-    "common/tab-websocket"
+    "common/tab-websocket",
+    "common/tab-service"
 ]
