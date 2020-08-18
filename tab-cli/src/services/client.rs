@@ -1,11 +1,11 @@
 use super::terminal::{TerminalRecv, TerminalSend};
-use tab_api::{request::Request, response::Response};
-use tab_service::{spawn, spawn_from, spawn_from_stream, Lifeline, Service};
-use tokio::sync::mpsc;
+use tab_api::{request::Request, response::Response, tab::TabId};
+use tab_service::{spawn, Lifeline, Service};
+use tokio::sync::{mpsc, watch};
 
 pub struct ClientService {
-    websocket: WebsocketRxService,
-    terminal: TerminalRxService,
+    _websocket: WebsocketRxService,
+    _terminal: TerminalRxService,
 }
 
 pub struct ClientServiceRx {
@@ -24,9 +24,13 @@ impl Service for ClientService {
     type Tx = ClientServiceTx;
 
     fn spawn(rx: Self::Rx, mut tx: Self::Tx) -> Self {
+        let (rx_tab, tx_tab) = watch::channel(Some(TabId(0)));
+        let _websocket = WebsocketRxService::spawn(rx.websocket, tx.clone());
+        let _terminal = TerminalRxService::spawn(rx.terminal, tx);
+
         ClientService {
-            websocket: WebsocketRxService::spawn(rx.websocket, tx.clone()),
-            terminal: TerminalRxService::spawn(rx.terminal, tx),
+            _websocket,
+            _terminal,
         }
     }
 
@@ -34,34 +38,44 @@ impl Service for ClientService {
 }
 
 struct WebsocketRxService {
-    websocket: Lifeline,
+    _websocket: Lifeline,
 }
 
 impl Service for WebsocketRxService {
     type Rx = mpsc::Receiver<Response>;
     type Tx = ClientServiceTx;
 
-    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self {
-        let websocket = spawn(async move {});
+    fn spawn(mut rx: Self::Rx, tx: Self::Tx) -> Self {
+        let _websocket = spawn(async move {
+            while let Some(msg) = rx.recv().await {
+                match msg {
+                    Response::Output(_, _) => {}
+                    Response::TabUpdate(_) => {}
+                    Response::TabList(_) => {}
+                    Response::TabTerminated(_) => {}
+                    Response::Close => {}
+                }
+            }
+        });
 
-        Self { websocket }
+        Self { _websocket }
     }
 
     fn shutdown(self) {}
 }
 
 struct TerminalRxService {
-    terminal: Lifeline,
+    _terminal: Lifeline,
 }
 
 impl Service for TerminalRxService {
     type Rx = mpsc::Receiver<TerminalSend>;
     type Tx = ClientServiceTx;
 
-    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self {
-        let terminal = spawn(async move {});
+    fn spawn(mut rx: Self::Rx, tx: Self::Tx) -> Self {
+        let _terminal = spawn(async move { while let Some(msg) = rx.recv().await {} });
 
-        Self { terminal }
+        Self { _terminal }
     }
 
     fn shutdown(self) {}

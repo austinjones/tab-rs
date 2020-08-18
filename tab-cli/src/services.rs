@@ -1,2 +1,2 @@
-mod terminal;
-mod client;
+pub mod client;
+pub mod terminal;

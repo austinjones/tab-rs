@@ -5,8 +5,8 @@ use tab_service::{spawn, Lifeline, Service};
 use tokio::{io::AsyncReadExt, sync::mpsc};
 
 pub struct TerminalService {
-    input: Lifeline,
-    output: Lifeline,
+    _input: Lifeline,
+    _output: Lifeline,
 }
 
 pub enum TerminalRecv {
@@ -23,13 +23,11 @@ impl Service for TerminalService {
     type Tx = mpsc::Sender<TerminalSend>;
 
     fn spawn(mut rx: Self::Rx, mut tx: Self::Tx) -> Self {
-        let output = spawn(async move { while let Some(request) = rx.recv().await {} });
+        let _output = spawn(print_stdout(rx));
 
-        let input = spawn(async move {
-            tx.send(TerminalSend::Stdin(vec![]));
-        });
+        let _input = spawn(forward_stdin(tx));
 
-        TerminalService { input, output }
+        TerminalService { _input, _output }
     }
 
     fn shutdown(self) {
@@ -58,10 +56,7 @@ async fn forward_stdin(mut tx: mpsc::Sender<TerminalSend>) -> anyhow::Result<()>
     Ok(())
 }
 
-async fn recv_loop(
-    mut tx: mpsc::Sender<TerminalSend>,
-    mut rx: mpsc::Receiver<TerminalRecv>,
-) -> anyhow::Result<()> {
+async fn print_stdout(mut rx: mpsc::Receiver<TerminalRecv>) -> anyhow::Result<()> {
     trace!("Waiting on messages...");
 
     let mut stdout = std::io::stdout();

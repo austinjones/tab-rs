@@ -13,11 +13,11 @@ use tungstenite::error::Error;
 use tungstenite::Message;
 
 pub mod client;
-pub mod server;
 mod common;
+pub mod server;
+pub mod service;
 
 pub type WebSocket = WebSocketStream<TokioAdapter<TcpStream>>;
-
 
 pub fn decode<T: DeserializeOwned>(
     message: Result<tungstenite::Message, tungstenite::Error>,
