@@ -96,6 +96,7 @@ impl<F: Future> Future for ServiceFuture<F> {
     }
 }
 
+#[must_use = "if unused the service will immediately be cancelled"]
 pub struct Lifeline {
     inner: Arc<LifelineInner>,
 }

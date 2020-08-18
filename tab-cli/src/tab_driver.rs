@@ -15,6 +15,7 @@ impl<F: Future> Future for ServiceFuture<F> {
     
 }
 
+#[must_use]
 struct Lifeline {
 
 }
