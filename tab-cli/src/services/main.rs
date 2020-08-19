@@ -34,6 +34,7 @@ pub struct MainService {
 }
 
 pub struct MainRx {
+    pub tab: String,
     pub websocket: WebSocket,
     pub rx: mpsc::Receiver<MainRecv>,
 }
@@ -41,6 +42,7 @@ pub struct MainRx {
 impl Service for MainService {
     type Rx = MainRx;
     type Tx = mpsc::Sender<MainShutdown>;
+    type Return = Self;
 
     fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self {
         let mut main_rx = rx.rx;
@@ -48,19 +50,22 @@ impl Service for MainService {
 
         let bus = InternalBus::default();
 
-        let _terminal =
-            TerminalService::spawn(bus.rx::<TerminalRecv>().unwrap(), bus.tx::<TerminalSend>());
+        let _terminal = TerminalService::spawn(
+            bus.take_rx::<TerminalRecv>().unwrap(),
+            bus.tx::<TerminalSend>(),
+        );
 
         let websocket_rx = WebsocketRx {
             websocket: rx.websocket,
-            rx: bus.rx::<Request>().unwrap(),
+            rx: bus.take_rx::<Request>().unwrap(),
         };
 
         let _websocket = WebsocketService::spawn(websocket_rx, bus.tx::<Request>());
 
         let rx = ClientServiceRx {
-            terminal: bus.rx::<TerminalSend>().unwrap(),
-            websocket: bus.rx::<Response>().unwrap(),
+            tab: rx.tab,
+            terminal: bus.take_rx::<TerminalSend>().unwrap(),
+            websocket: bus.take_rx::<Response>().unwrap(),
         };
 
         let tx = ClientServiceTx {

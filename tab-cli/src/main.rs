@@ -62,20 +62,24 @@ async fn main_async() -> anyhow::Result<()> {
 
     let bus = MainBus::default();
 
-    let rx = bus.rx::<MainRecv>().unwrap();
+    let rx = bus.take_rx::<MainRecv>().unwrap();
     let tx = bus.tx::<MainShutdown>();
 
-    let main_rx = MainRx { websocket, rx };
-    let service = MainService::spawn(main_rx, tx);
+    let main_rx = MainRx {
+        tab: "tabby".to_string(),
+        websocket,
+        rx,
+    };
+    let _service = MainService::spawn(main_rx, tx);
 
-    let mut main_shutdown = bus.rx::<MainShutdown>().unwrap();
+    let mut main_shutdown = bus.take_rx::<MainShutdown>().unwrap();
 
     loop {
         select! {
             _ = ctrl_c() => {
                 break;
             },
-            message = main_shutdown.recv() => {
+            _ = main_shutdown.recv() => {
                 break;
             }
         }

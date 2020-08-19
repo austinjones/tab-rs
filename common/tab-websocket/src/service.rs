@@ -28,6 +28,7 @@ where
 {
     type Rx = WebsocketRx<Recv>;
     type Tx = mpsc::Sender<Transmit>;
+    type Return = Self;
 
     fn spawn(rx: Self::Rx, message_tx: Self::Tx) -> Self {
         // let mut websocket = parse_bincode(websocket);

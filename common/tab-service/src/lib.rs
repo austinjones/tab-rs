@@ -13,20 +13,21 @@ pub use spawn::spawn;
 // pub use spawn::spawn_from_stream;
 pub use bus::Bus;
 pub use bus::Channel;
-pub use bus::RxTakenError;
 pub use spawn::Lifeline;
 
 pub trait Service {
-    type Tx: Clone;
     type Rx;
+    type Tx;
+    type Return;
 
-    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self;
+    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self::Return;
 }
 
 #[async_trait]
 pub trait AsyncService {
-    type Tx: Clone;
     type Rx;
+    type Tx;
+    type Return;
 
-    async fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self;
+    async fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self::Return;
 }

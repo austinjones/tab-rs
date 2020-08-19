@@ -2,7 +2,10 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::trace;
 use std::io::Write;
 use tab_service::{channel_tokio_mpsc, service_bus, spawn, Lifeline, Service};
-use tokio::{io::AsyncReadExt, sync::mpsc};
+use tokio::{
+    io::AsyncReadExt,
+    sync::{mpsc, watch},
+};
 
 #[derive(Debug)]
 pub enum TerminalSend {
@@ -25,6 +28,7 @@ pub struct TerminalService {
 impl Service for TerminalService {
     type Rx = mpsc::Receiver<TerminalRecv>;
     type Tx = mpsc::Sender<TerminalSend>;
+    type Return = Self;
 
     fn spawn(mut rx: Self::Rx, mut tx: Self::Tx) -> Self {
         let _output = spawn(print_stdout(rx));
@@ -90,4 +94,18 @@ async fn print_stdout(mut rx: mpsc::Receiver<TerminalRecv>) -> anyhow::Result<()
     trace!("recv_loop shutdown");
 
     Ok(())
+}
+
+pub struct TerminalSizeService {
+    _update: Lifeline,
+}
+
+impl Service for TerminalSizeService {
+    type Rx = ();
+    type Tx = watch::Sender<(u16, u16)>;
+    type Return = Self;
+
+    fn spawn(rx: (), tx: Self::Tx) -> Self {
+        todo!()
+    }
 }
