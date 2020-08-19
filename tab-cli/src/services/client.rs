@@ -33,8 +33,6 @@ impl Service for ClientService {
             _terminal,
         }
     }
-
-    fn shutdown(self) {}
 }
 
 struct WebsocketRxService {
@@ -60,8 +58,6 @@ impl Service for WebsocketRxService {
 
         Self { _websocket }
     }
-
-    fn shutdown(self) {}
 }
 
 struct TerminalRxService {
@@ -77,6 +73,4 @@ impl Service for TerminalRxService {
 
         Self { _terminal }
     }
-
-    fn shutdown(self) {}
 }

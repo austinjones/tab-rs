@@ -8,6 +8,11 @@ use futures::{
     Future, Sink, Stream,
 };
 use log::{info, trace, LevelFilter};
+use services::main::*;
+use services::{
+    client::{ClientService, ClientServiceRx, ClientServiceTx},
+    terminal::TerminalService,
+};
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 use state::ClientState;
 use std::{io::Write, time::Duration};
@@ -18,11 +23,13 @@ use tab_api::{
     response::Response,
     tab::{CreateTabMetadata, TabId},
 };
-use tab_service::{spawn, Lifeline, Service};
+use tab_service::{spawn, Bus, Lifeline, Service};
 use tab_websocket::{client::spawn_client, decode_with, encode, encode_or_close, encode_with};
 use tokio::io::AsyncReadExt;
 use tokio::{
     runtime::Runtime,
+    select,
+    signal::ctrl_c,
     sync::{
         mpsc::{self, Receiver, Sender},
         oneshot, watch,
@@ -30,7 +37,7 @@ use tokio::{
     time::delay_for,
 };
 use tungstenite::Message;
-use services::{terminal::TerminalService, client::{ClientServiceRx, ClientService, ClientServiceTx}};
+
 mod service;
 mod services;
 mod state;
@@ -48,7 +55,31 @@ async fn main_async() -> anyhow::Result<()> {
     println!("Starting.");
 
     let _matches = init();
-    // run_tab("foo").await?;
+
+    let daemon_file = load_daemon_file()?.unwrap();
+    let ws_url = format!("ws://127.0.0.1:{}", daemon_file.port);
+    let websocket = tab_websocket::connect(ws_url).await?;
+
+    let bus = MainBus::default();
+
+    let rx = bus.rx::<MainRecv>().unwrap();
+    let tx = bus.tx::<MainShutdown>();
+
+    let main_rx = MainRx { websocket, rx };
+    let service = MainService::spawn(main_rx, tx);
+
+    let mut main_shutdown = bus.rx::<MainShutdown>().unwrap();
+
+    loop {
+        select! {
+            _ = ctrl_c() => {
+                break;
+            },
+            message = main_shutdown.recv() => {
+                break;
+            }
+        }
+    }
 
     info!("Complete.  Shutting down");
     Ok(())
@@ -135,45 +166,3 @@ async fn start_daemon() -> anyhow::Result<()> {
     // Command::new("tab-daemon").spawn()?.await?;
     Ok(())
 }
-
-pub struct MainService {
-    _recv: Lifeline,
-    _client: ClientService,
-    _terminal: TerminalService,
-}
-
-impl Service for MainService {
-    type Rx = mpsc::Receiver<MainRecv>;
-    type Tx = ();
-
-    fn spawn(mut rx: Self::Rx, tx: Self::Tx) -> Self {
-        let _recv = spawn(async move { while let Some(msg) = rx.recv().await {
-
-        }});
-
-        let (terminal_recv_tx, terminal_recv_rx) = mpsc::channel(16);
-        let (terminal_send_tx, terminal_send_rx) = mpsc::channel(16);
-        let _terminal = TerminalService::spawn(terminal_recv_rx, terminal_send_tx);
-
-        let client_rx = ClientServiceRx {
-            terminal: terminal_send_rx,
-            websocket:
-        };
-
-        let client_tx = ClientServiceTx {
-            terminal: terminal_recv_tx,
-            websocket:
-        }
-
-        let _client = ClientService::spawn()
-
-        Self { _recv, _client, _terminal }
-    }
-
-    fn shutdown(self) {
-        todo!()
-    }
-}
-pub enum MainSend {}
-
-pub enum MainRecv {}

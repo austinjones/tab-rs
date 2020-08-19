@@ -19,6 +19,15 @@ pub mod service;
 
 pub type WebSocket = WebSocketStream<TokioAdapter<TcpStream>>;
 
+pub async fn connect(url: String) -> Result<WebSocket, tungstenite::Error> {
+    let tuple = connect_async(url).await?;
+    Ok(tuple.0)
+}
+
+pub async fn bind(tcp: TcpStream) -> Result<WebSocket, tungstenite::Error> {
+    async_tungstenite::tokio::accept_async(tcp).await
+}
+
 pub fn decode<T: DeserializeOwned>(
     message: Result<tungstenite::Message, tungstenite::Error>,
 ) -> anyhow::Result<T> {

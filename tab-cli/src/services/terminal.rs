@@ -1,21 +1,25 @@
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::trace;
 use std::io::Write;
-use tab_service::{spawn, Lifeline, Service};
+use tab_service::{channel_tokio_mpsc, service_bus, spawn, Lifeline, Service};
 use tokio::{io::AsyncReadExt, sync::mpsc};
-
-pub struct TerminalService {
-    _input: Lifeline,
-    _output: Lifeline,
-}
-
-pub enum TerminalRecv {
-    Stdout(Vec<u8>),
-}
 
 #[derive(Debug)]
 pub enum TerminalSend {
     Stdin(Vec<u8>),
+}
+pub enum TerminalRecv {
+    Stdout(Vec<u8>),
+}
+
+service_bus!(pub TerminalBus);
+
+channel_tokio_mpsc!(impl Channel<TerminalBus, 16> for TerminalSend);
+channel_tokio_mpsc!(impl Channel<TerminalBus, 16> for TerminalRecv);
+
+pub struct TerminalService {
+    _input: Lifeline,
+    _output: Lifeline,
 }
 
 impl Service for TerminalService {
@@ -28,10 +32,6 @@ impl Service for TerminalService {
         let _input = spawn(forward_stdin(tx));
 
         TerminalService { _input, _output }
-    }
-
-    fn shutdown(self) {
-        todo!()
     }
 }
 
