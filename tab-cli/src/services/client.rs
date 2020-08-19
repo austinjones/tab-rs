@@ -1,5 +1,10 @@
 use super::terminal::{TerminalRecv, TerminalSend};
-use tab_api::{request::Request, response::Response, tab::TabId};
+use futures::SinkExt;
+use tab_api::{
+    request::Request,
+    response::Response,
+    tab::{CreateTabMetadata, TabId},
+};
 use tab_service::{spawn, Lifeline, Service};
 use tokio::sync::{mpsc, watch};
 
@@ -9,6 +14,7 @@ pub struct ClientService {
 }
 
 pub struct ClientServiceRx {
+    pub tab: String,
     pub websocket: mpsc::Receiver<Response>,
     pub terminal: mpsc::Receiver<TerminalSend>,
 }
@@ -22,10 +28,11 @@ pub struct ClientServiceTx {
 impl Service for ClientService {
     type Rx = ClientServiceRx;
     type Tx = ClientServiceTx;
+    type Return = Self;
 
     fn spawn(rx: Self::Rx, mut tx: Self::Tx) -> Self {
         let (rx_tab, tx_tab) = watch::channel(Some(TabId(0)));
-        let _websocket = WebsocketRxService::spawn(rx.websocket, tx.clone());
+        let _websocket = WebsocketRxService::spawn((rx.tab, rx.websocket), tx.clone());
         let _terminal = TerminalRxService::spawn(rx.terminal, tx);
 
         ClientService {
@@ -40,16 +47,29 @@ struct WebsocketRxService {
 }
 
 impl Service for WebsocketRxService {
-    type Rx = mpsc::Receiver<Response>;
+    type Rx = (String, mpsc::Receiver<Response>);
     type Tx = ClientServiceTx;
 
-    fn spawn(mut rx: Self::Rx, tx: Self::Tx) -> Self {
+    fn spawn((tab, mut rx): Self::Rx, tx: Self::Tx) -> Self {
         let _websocket = spawn(async move {
+            let mut active = None;
             while let Some(msg) = rx.recv().await {
                 match msg {
                     Response::Output(_, _) => {}
                     Response::TabUpdate(_) => {}
-                    Response::TabList(_) => {}
+                    Response::TabList(tabs) => {
+                        let found = tabs.iter().find(|metadata| metadata.name == tab);
+                        if let Some(found) = found {
+                            active = Some(found.id);
+                        } else {
+                            tx.websocket
+                                .send(Request::CreateTab(CreateTabMetadata {
+                                    name: tab,
+                                    dimensions: (),
+                                }))
+                                .await;
+                        }
+                    }
                     Response::TabTerminated(_) => {}
                     Response::Close => {}
                 }
