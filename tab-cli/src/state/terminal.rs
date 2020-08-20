@@ -1,5 +1,3 @@
-use tab_service::Message;
-
 #[derive(Clone, Debug)]
 pub struct TerminalSizeState(pub (u16, u16));
 

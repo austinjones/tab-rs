@@ -1,27 +1,19 @@
-use crate::pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtySender, PtyResponse};
-use futures::Stream;
+use crate::pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyResponse, PtySender};
+
 use log::info;
 use std::{
     collections::VecDeque,
     process::{Command, ExitStatus},
     sync::{
-        atomic::{AtomicUsize, Ordering, AtomicBool},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
     },
 };
-use tab_api::{
-    chunk::{},
-    tab::{CreateTabMetadata, TabId, TabMetadata},
-};
-use tab_pty_process::CommandExt;
-use tab_pty_process::{AsyncPtyMaster, PtyMaster};
-use tokio::sync::broadcast::RecvError;
+use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
+
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    sync::{
-        broadcast::{Receiver, Sender},
-        RwLock,
-    },
+    sync::RwLock,
 };
 
 pub struct DaemonRuntime {
@@ -35,7 +27,10 @@ impl DaemonRuntime {
         }
     }
 
-    pub async fn create_tab(&self, create: &CreateTabMetadata) -> anyhow::Result<(Arc<TabRuntime>, PtyReceiver)> {
+    pub async fn create_tab(
+        &self,
+        create: &CreateTabMetadata,
+    ) -> anyhow::Result<(Arc<TabRuntime>, PtyReceiver)> {
         let mut tabs = self.tabs.write().await;
         let id = tabs.len();
         let metadata = TabMetadata {
@@ -54,7 +49,9 @@ impl DaemonRuntime {
 
     pub async fn get_tab(&self, index: usize) -> Option<Arc<TabRuntime>> {
         let tabs = self.tabs.read().await;
-        tabs.get(index).map(|arc| arc.clone()).filter(|tab| tab.is_running())
+        tabs.get(index)
+            .map(|arc| arc.clone())
+            .filter(|tab| tab.is_running())
     }
 
     pub async fn find_tab(&self, name: &str) -> Option<Arc<TabRuntime>> {
@@ -69,18 +66,18 @@ impl DaemonRuntime {
 pub struct TabRuntime {
     metadata: TabMetadata,
     pty_sender: PtySender,
-    is_running: Arc<AtomicBool>
+    is_running: Arc<AtomicBool>,
 }
 
 impl TabRuntime {
     pub async fn spawn(metadata: TabMetadata) -> anyhow::Result<(Self, PtyReceiver)> {
         let pty_options = PtyOptions {
             command: "bash".to_string(),
-            dimensions: metadata.dimensions
+            dimensions: metadata.dimensions,
         };
 
         let (tx, rx) = PtyProcess::spawn(pty_options).await?;
-        
+
         let is_running = Arc::new(AtomicBool::new(true));
 
         let mut rx_close = tx.subscribe().await;
@@ -100,7 +97,7 @@ impl TabRuntime {
         let runtime = Self {
             metadata,
             is_running,
-            pty_sender: tx
+            pty_sender: tx,
         };
 
         Ok((runtime, rx))

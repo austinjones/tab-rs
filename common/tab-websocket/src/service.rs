@@ -2,22 +2,17 @@ use crate::{
     common::{self, should_terminate},
     WebSocket,
 };
-use async_trait::async_trait;
+
 use futures::{executor::block_on, SinkExt, StreamExt};
 use log::{debug, error, trace};
-use serde::{de::DeserializeOwned, Serialize};
-use std::{fmt::Debug, marker::PhantomData};
+
+use std::fmt::Debug;
 use tab_service::{
-    service_bus, AsyncService, Bus, Carries, Lifeline, LinkTakenError, Message, Resource,
-    ResourceError, ResourceTakenError, ResourceUninitializedError, Service, Storage, Stores,
+    service_bus, Bus, Lifeline, LinkTakenError, Message, Resource, ResourceError,
+    ResourceTakenError, ResourceUninitializedError, Service, Storage,
 };
 use thiserror::Error;
-use tokio::{
-    net::TcpStream,
-    select,
-    signal::ctrl_c,
-    sync::{mpsc, watch},
-};
+use tokio::{select, sync::mpsc};
 use tungstenite::{Error, Message as TungsteniteMessage};
 
 pub struct WebsocketService {

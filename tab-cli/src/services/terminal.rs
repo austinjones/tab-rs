@@ -1,30 +1,18 @@
 use super::terminal_event::TerminalEventService;
 use crate::bus::client::ClientBus;
-use crate::{
-    message::terminal::{TerminalRecv, TerminalSend},
-    state::terminal::TerminalSizeState,
-};
-use crossterm::{
-    event::{poll, Event},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
-use log::{debug, info, trace};
-use std::{io::Write, time::Duration};
-use tab_service::{service_bus, Bus, Lifeline, Message, Service};
+use crate::message::terminal::{TerminalRecv, TerminalSend};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use log::trace;
+use tab_service::{Bus, Lifeline, Service};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    sync::{mpsc, watch},
+    sync::mpsc,
 };
 
 pub struct TerminalService {
     _input: Lifeline,
     _output: Lifeline,
     _events: TerminalEventService,
-}
-
-pub struct TerminalTx {
-    pub tx: mpsc::Sender<TerminalSend>,
-    pub size: watch::Sender<TerminalSizeState>,
 }
 
 impl Service for TerminalService {

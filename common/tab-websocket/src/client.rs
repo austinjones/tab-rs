@@ -1,16 +1,13 @@
-use async_tungstenite::{
-    tokio::{connect_async, TokioAdapter},
-    WebSocketStream,
-};
-use futures::{future::ready, Future, SinkExt, StreamExt};
+use async_tungstenite::tokio::connect_async;
+use futures::StreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{common, WebSocket};
 use common::should_terminate;
-use log::{debug, error, info, trace};
+use log::{debug, error, trace};
 use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
-use tokio::{net::TcpStream, select, signal::ctrl_c, sync::mpsc};
+use tokio::{select, signal::ctrl_c, sync::mpsc};
 use tungstenite::error::Error;
 use tungstenite::Message;
 

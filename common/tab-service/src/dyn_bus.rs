@@ -2,18 +2,14 @@ use crate::{
     bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, ResourceError, Storage},
     Bus, Channel,
 };
-use dyn_clone::DynClone;
-use impls::impls;
+
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     fmt::Debug,
     marker::PhantomData,
-    ops::Deref,
     sync::{RwLock, RwLockWriteGuard},
 };
-use thiserror::Error;
-use tokio::sync::mpsc;
 
 #[macro_export]
 macro_rules! service_bus (
@@ -70,9 +66,9 @@ pub(crate) struct BusSlot {
 
 impl Debug for BusSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let string = match self {
-            Cloned => "BusSlot::Cloned(_)",
-            Taken => "BusSlot::Taken(_)",
+        let string = match self.value {
+            Some(_) => "BusSlot::Some(_)",
+            None => "BusSlot::Empty",
         };
 
         f.debug_struct(string).finish()
@@ -270,7 +266,7 @@ impl<B: Bus> DynBusStorage<B> {
         let id = TypeId::of::<Msg>();
 
         let mut state = self.state.write().unwrap();
-        let mut senders = &mut state.tx;
+        let senders = &mut state.tx;
         let slot = senders
             .get_mut(&id)
             .expect("link_channel did not insert rx");
@@ -285,7 +281,7 @@ impl<B: Bus> DynBusStorage<B> {
         let id = TypeId::of::<Res>();
 
         let mut state = self.state.write().unwrap();
-        let mut resources = &mut state.resources;
+        let resources = &mut state.resources;
         let slot = resources
             .get_mut(&id)
             .ok_or_else(|| ResourceError::uninitialized::<Self, Res>())?;

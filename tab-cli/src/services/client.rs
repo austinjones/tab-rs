@@ -2,7 +2,6 @@ use crate::bus::client::ClientBus;
 use crate::{
     message::{
         client::ClientShutdown,
-        main::MainShutdown,
         terminal::{TerminalRecv, TerminalSend},
     },
     state::{
@@ -10,38 +9,20 @@ use crate::{
         terminal::TerminalSizeState,
     },
 };
-use log::debug;
+
 use tab_api::{
     chunk::InputChunk,
     request::Request,
     response::Response,
-    tab::{CreateTabMetadata, TabId, TabMetadata},
+    tab::{CreateTabMetadata, TabMetadata},
 };
 use tab_service::{Bus, Lifeline, Service};
-use tokio::sync::{broadcast, mpsc, watch};
 
 pub struct ClientService {
     _request_tab: Lifeline,
     _websocket: WebsocketMessageService,
     _terminal: TerminalMessageService,
 }
-
-pub struct ClientRx {
-    pub websocket: mpsc::Receiver<Response>,
-    pub terminal: mpsc::Receiver<TerminalSend>,
-
-    pub tab_state: watch::Receiver<TabState>,
-    pub terminal_size: watch::Receiver<TerminalSizeState>,
-}
-
-pub struct ClientTx {
-    pub websocket: mpsc::Sender<Request>,
-    pub terminal: mpsc::Sender<TerminalRecv>,
-    pub active_tabs: watch::Sender<TabStateAvailable>,
-    pub tab_metadata: broadcast::Sender<TabMetadata>,
-    pub shutdown: mpsc::Sender<MainShutdown>,
-}
-
 impl Service for ClientService {
     type Bus = ClientBus;
     type Lifeline = anyhow::Result<Self>;
@@ -97,20 +78,6 @@ impl Service for ClientService {
     }
 }
 
-struct WebsocketMessageRx {
-    pub websocket: mpsc::Receiver<Response>,
-    pub tab_state: watch::Receiver<TabState>,
-    pub terminal_size: watch::Receiver<TerminalSizeState>,
-}
-
-struct WebsocketMessageTx {
-    pub websocket: mpsc::Sender<Request>,
-    pub terminal: mpsc::Sender<TerminalRecv>,
-    pub active_tabs: watch::Sender<TabStateAvailable>,
-    pub tab_metadata: broadcast::Sender<TabMetadata>,
-    pub shutdown: mpsc::Sender<MainShutdown>,
-}
-
 struct WebsocketMessageService {
     _websocket: Lifeline,
 }
@@ -162,15 +129,6 @@ impl Service for WebsocketMessageService {
 }
 
 impl WebsocketMessageService {}
-
-struct TerminalMessageRx {
-    terminal: mpsc::Receiver<TerminalSend>,
-    tab_state: watch::Receiver<TabState>,
-}
-
-struct TerminalMessageTx {
-    websocket: mpsc::Sender<Request>,
-}
 
 struct TerminalMessageService {
     _terminal: Lifeline,

@@ -32,7 +32,7 @@ impl TabState {
         match self {
             TabState::None => false,
             TabState::Awaiting(_) => false,
-            TabState::Selected(id, name) => id == target_id,
+            TabState::Selected(id, _name) => id == target_id,
         }
     }
 
@@ -40,7 +40,7 @@ impl TabState {
         match self {
             TabState::None => false,
             TabState::Awaiting(_) => false,
-            TabState::Selected(id, name) => target == name.as_str(),
+            TabState::Selected(_id, name) => target == name.as_str(),
         }
     }
 }

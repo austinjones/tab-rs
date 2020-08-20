@@ -1,8 +1,6 @@
-use async_tungstenite::{tokio::TokioAdapter, WebSocketStream};
 use daemonfile::DaemonFile;
 use endpoint::handle_request;
-use futures::sink::SinkExt;
-use futures::stream::{SplitSink, StreamExt};
+
 use log::{error, info, LevelFilter};
 use runtime::DaemonRuntime;
 use session::DaemonSession;
@@ -10,16 +8,13 @@ use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::{sync::Arc, time::Duration};
 use tab_api::{
     config::{daemon_log, DaemonConfig},
-    request::Request,
     response::Response,
 };
-use tab_websocket::{decode, encode, encode_or_close, server::spawn_server};
+use tab_websocket::server::spawn_server;
 use tokio::{
     net::{TcpListener, TcpStream},
     task,
-    time::delay_for,
 };
-use tungstenite::{Error, Message};
 
 mod daemonfile;
 mod endpoint;

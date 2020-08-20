@@ -3,7 +3,7 @@ use crate::{
     runtime::{DaemonRuntime, TabRuntime},
 };
 use futures::future::{AbortHandle, Abortable};
-use futures::{pin_mut, StreamExt};
+use futures::pin_mut;
 use std::{collections::HashMap, sync::Arc};
 use tab_api::{response::Response, tab::TabId};
 use tokio::sync::mpsc::Sender;

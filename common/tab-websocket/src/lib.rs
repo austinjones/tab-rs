@@ -2,14 +2,11 @@ use async_tungstenite::{
     tokio::{connect_async, TokioAdapter},
     WebSocketStream,
 };
-use futures::{future::ready, Future, SinkExt, StreamExt};
+use futures::Future;
 use serde::{de::DeserializeOwned, Serialize};
 
-use log::{error, info, trace};
-use std::fmt::Debug;
-use tokio::sync::mpsc::Sender;
-use tokio::{net::TcpStream, select, sync::mpsc};
-use tungstenite::error::Error;
+use tokio::net::TcpStream;
+
 use tungstenite::Message;
 
 pub mod client;

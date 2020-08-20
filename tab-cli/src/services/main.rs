@@ -1,29 +1,20 @@
-use super::{
-    client::{ClientRx, ClientService, ClientTx},
-    tab_state::{TabStateRx, TabStateService},
-    terminal::{TerminalService, TerminalTx},
-};
+use super::{client::ClientService, tab_state::TabStateService, terminal::TerminalService};
 use crate::bus::client::ClientBus;
 use crate::{
     bus::main::MainBus,
     message::{
         client::ClientShutdown,
         main::{MainRecv, MainShutdown},
-        terminal::{TerminalRecv, TerminalSend},
     },
-    state::{tab::TabStateSelect, terminal::TerminalSizeState},
+    state::tab::TabStateSelect,
 };
-use log::{debug, error, info};
-use tab_api::{request::Request, response::Response, tab::TabMetadata};
-use tab_service::{dyn_bus::DynBus, service_bus, Bus, Lifeline, Message, Service};
-use tab_websocket::{
-    service::{
-        WebsocketBus, WebsocketRecv, WebsocketResource, WebsocketRx, WebsocketSend,
-        WebsocketService,
-    },
-    WebSocket,
+use log::{debug, error};
+use tab_api::{request::Request, response::Response};
+use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use tab_websocket::service::{
+    WebsocketBus, WebsocketRecv, WebsocketResource, WebsocketSend, WebsocketService,
 };
-use tokio::sync::{mpsc, watch};
+
 use tungstenite::Message as TungsteniteMessage;
 pub struct MainService {
     _main: Lifeline,
@@ -77,7 +68,9 @@ impl Service for MainService {
                     };
                 }
 
-                tx.send(WebsocketSend(TungsteniteMessage::Close(None)));
+                tx.send(WebsocketSend(TungsteniteMessage::Close(None)))
+                    .await
+                    .expect("failed to close websocket");
             })
         };
 
@@ -104,7 +97,7 @@ impl Service for MainService {
             let tx = bus.tx::<MainShutdown>()?;
 
             Self::task("shutdown", async {
-                rx.await;
+                rx.await.ok();
                 tx.send(MainShutdown {})
                     .expect("failed to send main shutdown");
             })

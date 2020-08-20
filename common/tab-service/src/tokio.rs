@@ -46,7 +46,7 @@ impl<T: 'static> Channel for broadcast::Sender<T> {
         clone(tx)
     }
 
-    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+    fn clone_rx(_rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
         tx.map(|tx| tx.subscribe())
     }
 }
@@ -55,7 +55,7 @@ impl<T: 'static> Channel for oneshot::Sender<T> {
     type Tx = Self;
     type Rx = oneshot::Receiver<T>;
 
-    fn channel(capacity: usize) -> (Self::Tx, Self::Rx) {
+    fn channel(_capacity: usize) -> (Self::Tx, Self::Rx) {
         oneshot::channel()
     }
 
@@ -67,7 +67,7 @@ impl<T: 'static> Channel for oneshot::Sender<T> {
         take(tx)
     }
 
-    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+    fn clone_rx(rx: &mut Option<Self::Rx>, _tx: Option<&Self::Tx>) -> Option<Self::Rx> {
         take(rx)
     }
 }
@@ -79,7 +79,7 @@ where
     type Tx = Self;
     type Rx = watch::Receiver<T>;
 
-    fn channel(capacity: usize) -> (Self::Tx, Self::Rx) {
+    fn channel(_capacity: usize) -> (Self::Tx, Self::Rx) {
         watch::channel(T::default())
     }
 
@@ -91,7 +91,7 @@ where
         take(tx)
     }
 
-    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+    fn clone_rx(rx: &mut Option<Self::Rx>, _tx: Option<&Self::Tx>) -> Option<Self::Rx> {
         clone(rx)
     }
 }
