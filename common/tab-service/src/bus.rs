@@ -1,27 +1,23 @@
-use crate::type_name::type_name;
+use crate::{type_name::type_name, Storage};
+
 use std::fmt::{Debug, Display};
 use thiserror::Error;
 
-// mod impl_tuple;
-
 pub trait Channel {
-    type Tx: 'static;
-    type Rx: 'static;
-
+    type Tx: Storage + 'static;
+    type Rx: Storage + 'static;
+    
     fn channel(capacity: usize) -> (Self::Tx, Self::Rx);
 
     fn default_capacity() -> usize;
 
-    /// If Self::Tx implements clone, clone it.  Otherwise use Option::take
-    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx>;
+    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx> {
+        Self::Tx::take_or_clone(tx)
+    }
 
-    /// If Self::Tx implements clone, clone it.  Otherwise use Option::take
-    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx>;
-}
-
-pub trait Storage: Drop + Sized + Debug + 'static {
-    /// If Self::Tx implements clone, clone it.  Otherwise use Option::take
-    fn clone(tx: &mut Option<Self>) -> Option<Self>;
+    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+        Self::Rx::take_or_clone(rx)
+    }
 }
 
 pub trait Message<Bus>: Debug {

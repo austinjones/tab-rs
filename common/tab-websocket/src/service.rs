@@ -8,8 +8,8 @@ use log::{debug, error, trace};
 
 use std::fmt::Debug;
 use tab_service::{
-    service_bus, Bus, Lifeline, LinkTakenError, Message, Resource, ResourceError,
-    ResourceTakenError, ResourceUninitializedError, Service, Storage,
+    impl_storage_take, service_bus, Bus, Lifeline, LinkTakenError, Message, Resource,
+    ResourceError, ResourceTakenError, ResourceUninitializedError, Service, Storage,
 };
 use thiserror::Error;
 use tokio::{select, sync::mpsc};
@@ -30,11 +30,7 @@ impl Drop for WebsocketResource {
 
 service_bus!(pub WebsocketBus);
 
-impl Storage for WebsocketResource {
-    fn clone(tx: &mut Option<Self>) -> Option<Self> {
-        tx.take()
-    }
-}
+impl_storage_take!(WebsocketResource);
 
 #[derive(Debug)]
 pub struct WebsocketRecv(pub TungsteniteMessage);

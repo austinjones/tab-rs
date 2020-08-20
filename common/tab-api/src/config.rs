@@ -6,6 +6,7 @@ use std::{
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
 };
+use tab_service::impl_storage_clone;
 
 /// User-facing config for persistent cli & daemon behavior
 #[derive(Serialize, Deserialize)]
@@ -18,11 +19,13 @@ impl Default for Config {
 }
 
 /// Config created for each daemon process
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonConfig {
     pub pid: u32,
     pub port: u16,
 }
+
+impl_storage_clone!(DaemonConfig);
 
 pub fn dotdir_path() -> Result<PathBuf> {
     let mut dir = dirs::home_dir().ok_or_else(|| anyhow::Error::msg("home_dir not found"))?;

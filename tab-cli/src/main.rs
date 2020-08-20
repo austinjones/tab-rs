@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgMatches};
 
 use log::{error, info, LevelFilter};
-use services::main::*;
+use service::main::*;
 
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 
@@ -16,7 +16,7 @@ use tokio::{select, signal::ctrl_c};
 
 mod bus;
 mod message;
-mod services;
+mod service;
 mod state;
 
 pub fn main() -> anyhow::Result<()> {

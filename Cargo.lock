@@ -299,6 +299,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "downcast-rs"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "dtoa"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1131,6 +1136,7 @@ dependencies = [
  "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_yaml 0.8.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-service 0.1.0",
  "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1170,6 +1176,7 @@ dependencies = [
  "simplelog 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-api 0.1.0",
  "tab-pty-process 0.4.0",
+ "tab-service 0.1.0",
  "tab-websocket 0.1.0",
  "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1195,6 +1202,7 @@ name = "tab-service"
 version = "0.1.0"
 dependencies = [
  "async-trait 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "downcast-rs 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dyn-clone 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "impls 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1545,6 +1553,7 @@ dependencies = [
 "checksum digest 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 "checksum dirs 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "142995ed02755914747cc6ca76fc7e4583cd18578746716d0508ea6ed558b9ff"
 "checksum dirs-sys 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "8e93d7f5705de3e49895a2b5e0b8855a1c27f080192ae9c32a6432d50741a57a"
+"checksum downcast-rs 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 "checksum dtoa 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "134951f4028bdadb9b84baf4232681efbf277da25144b9b0ad65df75946c422b"
 "checksum dyn-clone 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "4c53dc3a653e0f64081026e4bf048d48fec9fce90c66e8326ca7292df0ff2d82"
 "checksum errno 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "6eab5ee3df98a279d9b316b1af6ac95422127b1290317e6d18c1743c99418b01"

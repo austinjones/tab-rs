@@ -1,6 +1,6 @@
 use crate::{
-    bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, ResourceError, Storage},
-    Bus, Channel,
+    bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, ResourceError},
+    Bus, Channel, Storage,
 };
 
 use std::{
@@ -103,7 +103,7 @@ impl BusSlot {
     pub fn clone_rx<Chan>(&mut self, tx: Option<&Chan::Tx>) -> Option<Chan::Rx>
     where
         Chan: Channel,
-        Chan::Rx: Any + 'static,
+        Chan::Rx: Storage + 'static,
     {
         let mut taken = self.value.take().map(Self::cast);
         let cloned = Chan::clone_rx(&mut taken, tx);
@@ -114,7 +114,7 @@ impl BusSlot {
     pub fn clone_tx<Chan>(&mut self) -> Option<Chan::Tx>
     where
         Chan: Channel,
-        Chan::Tx: Any + 'static,
+        Chan::Tx: Storage + 'static,
     {
         let mut taken = self.value.take().map(Self::cast);
         let cloned = Chan::clone_tx(&mut taken);
@@ -127,7 +127,7 @@ impl BusSlot {
         Res: Storage + Any,
     {
         let mut taken = self.value.take().map(Self::cast);
-        let cloned = Res::clone(&mut taken);
+        let cloned = Res::take_or_clone(&mut taken);
         self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
         cloned
     }
