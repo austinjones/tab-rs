@@ -1,4 +1,4 @@
-use futures::{task::AtomicWaker, Future, Stream};
+use futures::{task::AtomicWaker, Future};
 use std::fmt::Debug;
 use std::{
     sync::{
@@ -8,10 +8,9 @@ use std::{
     task::Poll,
 };
 
-use crate::{type_name::type_name, Service};
+use crate::type_name::type_name;
 use log::debug;
 use pin_project::pin_project;
-use tokio::stream::StreamExt;
 
 // TODO: allow Result from the spawn
 
@@ -66,7 +65,6 @@ where
     tokio::spawn(task);
 }
 
-enum PolLState {}
 #[pin_project]
 struct ServiceFuture<F: Future> {
     #[pin]

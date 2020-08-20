@@ -1,16 +1,12 @@
-use async_tungstenite::{
-    tokio::{connect_async, TokioAdapter},
-    WebSocketStream,
-};
-use futures::{future::ready, Future, SinkExt, StreamExt};
+use futures::StreamExt;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    common::{self, send_close},
+    common::{self},
     WebSocket,
 };
 use common::should_terminate;
-use log::{debug, error, info, trace};
+use log::{debug, error, trace};
 use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
 use tokio::{net::TcpStream, select, signal::ctrl_c, sync::mpsc};
@@ -25,7 +21,7 @@ pub async fn spawn_server<
     stream: TcpStream,
     is_close: F,
 ) -> anyhow::Result<(mpsc::Receiver<Request>, mpsc::Sender<Response>)> {
-    let addr = stream.peer_addr()?;
+    let _addr = stream.peer_addr()?;
     let mut websocket = async_tungstenite::tokio::accept_async(stream).await?;
 
     // let mut websocket = parse_bincode(websocket);

@@ -1,20 +1,11 @@
 use crate::bus::client::ClientBus;
 use crate::state::tab::{TabState, TabStateSelect};
-use futures::select;
-use log::{debug, info};
+
 use tab_api::tab::{TabId, TabMetadata};
 use tab_service::{Bus, Lifeline, Service};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc, watch},
-};
+use tokio::stream::StreamExt;
 pub struct TabStateService {
     _lifeline: Lifeline,
-}
-
-pub struct TabStateRx {
-    pub tab: watch::Receiver<TabStateSelect>,
-    pub tab_metadata: broadcast::Receiver<TabMetadata>,
 }
 
 enum Event {
@@ -68,21 +59,3 @@ impl Service for TabStateService {
         Ok(Self { _lifeline })
     }
 }
-
-// impl TabStateService {
-//     pub fn find_tab<'a>(
-//         tabs: &'a TabStateAvailable,
-//         awaiting: &TabStateSelect,
-//     ) -> Option<&'a TabMetadata> {
-//         let tabs = &tabs.0;
-//         let awaiting = &awaiting.0;
-
-//         if !awaiting.is_some() {
-//             return None;
-//         }
-
-//         let awaiting = awaiting.as_ref().unwrap();
-
-//         tabs.iter().find(|metadata| &metadata.name == awaiting)
-//     }
-// }

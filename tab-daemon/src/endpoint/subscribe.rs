@@ -3,7 +3,7 @@ use crate::session::DaemonSession;
 use async_trait::async_trait;
 
 use tab_api::{response::Response, tab::TabId};
-use tokio::{sync::mpsc::Sender};
+use tokio::sync::mpsc::Sender;
 
 pub struct SubscribeEndpoint;
 

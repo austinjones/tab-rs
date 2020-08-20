@@ -1,12 +1,8 @@
-use futures::Stream;
 use log::info;
 use std::{
     collections::VecDeque,
     process::{Command, ExitStatus},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::Arc,
 };
 use tab_api::{
     chunk::{ChunkType, InputChunk, OutputChunk},
@@ -145,7 +141,9 @@ impl PtyProcess {
         tokio::spawn(async move {
             // TODO: error handling
             let exit_code = child.await.expect("Failed to get exit status");
-            tx_exit.send(PtyResponse::Terminated(exit_code)).expect("Failed to send termination message");
+            tx_exit
+                .send(PtyResponse::Terminated(exit_code))
+                .expect("Failed to send termination message");
         });
 
         let sender = PtySender::new(process, tx_request, tx_response);
@@ -203,9 +201,9 @@ impl PtyProcess {
         mut stdin: impl AsyncWriteExt + Unpin,
         mut rx: tokio::sync::mpsc::Receiver<PtyRequest>,
     ) {
-        while let Some(mut request) = rx.recv().await {
+        while let Some(request) = rx.recv().await {
             match request {
-                PtyRequest::Resize(dimensions) => {}
+                PtyRequest::Resize(_dimensions) => {}
                 PtyRequest::Input(chunk) => Self::write_stdin(&mut stdin, chunk).await,
             }
         }
