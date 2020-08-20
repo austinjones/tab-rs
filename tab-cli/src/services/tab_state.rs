@@ -1,26 +1,16 @@
-use super::state::{TabState, TabStateAvailable};
+use crate::bus::client::ClientBus;
+use crate::state::tab::{TabState, TabStateSelect};
 use futures::select;
 use log::{debug, info};
 use tab_api::tab::{TabId, TabMetadata};
-use tab_service::{Lifeline, Service};
+use tab_service::{Bus, Lifeline, Service};
 use tokio::{
     stream::StreamExt,
     sync::{broadcast, mpsc, watch},
 };
-
-#[derive(Clone, Debug)]
-pub enum TabStateSelect {
-    None,
-    Selected(String),
+pub struct TabStateService {
+    _lifeline: Lifeline,
 }
-
-impl Default for TabStateSelect {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-pub struct TabStateService {}
 
 pub struct TabStateRx {
     pub tab: watch::Receiver<TabStateSelect>,
@@ -33,17 +23,20 @@ enum Event {
 }
 
 impl Service for TabStateService {
-    type Rx = TabStateRx;
-    type Tx = watch::Sender<TabState>;
-    type Lifeline = Lifeline;
+    type Bus = ClientBus;
+    type Lifeline = anyhow::Result<Self>;
 
-    fn spawn(mut rx: Self::Rx, tx: Self::Tx) -> Self::Lifeline {
-        Self::task("run", async move {
+    fn spawn(bus: &ClientBus) -> Self::Lifeline {
+        let rx_tab = bus.rx::<TabStateSelect>()?;
+        let rx_tab_metadata = bus.rx::<TabMetadata>()?;
+        let tx = bus.tx::<TabState>()?;
+
+        let _lifeline = Self::task("run", async move {
             let mut state = TabState::None;
 
             let mut events = {
-                let tabs = rx.tab.map(|elem| Event::Select(elem));
-                let tab_metadatas = rx.tab_metadata.map(|elem| Event::Metadata(elem.unwrap()));
+                let tabs = rx_tab.map(|elem| Event::Select(elem));
+                let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem.unwrap()));
                 tabs.merge(tab_metadatas)
             };
 
@@ -70,7 +63,9 @@ impl Service for TabStateService {
                     }
                 }
             }
-        })
+        });
+
+        Ok(Self { _lifeline })
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    bus::{AlreadyLinkedError, Link, LinkTakenError, Message},
+    bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, ResourceError, Storage},
     Bus, Channel,
 };
 use dyn_clone::DynClone;
@@ -17,34 +17,50 @@ use tokio::sync::mpsc;
 
 #[macro_export]
 macro_rules! service_bus (
-    (pub $name:ident) => {
+            // match one or more generics separated by a comma
+    ($name:ident $(< $( $gen:ident ),+ >)? ) => {
+        service_bus! { () struct $name $(< $( $gen ),+ >)? }
+    };
+
+    (pub $name:ident $(< $( $gen:ident ),+ >)* ) => {
+        service_bus! { (pub) struct $name $(< $( $gen ),+ >)* }
+    };
+
+    (($($vis:tt)*) struct $name:ident $(< $( $gen:ident ),+ >)? ) => {
         #[derive(Debug, Default)]
-        pub struct $name {
+        $($vis)* struct $name $(< $( $gen ),+ >)? {
             storage: $crate::dyn_bus::DynBusStorage<Self>,
+            $(
+                $( $gen: std::marker::PhantomData<$gen> ),+
+            )?
         }
 
-        impl $crate::dyn_bus::DynBus for $name {
+        impl$(< $( $gen ),+ >)? $crate::dyn_bus::DynBus for $name$(< $( $gen ),+ >)? {
+            fn store_resource<R: $crate::Resource<Self>>(&self, resource: R) {
+                self.storage.store_resource::<R>(resource)
+            }
+
             fn storage(&self) -> &$crate::dyn_bus::DynBusStorage<Self> {
                 &self.storage
             }
         }
-    };
+    }
+    // ($name:ident) => {
+    //     #[derive(Debug, Default)]
+    //     struct $name {
+    //         storage: $crate::dyn_bus::DynBusStorage<Self>,
+    //     }
 
-    ($name:ident) => {
-        #[derive(Debug, Default)]
-        struct $name {
-            storage: $crate::dyn_bus::DynBusStorage<Self>,
-        }
-
-        impl $crate::dyn_bus::DynBus for $name {
-            fn storage(&self) -> &$crate::dyn_bus::DynBusStorage<Self> {
-                &self.storage
-            }
-        }
-    };
+    //     impl $crate::dyn_bus::DynBus for $name {
+    //         fn storage(&self) -> &$crate::dyn_bus::DynBusStorage<Self> {
+    //             &self.storage
+    //         }
+    //     }
+    // };
 );
 
 pub trait DynBus: Bus {
+    fn store_resource<R: Resource<Self>>(&self, resource: R);
     fn storage(&self) -> &DynBusStorage<Self>;
 }
 
@@ -68,6 +84,14 @@ impl BusSlot {
         Self {
             value: Some(Box::new(value)),
         }
+    }
+
+    pub fn empty() -> Self {
+        Self { value: None }
+    }
+
+    pub fn put<T: 'static>(&mut self, value: T) {
+        self.value = Some(Box::new(value))
     }
 
     pub fn get_tx<Chan>(&self) -> Option<&Chan::Tx>
@@ -102,6 +126,15 @@ impl BusSlot {
         cloned
     }
 
+    pub fn clone_storage<Res>(&mut self) -> Option<Res>
+    where
+        Res: Storage + Any,
+    {
+        let mut taken = self.value.take().map(Self::cast);
+        let cloned = Res::clone(&mut taken);
+        self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
+        cloned
+    }
     // match self {
     //     Self::Taken(slot) => slot.take().map(|value| Self::cast(value)),
     //     Self::Cloned(ref boxed) => {
@@ -156,18 +189,20 @@ pub struct DynBusStorage<B> {
 #[derive(Debug)]
 struct DynBusState {
     pub(crate) channels: HashSet<TypeId>,
+    pub(crate) capacity: HashMap<TypeId, usize>,
     pub(crate) tx: HashMap<TypeId, BusSlot>,
     pub(crate) rx: HashMap<TypeId, BusSlot>,
-    pub(crate) capacity: HashMap<TypeId, usize>,
+    pub(crate) resources: HashMap<TypeId, BusSlot>,
 }
 
 impl Default for DynBusState {
     fn default() -> Self {
         DynBusState {
             channels: HashSet::new(),
+            capacity: HashMap::new(),
             tx: HashMap::new(),
             rx: HashMap::new(),
-            capacity: HashMap::new(),
+            resources: HashMap::new(),
         }
     }
 }
@@ -243,6 +278,37 @@ impl<B: Bus> DynBusStorage<B> {
         slot.clone_tx::<Msg::Channel>()
     }
 
+    pub fn clone_resource<Res>(&self) -> Result<Res, ResourceError>
+    where
+        Res: Resource<B> + 'static,
+    {
+        let id = TypeId::of::<Res>();
+
+        let mut state = self.state.write().unwrap();
+        let mut resources = &mut state.resources;
+        let slot = resources
+            .get_mut(&id)
+            .ok_or_else(|| ResourceError::uninitialized::<Self, Res>())?;
+
+        slot.clone_storage::<Res>()
+            .ok_or_else(|| ResourceError::taken::<Self, Res>())
+    }
+
+    pub fn store_resource<Res: 'static>(&self, value: Res) {
+        let id = TypeId::of::<Res>();
+
+        let mut state = self.state.write().unwrap();
+        let resources = &mut state.resources;
+
+        if !resources.contains_key(&id) {
+            resources.insert(id.clone(), BusSlot::empty());
+        }
+
+        let slot = resources.get_mut(&id).unwrap();
+
+        slot.put(value);
+    }
+
     pub fn capacity<Msg>(&self, capacity: usize) -> Result<(), AlreadyLinkedError>
     where
         Msg: Message<B> + 'static,
@@ -310,5 +376,12 @@ where
         Msg: Message<Self> + 'static,
     {
         self.storage().capacity::<Msg>(capacity)
+    }
+
+    fn resource<Res>(&self) -> Result<Res, ResourceError>
+    where
+        Res: Resource<Self>,
+    {
+        self.storage().clone_resource::<Res>()
     }
 }

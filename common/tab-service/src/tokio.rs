@@ -92,6 +92,6 @@ where
     }
 
     fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
-        take(rx)
+        clone(rx)
     }
 }
