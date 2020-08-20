@@ -14,17 +14,14 @@ use std::fmt::Debug;
 pub use request::Request;
 // pub use spawn::spawn_from;
 // pub use spawn::spawn_from_stream;
-pub use bus::Bus;
-pub use bus::Channel;
-pub use bus::Message;
+pub use bus::*;
 pub use spawn::Lifeline;
 
 pub trait Service {
-    type Rx;
-    type Tx;
+    type Bus: Bus;
     type Lifeline;
 
-    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self::Lifeline;
+    fn spawn(bus: &Self::Bus) -> Self::Lifeline;
 
     fn task<Fut, Out>(name: &str, fut: Fut) -> Lifeline
     where

@@ -3,72 +3,121 @@ use crate::{
     WebSocket,
 };
 use async_trait::async_trait;
-use futures::{executor::block_on, StreamExt};
+use futures::{executor::block_on, SinkExt, StreamExt};
 use log::{debug, error, trace};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
-use tab_service::{AsyncService, Lifeline, Service};
+use tab_service::{
+    service_bus, AsyncService, Bus, Carries, Lifeline, LinkTakenError, Message, Resource,
+    ResourceError, ResourceTakenError, ResourceUninitializedError, Service, Storage, Stores,
+};
+use thiserror::Error;
 use tokio::{
     net::TcpStream,
     select,
     signal::ctrl_c,
     sync::{mpsc, watch},
 };
-use tungstenite::{Error, Message};
+use tungstenite::{Error, Message as TungsteniteMessage};
 
-pub struct WebsocketService<Recv, Transmit> {
+pub struct WebsocketService {
     _runloop: Lifeline,
-    _recv: PhantomData<Recv>,
-    _send: PhantomData<Transmit>,
 }
 
-struct WebsocketDrop(WebSocket);
+#[derive(Debug)]
+pub struct WebsocketResource(pub WebSocket);
 
-impl Drop for WebsocketDrop {
+impl Drop for WebsocketResource {
     fn drop(&mut self) {
         block_on(self.0.close(None)).expect("websocket drop failed");
     }
 }
 
+service_bus!(pub WebsocketBus);
+
+impl Storage for WebsocketResource {
+    fn clone(tx: &mut Option<Self>) -> Option<Self> {
+        tx.take()
+    }
+}
+
+#[derive(Debug)]
+pub struct WebsocketRecv(pub TungsteniteMessage);
+
+#[derive(Debug)]
+pub struct WebsocketSend(pub TungsteniteMessage);
+
+impl Message<WebsocketBus> for WebsocketRecv {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<WebsocketBus> for WebsocketSend {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Resource<WebsocketBus> for WebsocketResource {}
 pub struct WebsocketRx<Recv> {
     pub websocket: WebSocket,
     pub rx: mpsc::Receiver<Recv>,
 }
 
-impl<Recv, Transmit> Service for WebsocketService<Recv, Transmit>
-where
-    Recv: Send + Sync + Serialize + Debug + 'static,
-    Transmit: Send + Sync + DeserializeOwned + Debug + 'static,
-{
-    type Rx = WebsocketRx<Recv>;
-    type Tx = mpsc::Sender<Transmit>;
-    type Lifeline = Self;
+#[derive(Error, Debug)]
+pub enum WebsocketSpawnError {
+    #[error("socket taken: {0}")]
+    SocketTaken(ResourceTakenError),
 
-    fn spawn(rx: Self::Rx, message_tx: Self::Tx) -> Self {
+    #[error("socket uninitialized: {0}")]
+    SocketUninitialized(ResourceUninitializedError),
+
+    #[error("websocket channel taken: {0}")]
+    LinkTaken(LinkTakenError),
+}
+
+impl WebsocketSpawnError {
+    pub fn socket_error(err: ResourceError) -> Self {
+        match err {
+            ResourceError::Uninitialized(uninit) => Self::SocketUninitialized(uninit),
+            ResourceError::Taken(taken) => Self::SocketTaken(taken),
+        }
+    }
+
+    pub fn link_taken(err: LinkTakenError) -> Self {
+        Self::LinkTaken(err)
+    }
+}
+
+impl Service for WebsocketService {
+    type Bus = WebsocketBus;
+    type Lifeline = Result<Self, WebsocketSpawnError>;
+
+    fn spawn(bus: &WebsocketBus) -> Result<Self, WebsocketSpawnError> {
         // let mut websocket = parse_bincode(websocket);
 
         // let (mut tx_request, rx_request) = mpsc::channel::<Request>(4);
         // let (tx_response, mut rx_response) = mpsc::channel::<Response>(4);
-        let websocket = WebsocketDrop(rx.websocket);
+        let websocket = bus
+            .resource::<WebsocketResource>()
+            .map_err(WebsocketSpawnError::socket_error)?;
 
-        let _runloop = Self::task("run", runloop(websocket, rx.rx, message_tx));
+        let rx = bus
+            .rx::<WebsocketSend>()
+            .map_err(WebsocketSpawnError::link_taken)?;
 
-        Self {
-            _runloop,
-            _recv: PhantomData,
-            _send: PhantomData,
-        }
+        let tx = bus
+            .tx::<WebsocketRecv>()
+            .map_err(WebsocketSpawnError::link_taken)?;
+
+        let _runloop = Self::task("run", runloop(websocket, rx, tx));
+
+        Ok(Self { _runloop })
     }
 }
 
-async fn runloop<Recv, Transmit>(
-    mut websocket_drop: WebsocketDrop,
-    mut rx: mpsc::Receiver<Recv>,
-    mut tx: mpsc::Sender<Transmit>,
-) where
-    Recv: Serialize + Debug,
-    Transmit: DeserializeOwned + Debug,
-{
+async fn runloop(
+    mut websocket_drop: WebsocketResource,
+    mut rx: mpsc::Receiver<WebsocketSend>,
+    mut tx: mpsc::Sender<WebsocketRecv>,
+) {
     let websocket = &mut websocket_drop.0;
     loop {
         select!(
@@ -99,7 +148,7 @@ async fn runloop<Recv, Transmit>(
                     break;
                 }
 
-                process_message(websocket, message, &mut tx).await;
+                tx.send(WebsocketRecv(message)).await.expect("tx send failed");
             },
             message = rx.recv() => {
                 if !message.is_some()  {
@@ -112,7 +161,7 @@ async fn runloop<Recv, Transmit>(
                 let message = message.unwrap();
 
                 trace!("send message: {:?}", &message);
-                common::send_message(websocket, message).await;
+                websocket.send(message.0).await.expect("websocket send failed");
             },
         );
     }
@@ -120,23 +169,23 @@ async fn runloop<Recv, Transmit>(
     debug!("server loop terminated");
 }
 
-async fn process_message<Request: DeserializeOwned>(
-    _websocket: &mut WebSocket,
-    response: tungstenite::Message,
-    target: &mut mpsc::Sender<Request>,
-) {
-    if let Message::Close(_) = response {
-        return;
-    }
+// async fn process_message<Request: DeserializeOwned>(
+//     _websocket: &mut WebSocket,
+//     response: tungstenite::Message,
+//     target: &mut mpsc::Sender<Request>,
+// ) {
+//     if let TungsteniteMessage::Close(_) = response {
+//         return;
+//     }
 
-    let decoded = bincode::deserialize(response.into_data().as_slice());
+//     let decoded = bincode::deserialize(response.into_data().as_slice());
 
-    if let Err(e) = decoded {
-        error!("failed to decode response: {}", e);
-        return;
-    }
+//     if let Err(e) = decoded {
+//         error!("failed to decode response: {}", e);
+//         return;
+//     }
 
-    if let Err(e) = target.send(decoded.unwrap()).await {
-        error!("failed to queue response: {}", e);
-    }
-}
+//     if let Err(e) = target.send(decoded.unwrap()).await {
+//         error!("failed to queue response: {}", e);
+//     }
+// }

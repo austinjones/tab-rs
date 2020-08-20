@@ -1,40 +1,25 @@
-use super::state::TerminalSizeState;
+use super::terminal_event::TerminalEventService;
+use crate::bus::client::ClientBus;
+use crate::{
+    message::terminal::{TerminalRecv, TerminalSend},
+    state::terminal::TerminalSizeState,
+};
 use crossterm::{
     event::{poll, Event},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use log::{debug, info, trace};
 use std::{io::Write, time::Duration};
-use tab_service::{service_bus, Lifeline, Message, Service};
+use tab_service::{service_bus, Bus, Lifeline, Message, Service};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     sync::{mpsc, watch},
 };
 
-#[derive(Debug)]
-pub enum TerminalSend {
-    Stdin(Vec<u8>),
-}
-
-#[derive(Debug)]
-pub enum TerminalRecv {
-    Stdout(Vec<u8>),
-}
-
-service_bus!(pub TerminalBus);
-
-impl Message<TerminalBus> for TerminalSend {
-    type Channel = mpsc::Sender<Self>;
-}
-
-impl Message<TerminalBus> for TerminalRecv {
-    type Channel = mpsc::Sender<Self>;
-}
-
 pub struct TerminalService {
     _input: Lifeline,
     _output: Lifeline,
-    _events: Lifeline,
+    _events: TerminalEventService,
 }
 
 pub struct TerminalTx {
@@ -43,24 +28,27 @@ pub struct TerminalTx {
 }
 
 impl Service for TerminalService {
-    type Rx = mpsc::Receiver<TerminalRecv>;
-    type Tx = TerminalTx;
-    type Lifeline = Self;
+    type Bus = ClientBus;
+    type Lifeline = anyhow::Result<Self>;
 
-    fn spawn(mut rx: Self::Rx, mut tx: Self::Tx) -> Self {
+    fn spawn(bus: &ClientBus) -> anyhow::Result<Self> {
         enable_raw_mode().expect("failed to enable raw mode");
+
+        let rx = bus.rx::<TerminalRecv>()?;
+        let tx = bus.tx::<TerminalSend>()?;
+
         let _output = Self::task("stdout", print_stdout(rx));
 
-        let _input = Self::task("stdin", forward_stdin(tx.tx));
+        let _input = Self::task("stdin", forward_stdin(tx));
 
-        let event_tx = TerminalEventTx { size: tx.size };
-        let _events = TerminalEventService::spawn((), event_tx);
+        // let event_tx = TerminalEventTx { size: tx.size };
+        let _events = TerminalEventService::spawn(bus)?;
 
-        TerminalService {
+        Ok(TerminalService {
             _input,
             _output,
             _events,
-        }
+        })
     }
 }
 
@@ -116,56 +104,4 @@ async fn print_stdout(mut rx: mpsc::Receiver<TerminalRecv>) -> anyhow::Result<()
     disable_raw_mode().expect("failed to enable raw mode");
 
     Ok(())
-}
-
-pub struct TerminalEventService {
-    _update: Lifeline,
-}
-
-pub struct TerminalEventTx {
-    size: watch::Sender<TerminalSizeState>,
-}
-
-impl Service for TerminalEventService {
-    type Rx = ();
-    type Tx = TerminalEventTx;
-    type Lifeline = Lifeline;
-
-    fn spawn(rx: (), mut tx: Self::Tx) -> Self::Lifeline {
-        Self::task("run", async move {
-            let mut size = crossterm::terminal::size().expect("get terminal size");
-            tx.size
-                .broadcast(TerminalSizeState(size))
-                .expect("failed to send terminal size");
-
-            // loop {
-            //     let new_size = crossterm::terminal::size().expect("get terminal size");
-            //     let msg = tokio::task::spawn_blocking(|| block_for_event())
-            //         .await
-            //         .expect("failed to get crossterm event");
-
-            //     if !msg.is_some() {
-            //         continue;
-            //     }
-
-            //     if let Event::Resize(width, height) = msg.unwrap() {
-            //         let new_size = (height, width);
-            //         if new_size != size {
-            //             size = new_size;
-            //             tx.size
-            //                 .broadcast(TerminalSizeState(new_size))
-            //                 .expect("send terminal size");
-            //         }
-            //     }
-            // }
-        })
-    }
-}
-
-fn block_for_event() -> Option<Event> {
-    if crossterm::event::poll(Duration::from_millis(500)).unwrap_or(false) {
-        crossterm::event::read().ok()
-    } else {
-        None
-    }
 }

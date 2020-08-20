@@ -1,9 +1,16 @@
-use super::tab_state::TabStateSelect;
 use tab_api::tab::{TabId, TabMetadata};
-use tab_service::{service_bus, Message};
-use tokio::sync::{broadcast, watch};
 
-service_bus!(pub StateBus);
+#[derive(Clone, Debug)]
+pub enum TabStateSelect {
+    None,
+    Selected(String),
+}
+
+impl Default for TabStateSelect {
+    fn default() -> Self {
+        Self::None
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TabState {
@@ -44,33 +51,6 @@ impl Default for TabState {
     }
 }
 
-impl Message<StateBus> for TabState {
-    type Channel = watch::Sender<Self>;
-}
-
-impl Message<StateBus> for TabStateSelect {
-    type Channel = watch::Sender<Self>;
-}
-
-impl Message<StateBus> for TabMetadata {
-    type Channel = broadcast::Sender<Self>;
-}
-
-#[derive(Clone, Debug)]
-pub struct TerminalSizeState(pub (u16, u16));
-
-impl Default for TerminalSizeState {
-    fn default() -> Self {
-        let dimensions = crossterm::terminal::size().expect("failed to get terminal size");
-
-        TerminalSizeState(dimensions)
-    }
-}
-
-impl Message<StateBus> for TerminalSizeState {
-    type Channel = watch::Sender<Self>;
-}
-
 #[derive(Clone, Debug)]
 pub struct TabStateAvailable(pub Vec<TabMetadata>);
 
@@ -78,8 +58,4 @@ impl Default for TabStateAvailable {
     fn default() -> Self {
         TabStateAvailable(vec![])
     }
-}
-
-impl Message<StateBus> for TabStateAvailable {
-    type Channel = watch::Sender<Self>;
 }

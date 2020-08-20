@@ -10,6 +10,8 @@ use std::{
 use thiserror::Error;
 use tokio::sync::mpsc;
 
+// mod impl_tuple;
+
 pub trait Channel {
     type Tx: 'static;
     type Rx: 'static;
@@ -25,9 +27,22 @@ pub trait Channel {
     fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx>;
 }
 
+pub trait Storage: Drop + Sized + Debug + 'static {
+    /// If Self::Tx implements clone, clone it.  Otherwise use Option::take
+    fn clone(tx: &mut Option<Self>) -> Option<Self>;
+}
+
 pub trait Message<Bus>: Debug {
     type Channel: Channel;
 }
+
+pub trait Carries<Type> {}
+impl<B, T> Carries<T> for B where T: Message<B> {}
+
+pub trait Resource<Bus>: Storage + Debug {}
+
+pub trait Stores<Type> {}
+impl<B, R> Stores<R> for B where R: Resource<B> {}
 
 pub trait Bus: Sized {
     /// Returns the receiver on the first call, and
@@ -43,6 +58,10 @@ pub trait Bus: Sized {
     fn tx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Tx, LinkTakenError>
     where
         Msg: Message<Self> + 'static;
+
+    fn resource<Res>(&self) -> Result<Res, ResourceError>
+    where
+        Res: Resource<Self>;
 }
 
 // struct Msg;
@@ -104,6 +123,56 @@ impl AlreadyLinkedError {
         AlreadyLinkedError {
             bus: type_name::<Bus>().to_string(),
             message: type_name::<Message>().to_string(),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum ResourceError {
+    #[error("{0}")]
+    Uninitialized(ResourceUninitializedError),
+    #[error("{0}")]
+    Taken(ResourceTakenError),
+}
+
+impl ResourceError {
+    pub fn uninitialized<Bus, Res>() -> Self {
+        Self::Uninitialized(ResourceUninitializedError::new::<Bus, Res>())
+    }
+
+    pub fn taken<Bus, Res>() -> Self {
+        Self::Taken(ResourceTakenError::new::<Bus, Res>())
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("resource already taken: {bus} < {resource} >")]
+pub struct ResourceTakenError {
+    pub bus: String,
+    pub resource: String,
+}
+
+impl ResourceTakenError {
+    pub fn new<Bus, Res>() -> Self {
+        ResourceTakenError {
+            bus: type_name::<Bus>().to_string(),
+            resource: type_name::<Res>().to_string(),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("resource uninitialized: {bus} < {resource} >")]
+pub struct ResourceUninitializedError {
+    pub bus: String,
+    pub resource: String,
+}
+
+impl ResourceUninitializedError {
+    pub fn new<Bus, Res>() -> Self {
+        ResourceUninitializedError {
+            bus: type_name::<Bus>().to_string(),
+            resource: type_name::<Res>().to_string(),
         }
     }
 }

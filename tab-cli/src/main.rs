@@ -14,7 +14,9 @@ use services::{
     terminal::TerminalService,
 };
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
-use state::ClientState;
+
+use crate::bus::main::MainBus;
+use message::main::{MainRecv, MainShutdown};
 use std::{io::Write, time::Duration};
 use tab_api::{
     chunk::InputChunk,
@@ -23,8 +25,11 @@ use tab_api::{
     response::Response,
     tab::{CreateTabMetadata, TabId},
 };
-use tab_service::{Bus, Lifeline, Service};
-use tab_websocket::{client::spawn_client, decode_with, encode, encode_or_close, encode_with};
+use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use tab_websocket::{
+    client::spawn_client, decode_with, encode, encode_or_close, encode_with,
+    service::WebsocketResource,
+};
 use tokio::io::AsyncReadExt;
 use tokio::{
     runtime::Runtime,
@@ -38,7 +43,8 @@ use tokio::{
 };
 use tungstenite::Message;
 
-mod service;
+mod bus;
+mod message;
 mod services;
 mod state;
 
@@ -80,19 +86,17 @@ async fn main_async() -> anyhow::Result<()> {
 
     let bus = MainBus::default();
 
-    let main_rx = MainRx {
-        websocket: tab_websocket::connect(ws_url).await?,
-        rx: bus.rx::<MainRecv>()?,
-    };
-    let main_tx = bus.tx::<MainShutdown>()?;
+    let websocket = tab_websocket::connect(ws_url).await?;
+    let websocket = WebsocketResource(websocket);
+    bus.store_resource(websocket);
 
     info!("Launching MainService");
-    let _service = MainService::spawn(main_rx, main_tx)?;
+    let _service = MainService::spawn(&bus)?;
 
     let mut tx = bus.tx::<MainRecv>()?;
     tx.send(MainRecv::SelectTab("tabby".to_string())).await?;
 
-    let mut main_shutdown = bus.rx::<MainShutdown>()?;
+    let main_shutdown = bus.rx::<MainShutdown>()?;
 
     info!("Waiting for termination");
     loop {
@@ -100,7 +104,7 @@ async fn main_async() -> anyhow::Result<()> {
             _ = ctrl_c() => {
                 break;
             },
-            _ = main_shutdown.recv() => {
+            _ = main_shutdown => {
                 break;
             }
         }
@@ -162,7 +166,7 @@ async fn run_tab(name: String) -> anyhow::Result<()> {
 
     // let rx = rx.map(|msg| decode_with::<Response>(msg));
 
-    let state = ClientState::default();
+    // let state = ClientState::default();
     // tokio::spawn(send_loop(tx.clone()));
     // recv_loop(tx, rx).await?;
 
