@@ -1,5 +1,5 @@
 use crate::{
-    bus::{LinkTakenError, Message},
+    bus::{AlreadyLinkedError, Link, LinkTakenError, Message},
     Bus, Channel,
 };
 use dyn_clone::DynClone;
@@ -70,13 +70,23 @@ impl BusSlot {
         }
     }
 
-    pub fn clone_rx<Chan>(&mut self) -> Option<Chan::Rx>
+    pub fn get_tx<Chan>(&self) -> Option<&Chan::Tx>
+    where
+        Chan: Channel,
+        Chan::Tx: Any + 'static,
+    {
+        self.value
+            .as_ref()
+            .map(|boxed| boxed.downcast_ref().unwrap())
+    }
+
+    pub fn clone_rx<Chan>(&mut self, tx: Option<&Chan::Tx>) -> Option<Chan::Rx>
     where
         Chan: Channel,
         Chan::Rx: Any + 'static,
     {
         let mut taken = self.value.take().map(Self::cast);
-        let cloned = Chan::clone_rx(&mut taken);
+        let cloned = Chan::clone_rx(&mut taken, tx);
         self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
         cloned
     }
@@ -139,54 +149,57 @@ impl BusSlot {
 
 #[derive(Debug)]
 pub struct DynBusStorage<B> {
-    pub(crate) channels: RwLock<HashSet<TypeId>>,
-    pub(crate) tx: RwLock<HashMap<TypeId, BusSlot>>,
-    pub(crate) rx: RwLock<HashMap<TypeId, BusSlot>>,
-
+    state: RwLock<DynBusState>,
     _bus: PhantomData<B>,
 }
 
+#[derive(Debug)]
+struct DynBusState {
+    pub(crate) channels: HashSet<TypeId>,
+    pub(crate) tx: HashMap<TypeId, BusSlot>,
+    pub(crate) rx: HashMap<TypeId, BusSlot>,
+    pub(crate) capacity: HashMap<TypeId, usize>,
+}
+
+impl Default for DynBusState {
+    fn default() -> Self {
+        DynBusState {
+            channels: HashSet::new(),
+            tx: HashMap::new(),
+            rx: HashMap::new(),
+            capacity: HashMap::new(),
+        }
+    }
+}
 impl<B: Bus> Default for DynBusStorage<B> {
     fn default() -> Self {
         DynBusStorage {
-            channels: RwLock::new(HashSet::new()),
-            tx: RwLock::new(HashMap::new()),
-            rx: RwLock::new(HashMap::new()),
+            state: RwLock::new(DynBusState::default()),
             _bus: PhantomData,
         }
     }
 }
 
 impl<B: Bus> DynBusStorage<B> {
-    pub fn try_lock(&self, id: TypeId) -> Option<RwLockWriteGuard<HashSet<TypeId>>> {
-        let channels = self.channels.read().unwrap();
-        if channels.contains(&id) {
-            return None;
-        }
-
-        drop(channels);
-
-        let channels = self.channels.write().unwrap();
-        if channels.contains(&id) {
-            return None;
-        }
-
-        Some(channels)
-    }
-
     pub fn link_channel<Msg>(&self)
     where
         Msg: Message<B> + 'static,
     {
         let id = TypeId::of::<Msg>();
 
-        if let Some(mut add_channel) = self.try_lock(id) {
-            let (tx, rx) = Msg::Channel::channel();
+        if let Some(mut state) = self.try_lock(id) {
+            let capacity = state
+                .capacity
+                .get(&id)
+                .copied()
+                .unwrap_or(Msg::Channel::default_capacity());
 
-            self.rx.write().unwrap().insert(id, BusSlot::new(rx));
-            self.tx.write().unwrap().insert(id, BusSlot::new(tx));
+            let (tx, rx) = Msg::Channel::channel(capacity);
 
-            add_channel.insert(id);
+            state.rx.insert(id, BusSlot::new(rx));
+            state.tx.insert(id, BusSlot::new(tx));
+
+            state.channels.insert(id);
         }
     }
 
@@ -197,13 +210,20 @@ impl<B: Bus> DynBusStorage<B> {
         self.link_channel::<Msg>();
 
         let id = TypeId::of::<Msg>();
-        let mut receivers = self.rx.write().expect("lock posion");
 
-        let slot = receivers
-            .get_mut(&id)
-            .expect("link_channel did not insert rx");
+        let mut state = self.state.write().unwrap();
+        let state = &mut *state;
+        let tx = &state.tx;
+        let rx = &mut state.rx;
 
-        slot.clone_rx::<Msg::Channel>()
+        let tx = tx
+            .get(&id)
+            .expect("link_channel did not insert tx")
+            .get_tx::<Msg::Channel>();
+
+        let slot = rx.get_mut(&id).expect("link_channel did not insert rx");
+
+        slot.clone_rx::<Msg::Channel>(tx)
     }
 
     pub fn clone_tx<Msg>(&self) -> Option<<Msg::Channel as Channel>::Tx>
@@ -213,7 +233,9 @@ impl<B: Bus> DynBusStorage<B> {
         self.link_channel::<Msg>();
 
         let id = TypeId::of::<Msg>();
-        let mut senders = self.tx.write().expect("lock posion");
+
+        let mut state = self.state.write().unwrap();
+        let mut senders = &mut state.tx;
         let slot = senders
             .get_mut(&id)
             .expect("link_channel did not insert rx");
@@ -221,20 +243,41 @@ impl<B: Bus> DynBusStorage<B> {
         slot.clone_tx::<Msg::Channel>()
     }
 
-    pub fn capacity<Msg>(&self, capacity: usize)
+    pub fn capacity<Msg>(&self, capacity: usize) -> Result<(), AlreadyLinkedError>
     where
         Msg: Message<B> + 'static,
     {
         let id = TypeId::of::<Msg>();
 
-        if let Some(mut add_channel) = self.try_lock(id) {
-            let (tx, rx) = Msg::Channel::channel();
+        let state = self.state.read().unwrap();
 
-            self.rx.write().unwrap().insert(id, BusSlot::new(rx));
-            self.tx.write().unwrap().insert(id, BusSlot::new(tx));
-
-            add_channel.insert(id);
+        if state.capacity.contains_key(&id) {
+            return Err(AlreadyLinkedError::new::<B, Msg>());
         }
+
+        drop(state);
+
+        let mut state = self.state.write().unwrap();
+
+        state.capacity.insert(id, capacity);
+
+        Ok(())
+    }
+
+    fn try_lock(&self, id: TypeId) -> Option<RwLockWriteGuard<DynBusState>> {
+        let state = self.state.read().unwrap();
+        if state.channels.contains(&id) {
+            return None;
+        }
+
+        drop(state);
+
+        let state = self.state.write().unwrap();
+        if state.channels.contains(&id) {
+            return None;
+        }
+
+        Some(state)
     }
 }
 
@@ -247,7 +290,9 @@ where
         Msg: crate::bus::Message<Self> + 'static,
     {
         self.storage().link_channel::<Msg>();
-        self.storage().clone_rx::<Msg>().ok_or(LinkTakenError)
+        self.storage()
+            .clone_rx::<Msg>()
+            .ok_or_else(|| LinkTakenError::new::<Self, Msg>(Link::Rx))
     }
 
     fn tx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Tx, crate::bus::LinkTakenError>
@@ -255,7 +300,9 @@ where
         Msg: crate::bus::Message<Self> + 'static,
     {
         self.storage().link_channel::<Msg>();
-        self.storage().clone_tx::<Msg>().ok_or(LinkTakenError)
+        self.storage()
+            .clone_tx::<Msg>()
+            .ok_or_else(|| LinkTakenError::new::<Self, Msg>(Link::Tx))
     }
 
     fn capacity<Msg>(&self, capacity: usize) -> Result<(), crate::bus::AlreadyLinkedError>

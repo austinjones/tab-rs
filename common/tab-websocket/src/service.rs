@@ -3,17 +3,31 @@ use crate::{
     WebSocket,
 };
 use async_trait::async_trait;
-use futures::StreamExt;
+use futures::{executor::block_on, StreamExt};
 use log::{debug, error, trace};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
-use tab_service::{spawn, AsyncService, Lifeline, Service};
-use tokio::{net::TcpStream, select, signal::ctrl_c, sync::mpsc};
+use tab_service::{AsyncService, Lifeline, Service};
+use tokio::{
+    net::TcpStream,
+    select,
+    signal::ctrl_c,
+    sync::{mpsc, watch},
+};
 use tungstenite::{Error, Message};
+
 pub struct WebsocketService<Recv, Transmit> {
     _runloop: Lifeline,
     _recv: PhantomData<Recv>,
     _send: PhantomData<Transmit>,
+}
+
+struct WebsocketDrop(WebSocket);
+
+impl Drop for WebsocketDrop {
+    fn drop(&mut self) {
+        block_on(self.0.close(None)).expect("websocket drop failed");
+    }
 }
 
 pub struct WebsocketRx<Recv> {
@@ -28,15 +42,16 @@ where
 {
     type Rx = WebsocketRx<Recv>;
     type Tx = mpsc::Sender<Transmit>;
-    type Return = Self;
+    type Lifeline = Self;
 
     fn spawn(rx: Self::Rx, message_tx: Self::Tx) -> Self {
         // let mut websocket = parse_bincode(websocket);
 
         // let (mut tx_request, rx_request) = mpsc::channel::<Request>(4);
         // let (tx_response, mut rx_response) = mpsc::channel::<Response>(4);
+        let websocket = WebsocketDrop(rx.websocket);
 
-        let _runloop = spawn(async { runloop(rx.websocket, rx.rx, message_tx) });
+        let _runloop = Self::task("run", runloop(websocket, rx.rx, message_tx));
 
         Self {
             _runloop,
@@ -47,55 +62,57 @@ where
 }
 
 async fn runloop<Recv, Transmit>(
-    mut websocket: WebSocket,
+    mut websocket_drop: WebsocketDrop,
     mut rx: mpsc::Receiver<Recv>,
     mut tx: mpsc::Sender<Transmit>,
 ) where
     Recv: Serialize + Debug,
     Transmit: DeserializeOwned + Debug,
 {
+    let websocket = &mut websocket_drop.0;
     loop {
         select!(
-            request = websocket.next() => {
-                if let None = request {
+            message = websocket.next() => {
+                if let None = message {
+                    debug!("terminating - websocket disconnected");
                     break;
                 }
 
-                trace!("request received: {:?}", &request);
+                trace!("message received: {:?}", &message);
 
-                let request = request.unwrap();
-                if let Err(e) = request {
+                let message = message.unwrap();
+                if let Err(e) = message {
                     match e {
                         Error::ConnectionClosed | Error::AlreadyClosed | Error::Protocol(_)=> {
                             break;
                         },
                         _ => {
-                            error!("request error: {}", e);
+                            error!("message error: {}", e);
                             continue;
                         }
                     }
                 }
 
-                let request = request.unwrap();
-                if should_terminate(&request) {
+                let message = message.unwrap();
+                if should_terminate(&message) {
+                    debug!("terminating - received close");
                     break;
                 }
 
-                process_request(&mut websocket, request, &mut tx).await;
+                process_message(websocket, message, &mut tx).await;
             },
             message = rx.recv() => {
                 if !message.is_some()  {
-                    common::send_close(&mut websocket).await;
+                    common::send_close(websocket).await;
+
+                    debug!("terminating - channel disconnected");
                     break;
                 }
 
                 let message = message.unwrap();
 
-                debug!("send message: {:?}", &message);
-                common::send_message(&mut websocket, message).await;
-            },
-            _ = ctrl_c() => {
-                // common::send_close(&mut websocket).await;
+                trace!("send message: {:?}", &message);
+                common::send_message(websocket, message).await;
             },
         );
     }
@@ -103,7 +120,7 @@ async fn runloop<Recv, Transmit>(
     debug!("server loop terminated");
 }
 
-async fn process_request<Request: DeserializeOwned>(
+async fn process_message<Request: DeserializeOwned>(
     _websocket: &mut WebSocket,
     response: tungstenite::Message,
     target: &mut mpsc::Sender<Request>,

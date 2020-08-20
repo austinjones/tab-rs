@@ -7,10 +7,10 @@ use futures::{
     stream::StreamExt,
     Future, Sink, Stream,
 };
-use log::{info, trace, LevelFilter};
+use log::{error, info, trace, LevelFilter};
 use services::main::*;
 use services::{
-    client::{ClientService, ClientServiceRx, ClientServiceTx},
+    client::{ClientRx, ClientService, ClientTx},
     terminal::TerminalService,
 };
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
@@ -23,7 +23,7 @@ use tab_api::{
     response::Response,
     tab::{CreateTabMetadata, TabId},
 };
-use tab_service::{spawn, Bus, Lifeline, Service};
+use tab_service::{Bus, Lifeline, Service};
 use tab_websocket::{client::spawn_client, decode_with, encode, encode_or_close, encode_with};
 use tokio::io::AsyncReadExt;
 use tokio::{
@@ -42,11 +42,30 @@ mod service;
 mod services;
 mod state;
 
-pub fn main() -> anyhow::Result<()> {
-    let mut runtime = Runtime::new()?;
+// #[tokio::main]
+// pub async fn main() {
+//     match main_async().await {
+//         Ok(()) => {}
+//         Err(e) => error!("fatal error: {}", e),
+//     };
 
-    runtime.block_on(main_async())?;
-    runtime.shutdown_timeout(Duration::from_millis(250));
+//     tokio::runtime::
+// }
+pub fn main() -> anyhow::Result<()> {
+    let mut runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_io()
+        .enable_time()
+        .build()
+        .unwrap();
+
+    runtime.block_on(async {
+        match main_async().await {
+            Ok(()) => {}
+            Err(e) => error!("fatal error: {}", e),
+        };
+    });
+    runtime.shutdown_timeout(Duration::from_millis(25));
 
     Ok(())
 }
@@ -58,22 +77,24 @@ async fn main_async() -> anyhow::Result<()> {
 
     let daemon_file = load_daemon_file()?.unwrap();
     let ws_url = format!("ws://127.0.0.1:{}", daemon_file.port);
-    let websocket = tab_websocket::connect(ws_url).await?;
 
     let bus = MainBus::default();
 
-    let rx = bus.take_rx::<MainRecv>().unwrap();
-    let tx = bus.tx::<MainShutdown>();
-
     let main_rx = MainRx {
-        tab: "tabby".to_string(),
-        websocket,
-        rx,
+        websocket: tab_websocket::connect(ws_url).await?,
+        rx: bus.rx::<MainRecv>()?,
     };
-    let _service = MainService::spawn(main_rx, tx);
+    let main_tx = bus.tx::<MainShutdown>()?;
 
-    let mut main_shutdown = bus.take_rx::<MainShutdown>().unwrap();
+    info!("Launching MainService");
+    let _service = MainService::spawn(main_rx, main_tx)?;
 
+    let mut tx = bus.tx::<MainRecv>()?;
+    tx.send(MainRecv::SelectTab("tabby".to_string())).await?;
+
+    let mut main_shutdown = bus.rx::<MainShutdown>()?;
+
+    info!("Waiting for termination");
     loop {
         select! {
             _ = ctrl_c() => {

@@ -20,6 +20,9 @@ impls = "1"
 dyn-clone = "1.0"
 traitcast = "0.5"
 
+log = "0.4"
+regex = "1.3"
+
 [features]
 default = ["serialize"]
 serialize = ["uuid", "serde", "lru"]

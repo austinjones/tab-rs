@@ -16,7 +16,7 @@ clap = "2.33.2"
 # async / websockets
 tungstenite = "0.11"
 async-tungstenite = { version = "*", features = ["tokio-runtime"] }
-tokio = { version = "0.2", features = ["time", "io-std", "process", "macros", "rt-threaded"] }
+tokio = { version = "0.2", features = ["time", "io-std", "process", "blocking", "macros", "rt-threaded"] }
 futures = "0.3"
 
 bincode = "1.3"

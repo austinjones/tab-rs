@@ -1,6 +1,8 @@
+use crate::type_name::type_name;
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
+    fmt::{Debug, Display},
     marker::PhantomData,
     ops::Deref,
     sync::RwLock,
@@ -20,10 +22,10 @@ pub trait Channel {
     fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx>;
 
     /// If Self::Tx implements clone, clone it.  Otherwise use Option::take
-    fn clone_rx(rx: &mut Option<Self::Rx>) -> Option<Self::Rx>;
+    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx>;
 }
 
-pub trait Message<Bus> {
+pub trait Message<Bus>: Debug {
     type Channel: Channel;
 }
 
@@ -56,10 +58,52 @@ pub trait Bus: Sized {
 //     }
 // }
 
+#[derive(Debug)]
+pub enum Link {
+    Tx,
+    Rx,
+}
+
+impl Display for Link {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Link::Tx => f.write_str("Tx"),
+            Link::Rx => f.write_str("Rx"),
+        }
+    }
+}
+
+//TODO: encode Bus and Link types
 #[derive(Error, Debug)]
-#[error("rx/tx link already taken")]
-pub struct LinkTakenError;
+#[error("link already taken: {bus} < {message}::{link} >")]
+pub struct LinkTakenError {
+    pub bus: String,
+    pub message: String,
+    pub link: Link,
+}
+
+impl LinkTakenError {
+    pub fn new<Bus, Message>(link: Link) -> Self {
+        LinkTakenError {
+            bus: type_name::<Bus>().to_string(),
+            message: type_name::<Message>().to_string(),
+            link,
+        }
+    }
+}
 
 #[derive(Error, Debug)]
-#[error("link already generated - capacity is immutable")]
-pub struct AlreadyLinkedError;
+#[error("link already generated: {bus} < {message} >")]
+pub struct AlreadyLinkedError {
+    pub bus: String,
+    pub message: String,
+}
+
+impl AlreadyLinkedError {
+    pub fn new<Bus, Message>() -> Self {
+        AlreadyLinkedError {
+            bus: type_name::<Bus>().to_string(),
+            message: type_name::<Message>().to_string(),
+        }
+    }
+}

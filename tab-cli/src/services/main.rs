@@ -1,40 +1,63 @@
 use super::{
-    client::{ClientService, ClientServiceRx, ClientServiceTx},
-    terminal::{TerminalRecv, TerminalSend, TerminalService},
+    client::{ClientRx, ClientService, ClientTx},
+    state::{TabState, TabStateAvailable, TerminalSizeState},
+    tab_state::{TabStateRx, TabStateSelect, TabStateService},
+    terminal::{TerminalRecv, TerminalSend, TerminalService, TerminalTx},
 };
-use tab_api::{request::Request, response::Response};
-use tab_service::{channel_tokio_mpsc, service_bus, spawn, Bus, Lifeline, Service};
+use crate::services::state::StateBus;
+use log::{debug, info};
+use tab_api::{request::Request, response::Response, tab::TabMetadata};
+use tab_service::{service_bus, Bus, Lifeline, Message, Service};
 use tab_websocket::{
     service::{WebsocketRx, WebsocketService},
     WebSocket,
 };
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
-pub enum MainShutdown {}
+#[derive(Debug)]
+pub struct MainShutdown {}
+
+#[derive(Debug)]
 pub enum MainRecv {
-    SelectTab,
+    SelectTab(String),
 }
 
 service_bus!(pub MainBus);
 
-channel_tokio_mpsc!(impl Channel<MainBus, 16> for MainShutdown);
-channel_tokio_mpsc!(impl Channel<MainBus, 16> for MainRecv);
+impl Message<MainBus> for MainShutdown {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<MainBus> for MainRecv {
+    type Channel = mpsc::Sender<Self>;
+}
 
 service_bus!(InternalBus);
-channel_tokio_mpsc!(impl Channel<InternalBus, 16> for TerminalSend);
-channel_tokio_mpsc!(impl Channel<InternalBus, 16> for TerminalRecv);
+impl Message<InternalBus> for TerminalSend {
+    type Channel = mpsc::Sender<Self>;
+}
 
-channel_tokio_mpsc!(impl Channel<InternalBus, 16> for Request);
-channel_tokio_mpsc!(impl Channel<InternalBus, 16> for Response);
+impl Message<InternalBus> for TerminalRecv {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<InternalBus> for Request {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<InternalBus> for Response {
+    type Channel = mpsc::Sender<Self>;
+}
 
 pub struct MainService {
     _main: Lifeline,
     _client: ClientService,
+    _websocket: WebsocketService<Request, Response>,
     _terminal: TerminalService,
+    _tab_state: Lifeline,
 }
 
 pub struct MainRx {
-    pub tab: String,
     pub websocket: WebSocket,
     pub rx: mpsc::Receiver<MainRecv>,
 }
@@ -42,43 +65,69 @@ pub struct MainRx {
 impl Service for MainService {
     type Rx = MainRx;
     type Tx = mpsc::Sender<MainShutdown>;
-    type Return = Self;
+    type Lifeline = anyhow::Result<Self>;
 
-    fn spawn(rx: Self::Rx, tx: Self::Tx) -> Self {
-        let mut main_rx = rx.rx;
-        let _main = spawn(async move { while let Some(msg) = main_rx.recv().await {} });
-
+    fn spawn(rx: Self::Rx, tx: Self::Tx) -> anyhow::Result<Self> {
         let bus = InternalBus::default();
+        let state = StateBus::default();
 
-        let _terminal = TerminalService::spawn(
-            bus.take_rx::<TerminalRecv>().unwrap(),
-            bus.tx::<TerminalSend>(),
-        );
+        let mut main_rx = rx.rx;
+        // let mut tx_client = bus.tx::<ClientRecv>();
+        let tx_select_tab = state.tx::<TabStateSelect>()?;
+
+        let _main = Self::task("main_recv", async move {
+            while let Some(msg) = main_rx.recv().await {
+                debug!("MainRecv: {:?}", &msg);
+
+                match msg {
+                    MainRecv::SelectTab(name) => tx_select_tab
+                        .broadcast(TabStateSelect::Selected(name))
+                        .expect("failed to send msg"),
+                }
+            }
+        });
+
+        let tab_state_rx = TabStateRx {
+            tab: state.rx::<TabStateSelect>()?,
+            tab_metadata: state.rx::<TabMetadata>()?,
+        };
+        let _tab_state = TabStateService::spawn(tab_state_rx, state.tx::<TabState>()?);
+        let terminal_tx = TerminalTx {
+            size: state.tx::<TerminalSizeState>()?,
+            tx: bus.tx::<TerminalSend>()?,
+        };
+        let _terminal = TerminalService::spawn(bus.rx::<TerminalRecv>()?, terminal_tx);
 
         let websocket_rx = WebsocketRx {
             websocket: rx.websocket,
-            rx: bus.take_rx::<Request>().unwrap(),
+            rx: bus.rx::<Request>()?,
         };
 
-        let _websocket = WebsocketService::spawn(websocket_rx, bus.tx::<Request>());
+        let _websocket = WebsocketService::spawn(websocket_rx, bus.tx::<Response>()?);
 
-        let rx = ClientServiceRx {
-            tab: rx.tab,
-            terminal: bus.take_rx::<TerminalSend>().unwrap(),
-            websocket: bus.take_rx::<Response>().unwrap(),
+        let rx = ClientRx {
+            terminal: bus.rx::<TerminalSend>()?,
+            websocket: bus.rx::<Response>()?,
+            tab_state: state.rx::<TabState>()?,
+            terminal_size: state.rx::<TerminalSizeState>()?,
         };
 
-        let tx = ClientServiceTx {
-            terminal: bus.tx::<TerminalRecv>(),
-            websocket: bus.tx::<Request>(),
+        let tx = ClientTx {
+            terminal: bus.tx::<TerminalRecv>()?,
+            websocket: bus.tx::<Request>()?,
+            active_tabs: state.tx::<TabStateAvailable>()?,
+            tab_metadata: state.tx::<TabMetadata>()?,
+            shutdown: tx,
         };
 
         let _client = ClientService::spawn(rx, tx);
 
-        Self {
+        Ok(Self {
             _main,
             _client,
+            _websocket,
             _terminal,
-        }
+            _tab_state,
+        })
     }
 }

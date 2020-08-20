@@ -1,9 +1,12 @@
-use std::{sync::{RwLock, Arc}, marker::PhantomData};
+use std::{
+    marker::PhantomData,
+    sync::{Arc, RwLock},
+};
 use uuid::Uuid;
 
 use lru::LruCache;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tokio::sync::{Mutex, oneshot};
+use tokio::sync::{oneshot, Mutex};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Request<Send, Recv>
@@ -23,7 +26,7 @@ pub struct Sender<Send, Recv> {
 }
 
 pub struct Receiver<Recv> {
-    internal: Arc<ReceiverInternal<Recv>>
+    internal: Arc<ReceiverInternal<Recv>>,
 }
 
 struct ReceiverInternal<Recv> {
@@ -31,7 +34,7 @@ struct ReceiverInternal<Recv> {
 }
 
 pub struct RequestSender {
-    items: Arc<RwLock<LruCache<Uuid, oneshot::Sender<Recv>>>>
+    items: Arc<RwLock<LruCache<Uuid, oneshot::Sender<Recv>>>>,
 }
 
 impl<Recv> RequestService<Recv>
@@ -46,9 +49,8 @@ where
         let request = Request::new(send, id);
         let (tx, rx) = oneshot::channel();
 
-        { 
+        {
             let read = self.items.read().await;
-            items.
         }
     }
 
