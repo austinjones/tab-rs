@@ -3,6 +3,7 @@ mod request;
 mod bus;
 pub mod dyn_bus;
 mod spawn;
+mod storage;
 pub mod tokio;
 mod type_name;
 
@@ -10,6 +11,7 @@ use async_trait::async_trait;
 use futures::Future;
 use spawn::spawn_task;
 use std::fmt::Debug;
+pub use storage::Storage;
 
 pub use request::Request;
 // pub use spawn::spawn_from;

@@ -19,6 +19,7 @@ thiserror = "1.0"
 impls = "1"
 dyn-clone = "1.0"
 traitcast = "0.5"
+downcast-rs = "1.2.0"
 
 log = "0.4"
 regex = "1.3"

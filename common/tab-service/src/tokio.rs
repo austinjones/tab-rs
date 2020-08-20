@@ -1,13 +1,7 @@
-use crate::Channel;
+use crate::{
+    impl_channel_clone, impl_channel_take, Channel, Storage,
+};
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
-
-pub(crate) fn clone<T: Clone>(link: &mut Option<T>) -> Option<T> {
-    link.as_ref().map(|link| link.clone())
-}
-
-pub(crate) fn take<T>(link: &mut Option<T>) -> Option<T> {
-    link.take()
-}
 
 impl<T: 'static> Channel for mpsc::Sender<T> {
     type Tx = Self;
@@ -20,15 +14,10 @@ impl<T: 'static> Channel for mpsc::Sender<T> {
     fn default_capacity() -> usize {
         16
     }
-
-    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx> {
-        tx.as_ref().map(|tx| tx.clone())
-    }
-
-    fn clone_rx(rx: &mut Option<Self::Rx>, _: Option<&Self::Tx>) -> Option<Self::Rx> {
-        rx.take()
-    }
 }
+
+impl_channel_clone!(mpsc::Sender<T>);
+impl_channel_take!(mpsc::Receiver<T>);
 
 impl<T: 'static> Channel for broadcast::Sender<T> {
     type Tx = Self;
@@ -42,14 +31,15 @@ impl<T: 'static> Channel for broadcast::Sender<T> {
         16
     }
 
-    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx> {
-        clone(tx)
-    }
-
-    fn clone_rx(_rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
         tx.map(|tx| tx.subscribe())
     }
 }
+
+impl_channel_take!(broadcast::Sender<T>);
+
+// this is actually overriden in clone_rx
+impl_channel_take!(broadcast::Receiver<T>);
 
 impl<T: 'static> Channel for oneshot::Sender<T> {
     type Tx = Self;
@@ -62,15 +52,10 @@ impl<T: 'static> Channel for oneshot::Sender<T> {
     fn default_capacity() -> usize {
         1
     }
-
-    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx> {
-        take(tx)
-    }
-
-    fn clone_rx(rx: &mut Option<Self::Rx>, _tx: Option<&Self::Tx>) -> Option<Self::Rx> {
-        take(rx)
-    }
 }
+
+impl_channel_take!(oneshot::Sender<T>);
+impl_channel_take!(oneshot::Receiver<T>);
 
 impl<T> Channel for watch::Sender<T>
 where
@@ -86,12 +71,7 @@ where
     fn default_capacity() -> usize {
         1
     }
-
-    fn clone_tx(tx: &mut Option<Self::Tx>) -> Option<Self::Tx> {
-        take(tx)
-    }
-
-    fn clone_rx(rx: &mut Option<Self::Rx>, _tx: Option<&Self::Tx>) -> Option<Self::Rx> {
-        clone(rx)
-    }
 }
+
+impl_channel_take!(watch::Sender<T>);
+impl_channel_clone!(watch::Receiver<T>);
