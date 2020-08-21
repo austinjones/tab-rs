@@ -3,7 +3,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
     common::{self},
-    WebSocket,
+    WebsocketConnection,
 };
 use common::should_terminate;
 use log::{debug, error, trace};
@@ -88,7 +88,7 @@ pub async fn spawn_server<
 }
 
 async fn server_process_request<Request: DeserializeOwned>(
-    _websocket: &mut WebSocket,
+    _websocket: &mut WebsocketConnection,
     response: tungstenite::Message,
     target: &mut Sender<Request>,
 ) {

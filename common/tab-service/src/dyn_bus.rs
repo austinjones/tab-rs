@@ -1,6 +1,6 @@
 use crate::{
     bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, ResourceError},
-    Bus, Channel, Storage,
+    Bus, Channel, ResourceInitializedError, Storage,
 };
 
 use std::{
@@ -32,8 +32,79 @@ macro_rules! service_bus (
         }
 
         impl$(< $( $gen ),+ >)? $crate::dyn_bus::DynBus for $name$(< $( $gen ),+ >)? {
+            fn store_rx<Msg>(&self, rx: <Msg::Channel as $crate::Channel>::Rx) -> Result<(), $crate::AlreadyLinkedError>
+                where Msg: $crate::Message<Self> + 'static
+            {
+                self.storage().store_channel::<Msg, Msg::Channel>(Some(rx), None)
+            }
+
+            fn store_tx<Msg>(&self, tx: <Msg::Channel as $crate::Channel>::Tx) -> Result<(), $crate::AlreadyLinkedError>
+                where Msg: $crate::Message<Self> + 'static
+            {
+                self.storage().store_channel::<Msg, Msg::Channel>(None, Some(tx))
+            }
+
+            fn store_channel<Msg>(
+                &self,
+                rx: <Msg::Channel as $crate::Channel>::Rx,
+                tx: <Msg::Channel as $crate::Channel>::Tx
+            ) -> Result<(), $crate::AlreadyLinkedError>
+                where Msg: $crate::Message<Self> + 'static
+            {
+                self.storage().store_channel::<Msg, Msg::Channel>(Some(rx), Some(tx))
+            }
+
             fn store_resource<R: $crate::Resource<Self>>(&self, resource: R) {
                 self.storage.store_resource::<R>(resource)
+            }
+
+            fn take_channel<Msg, Source>(
+                &self,
+                other: &Source,
+            ) -> Result<(), $crate::AlreadyLinkedError>
+            where
+                Msg: $crate::Message<Self> + 'static,
+                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Source: $crate::dyn_bus::DynBus
+            {
+                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, true, true)
+            }
+
+            fn take_rx<Msg, Source>(
+                &self,
+                other: &Source,
+            ) -> Result<(), $crate::AlreadyLinkedError>
+            where
+                Msg: $crate::Message<Self> + 'static,
+                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Source: $crate::dyn_bus::DynBus
+            {
+                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, true, false)
+            }
+
+            fn take_tx<Msg, Source>(
+                &self,
+                other: &Source,
+            ) -> Result<(), $crate::AlreadyLinkedError>
+            where
+                Msg: $crate::Message<Self> + 'static,
+                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Source: $crate::dyn_bus::DynBus
+            {
+                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, false, true)
+            }
+
+            fn take_resource<Res, Source>(
+                &self,
+                other: &Source,
+            ) -> Result<(), $crate::ResourceInitializedError>
+            where
+                Res: $crate::Storage,
+                Res: $crate::Resource<Source>,
+                Res: $crate::Resource<Self>,
+                Source: $crate::dyn_bus::DynBus
+            {
+                self.storage.take_resource::<Res, Source, Self>(other)
             }
 
             fn storage(&self) -> &$crate::dyn_bus::DynBusStorage<Self> {
@@ -56,12 +127,54 @@ macro_rules! service_bus (
 );
 
 pub trait DynBus: Bus {
+    fn store_rx<Msg>(&self, rx: <Msg::Channel as Channel>::Rx) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static;
+
+    fn store_tx<Msg>(&self, tx: <Msg::Channel as Channel>::Tx) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static;
+
+    fn store_channel<Msg>(
+        &self,
+        rx: <Msg::Channel as Channel>::Rx,
+        tx: <Msg::Channel as Channel>::Tx,
+    ) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static;
+
     fn store_resource<R: Resource<Self>>(&self, resource: R);
+
+    fn take_channel<Msg, Source>(&self, other: &Source) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static,
+        Msg: Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+        Source: DynBus;
+
+    fn take_rx<Msg, Source>(&self, other: &Source) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static,
+        Msg: Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+        Source: DynBus;
+
+    fn take_tx<Msg, Source>(&self, other: &Source) -> Result<(), AlreadyLinkedError>
+    where
+        Msg: Message<Self> + 'static,
+        Msg: Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+        Source: DynBus;
+
+    fn take_resource<Res, Source>(&self, other: &Source) -> Result<(), ResourceInitializedError>
+    where
+        Res: Storage,
+        Res: Resource<Source>,
+        Res: Resource<Self>,
+        Source: DynBus;
+
     fn storage(&self) -> &DynBusStorage<Self>;
 }
 
 pub(crate) struct BusSlot {
-    value: Option<Box<dyn Any>>,
+    value: Option<Box<dyn Any + Send>>,
 }
 
 impl Debug for BusSlot {
@@ -76,9 +189,9 @@ impl Debug for BusSlot {
 }
 
 impl BusSlot {
-    pub fn new<T: 'static>(value: T) -> Self {
+    pub fn new<T: Send + 'static>(value: Option<T>) -> Self {
         Self {
-            value: Some(Box::new(value)),
+            value: value.map(|v| Box::new(v) as Box<dyn Any + Send>),
         }
     }
 
@@ -86,7 +199,7 @@ impl BusSlot {
         Self { value: None }
     }
 
-    pub fn put<T: 'static>(&mut self, value: T) {
+    pub fn put<T: Send + 'static>(&mut self, value: T) {
         self.value = Some(Box::new(value))
     }
 
@@ -103,73 +216,36 @@ impl BusSlot {
     pub fn clone_rx<Chan>(&mut self, tx: Option<&Chan::Tx>) -> Option<Chan::Rx>
     where
         Chan: Channel,
-        Chan::Rx: Storage + 'static,
+        Chan::Rx: Storage + Send + 'static,
     {
         let mut taken = self.value.take().map(Self::cast);
         let cloned = Chan::clone_rx(&mut taken, tx);
-        self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
+        self.value = taken.map(|value| Box::new(value) as Box<dyn Any + Send>);
         cloned
     }
 
     pub fn clone_tx<Chan>(&mut self) -> Option<Chan::Tx>
     where
         Chan: Channel,
-        Chan::Tx: Storage + 'static,
+        Chan::Tx: Storage + Send + 'static,
     {
         let mut taken = self.value.take().map(Self::cast);
         let cloned = Chan::clone_tx(&mut taken);
-        self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
+        self.value = taken.map(|value| Box::new(value) as Box<dyn Any + Send>);
         cloned
     }
 
     pub fn clone_storage<Res>(&mut self) -> Option<Res>
     where
-        Res: Storage + Any,
+        Res: Storage + Send + Any,
     {
         let mut taken = self.value.take().map(Self::cast);
         let cloned = Res::take_or_clone(&mut taken);
-        self.value = taken.map(|value| Box::new(value) as Box<dyn Any>);
+        self.value = taken.map(|value| Box::new(value) as Box<dyn Any + Send>);
         cloned
     }
-    // match self {
-    //     Self::Taken(slot) => slot.take().map(|value| Self::cast(value)),
-    //     Self::Cloned(ref boxed) => {
-    //         let cloned = dyn_clone::clone_box(&**boxed);
-    //         let any: Box<dyn Any> = Box::new(cloned);
 
-    //         Some(Self::cast(any))
-    //     }
-    // }
-
-    // // we can dynamically check if the type implements Clone!
-    // if impls!(T: DynClone) {
-    //     // if so, we downcast as a ref and clone
-    //     if let Some(ref boxed) = self.data {
-    //         // let value: T = *boxed
-    //         //     .downcast::<T>()
-    //         //     .expect("BusSlot should always have correct type");
-    //         // let boxed: Box<&dyn AnyClone> = Box::new(&value);
-    //         let boxed: Box<dyn DynClone> =
-    //             traitcast::cast_box(boxed).expect("statically asserted");
-
-    //         let cloned = dyn_clone::clone_box(&*boxed);
-
-    //         let any: Box<dyn Any> = Box::new(cloned);
-
-    //         let cloned = any
-    //             .downcast::<T>()
-    //             .expect("BusSlot should always have correct type");
-
-    //         Some(*cloned)
-    //     } else {
-    //         None
-    //     }
-    // } else {
-    //     // if not, we downcast as owned, and return
-    //     self.data.take().map(|boxed| {})
-    // }
-
-    fn cast<T: 'static>(boxed: Box<dyn Any>) -> T {
+    fn cast<T: 'static>(boxed: Box<dyn Any + Send>) -> T {
         *boxed
             .downcast::<T>()
             .expect("BusSlot should always have correct type")
@@ -227,8 +303,8 @@ impl<B: Bus> DynBusStorage<B> {
 
             let (tx, rx) = Msg::Channel::channel(capacity);
 
-            state.rx.insert(id, BusSlot::new(rx));
-            state.tx.insert(id, BusSlot::new(tx));
+            state.rx.insert(id, BusSlot::new(Some(rx)));
+            state.tx.insert(id, BusSlot::new(Some(tx)));
 
             state.channels.insert(id);
         }
@@ -290,7 +366,7 @@ impl<B: Bus> DynBusStorage<B> {
             .ok_or_else(|| ResourceError::taken::<Self, Res>())
     }
 
-    pub fn store_resource<Res: 'static>(&self, value: Res) {
+    pub fn store_resource<Res: Send + 'static>(&self, value: Res) {
         let id = TypeId::of::<Res>();
 
         let mut state = self.state.write().unwrap();
@@ -305,6 +381,88 @@ impl<B: Bus> DynBusStorage<B> {
         slot.put(value);
     }
 
+    pub fn store_channel<Msg, Chan>(
+        &self,
+        rx: Option<Chan::Rx>,
+        tx: Option<Chan::Tx>,
+    ) -> Result<(), AlreadyLinkedError>
+    where
+        Chan: Channel,
+        Msg: 'static,
+    {
+        if rx.is_none() && tx.is_none() {
+            return Ok(());
+        }
+
+        let id = TypeId::of::<Msg>();
+
+        let mut target = self.state.write().expect("cannot lock other");
+        if target.channels.contains(&id) {
+            return Err(AlreadyLinkedError::new::<Self, Msg>());
+        }
+
+        target.tx.insert(id.clone(), BusSlot::new(tx));
+        target.rx.insert(id.clone(), BusSlot::new(rx));
+
+        Ok(())
+    }
+
+    pub fn take_channel<Msg, Source, Target, Chan>(
+        &self,
+        other: &Source,
+        rx: bool,
+        tx: bool,
+    ) -> Result<(), crate::bus::AlreadyLinkedError>
+    where
+        Msg: Message<Target, Channel = Chan> + Message<Source, Channel = Chan> + 'static,
+        Chan: Channel,
+        Source: DynBus,
+    {
+        let id = TypeId::of::<Msg>();
+
+        let mut target = self.state.write().expect("cannot lock other");
+        if target.channels.contains(&id) {
+            return Err(AlreadyLinkedError::new::<Self, Msg>());
+        }
+
+        let source = other.storage();
+
+        let rx = if rx { source.clone_rx::<Msg>() } else { None };
+        let tx = if tx { source.clone_tx::<Msg>() } else { None };
+        drop(source);
+
+        target.rx.insert(id.clone(), BusSlot::new(rx));
+        target.tx.insert(id.clone(), BusSlot::new(tx));
+
+        Ok(())
+    }
+
+    pub fn take_resource<Res, Source, Target>(
+        &self,
+        other: &Source,
+    ) -> Result<(), crate::bus::ResourceInitializedError>
+    where
+        Res: Resource<Source>,
+        Res: Resource<Target>,
+        Res: Storage,
+        Source: DynBus,
+    {
+        let id = TypeId::of::<Res>();
+
+        let mut target = self.state.write().expect("cannot lock other");
+        if target.resources.contains_key(&id) {
+            return Err(ResourceInitializedError::new::<Self, Res>());
+        }
+
+        let source = other.storage();
+
+        let res = source.clone_resource::<Res>();
+        drop(source);
+
+        target.resources.insert(id.clone(), BusSlot::new(Some(res)));
+
+        Ok(())
+    }
     pub fn capacity<Msg>(&self, capacity: usize) -> Result<(), AlreadyLinkedError>
     where
         Msg: Message<B> + 'static,

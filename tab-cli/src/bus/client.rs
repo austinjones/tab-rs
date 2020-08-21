@@ -1,6 +1,6 @@
 use crate::{
     message::{
-        client::ClientShutdown,
+        main::MainShutdown,
         terminal::{TerminalRecv, TerminalSend},
     },
     state::{
@@ -49,6 +49,6 @@ impl Message<ClientBus> for TerminalSizeState {
     type Channel = watch::Sender<Self>;
 }
 
-impl Message<ClientBus> for ClientShutdown {
+impl Message<ClientBus> for MainShutdown {
     type Channel = oneshot::Sender<Self>;
 }

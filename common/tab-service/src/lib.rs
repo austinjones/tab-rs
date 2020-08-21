@@ -1,16 +1,16 @@
-mod request;
-// mod serialized_request;
 mod bus;
+mod channels;
 pub mod dyn_bus;
+mod request;
 mod spawn;
 mod storage;
-pub mod tokio;
 mod type_name;
 
 use async_trait::async_trait;
 use futures::Future;
-use spawn::spawn_task;
-use std::fmt::Debug;
+use log::{debug, error};
+use spawn::{spawn_task, task_name};
+use std::{any::TypeId, fmt::Debug};
 pub use storage::Storage;
 
 pub use request::Request;
@@ -25,13 +25,39 @@ pub trait Service {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline;
 
-    fn task<Fut, Out>(name: &str, fut: Fut) -> Lifeline
+    fn task<Out>(name: &str, fut: impl Future<Output = Out> + Send + 'static) -> Lifeline
     where
-        Fut: Future<Output = Out> + Send + 'static,
         Out: Debug + Send + 'static,
         Self: Sized,
     {
-        spawn_task::<Self, Fut, Out>(name, fut)
+        let service_name = task_name::<Self>(name);
+        spawn_task(service_name, fut)
+    }
+
+    // TODO: anyhow feature
+    fn try_task<Out>(
+        name: &str,
+        fut: impl Future<Output = anyhow::Result<Out>> + Send + 'static,
+    ) -> Lifeline
+    where
+        Out: Debug + 'static,
+        Self: Sized,
+    {
+        let service_name = task_name::<Self>(name);
+        spawn_task(service_name.clone(), async move {
+            match fut.await {
+                Ok(val) => {
+                    if TypeId::of::<Out>() != TypeId::of::<()>() {
+                        debug!("OK {}, val: {:?}", service_name, val);
+                    } else {
+                        debug!("OK {}", service_name);
+                    }
+                }
+                Err(e) => {
+                    error!("ERR: {}, err: {}", service_name, e);
+                }
+            }
+        })
     }
 }
 
@@ -49,6 +75,7 @@ pub trait AsyncService {
         Out: Debug + Send + 'static,
         Self: Sized,
     {
-        spawn_task::<Self, Fut, Out>(name, fut)
+        let service_name = task_name::<Self>(name);
+        spawn_task(service_name, fut)
     }
 }

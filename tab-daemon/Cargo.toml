@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 tab-api = { path = "../common/tab-api" }
 tab-websocket = { path = "../common/tab-websocket" }
+tab-service = { path = "../common/tab-service" }
 
 dirs = "3.0"
 serde_yaml = "0.8"

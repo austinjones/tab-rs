@@ -4,9 +4,9 @@ use std::fmt::{Debug, Display};
 use thiserror::Error;
 
 pub trait Channel {
-    type Tx: Storage + 'static;
-    type Rx: Storage + 'static;
-    
+    type Tx: Storage + Send + 'static;
+    type Rx: Storage + Send + 'static;
+
     fn channel(capacity: usize) -> (Self::Tx, Self::Rx);
 
     fn default_capacity() -> usize;
@@ -15,7 +15,7 @@ pub trait Channel {
         Self::Tx::take_or_clone(tx)
     }
 
-    fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
+    fn clone_rx(rx: &mut Option<Self::Rx>, _tx: Option<&Self::Tx>) -> Option<Self::Rx> {
         Self::Rx::take_or_clone(rx)
     }
 }
@@ -27,12 +27,12 @@ pub trait Message<Bus>: Debug {
 pub trait Carries<Type> {}
 impl<B, T> Carries<T> for B where T: Message<B> {}
 
-pub trait Resource<Bus>: Storage + Debug {}
+pub trait Resource<Bus>: Storage + Debug + Send {}
 
 pub trait Stores<Type> {}
 impl<B, R> Stores<R> for B where R: Resource<B> {}
 
-pub trait Bus: Sized {
+pub trait Bus: Debug + Sized {
     /// Returns the receiver on the first call, and
 
     fn capacity<Msg>(&self, capacity: usize) -> Result<(), AlreadyLinkedError>
@@ -159,6 +159,22 @@ pub struct ResourceUninitializedError {
 impl ResourceUninitializedError {
     pub fn new<Bus, Res>() -> Self {
         ResourceUninitializedError {
+            bus: type_name::<Bus>().to_string(),
+            resource: type_name::<Res>().to_string(),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("resource already initialized: {bus} < {resource} >")]
+pub struct ResourceInitializedError {
+    pub bus: String,
+    pub resource: String,
+}
+
+impl ResourceInitializedError {
+    pub fn new<Bus, Res>() -> Self {
+        ResourceInitializedError {
             bus: type_name::<Bus>().to_string(),
             resource: type_name::<Res>().to_string(),
         }

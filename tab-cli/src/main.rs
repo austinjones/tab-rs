@@ -5,13 +5,13 @@ use service::main::*;
 
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 
-use crate::bus::main::MainBus;
+use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
 use std::time::Duration;
 use tab_api::config::load_daemon_file;
 use tab_service::{dyn_bus::DynBus, Bus, Service};
-use tab_websocket::service::WebsocketResource;
 
+use tab_websocket::resource::connection::WebsocketResource;
 use tokio::{select, signal::ctrl_c};
 
 mod bus;

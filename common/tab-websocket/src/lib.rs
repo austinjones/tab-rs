@@ -9,19 +9,21 @@ use tokio::net::TcpStream;
 
 use tungstenite::Message;
 
-pub mod client;
+pub mod bus;
 mod common;
+pub mod message;
+pub mod resource;
 pub mod server;
 pub mod service;
 
-pub type WebSocket = WebSocketStream<TokioAdapter<TcpStream>>;
+pub type WebsocketConnection = WebSocketStream<TokioAdapter<TcpStream>>;
 
-pub async fn connect(url: String) -> Result<WebSocket, tungstenite::Error> {
+pub async fn connect(url: String) -> Result<WebsocketConnection, tungstenite::Error> {
     let tuple = connect_async(url).await?;
     Ok(tuple.0)
 }
 
-pub async fn bind(tcp: TcpStream) -> Result<WebSocket, tungstenite::Error> {
+pub async fn bind(tcp: TcpStream) -> Result<WebsocketConnection, tungstenite::Error> {
     async_tungstenite::tokio::accept_async(tcp).await
 }
 
