@@ -28,7 +28,7 @@ macro_rules! impl_storage_take {
 #[macro_export]
 macro_rules! impl_channel_take {
     ( $name:ty ) => {
-        impl<T: 'static> $crate::Storage for $name {
+        impl<T: Send + 'static> $crate::Storage for $name {
             fn take_or_clone(res: &mut Option<Self>) -> Option<Self> {
                 Self::take_slot(res)
             }
@@ -50,7 +50,7 @@ macro_rules! impl_storage_clone {
 #[macro_export]
 macro_rules! impl_channel_clone {
     ( $name:ty ) => {
-        impl<T: 'static> $crate::Storage for $name {
+        impl<T: Send + 'static> $crate::Storage for $name {
             fn take_or_clone(res: &mut Option<Self>) -> Option<Self> {
                 Self::clone_slot(res)
             }

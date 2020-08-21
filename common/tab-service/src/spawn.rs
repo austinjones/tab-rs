@@ -15,19 +15,20 @@ use pin_project::pin_project;
 // TODO: allow Result from the spawn
 
 /// Executes the task, until the future completes, or the lifeline is dropped
-pub(crate) fn spawn_task<Service, F, O>(task_name: &str, fut: F) -> Lifeline
+pub(crate) fn spawn_task<O>(name: String, fut: impl Future<Output = O> + Send + 'static) -> Lifeline
 where
-    F: Future<Output = O> + Send + 'static,
     O: Debug + Send + 'static,
 {
     let inner = Arc::new(LifelineInner::new());
 
-    let service_name = type_name::<Service>().to_string() + "/" + task_name;
-
-    let service = ServiceFuture::new(service_name, fut, inner.clone());
+    let service = ServiceFuture::new(name, fut, inner.clone());
     spawn_task_inner(service);
 
     Lifeline::new(inner)
+}
+
+pub(crate) fn task_name<S>(name: &str) -> String {
+    type_name::<S>().to_string() + "/" + name
 }
 
 // pub fn spawn_from_stream<T, S, F, Fut>(mut stream: S, mut f: F) -> Lifeline
@@ -122,6 +123,7 @@ where
     }
 }
 
+#[derive(Debug)]
 #[must_use = "if unused the service will immediately be cancelled"]
 pub struct Lifeline {
     inner: Arc<LifelineInner>,

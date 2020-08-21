@@ -1,4 +1,4 @@
-use crate::bus::client::ClientBus;
+use crate::bus::ClientBus;
 use crate::state::tab::{TabState, TabStateSelect};
 
 use tab_api::tab::{TabId, TabMetadata};
@@ -22,7 +22,7 @@ impl Service for TabStateService {
         let rx_tab_metadata = bus.rx::<TabMetadata>()?;
         let tx = bus.tx::<TabState>()?;
 
-        let _lifeline = Self::task("run", async move {
+        let _lifeline = Self::try_task("run", async move {
             let mut state = TabState::None;
 
             let mut events = {
@@ -43,17 +43,19 @@ impl Service for TabStateService {
                             }
 
                             state = TabState::Awaiting(name.to_string());
-                            tx.broadcast(state.clone()).expect("tab state broadcast");
+                            tx.broadcast(state.clone())?;
                         }
                     },
                     Event::Metadata(metadata) => {
                         if state.is_awaiting(metadata.name.as_str()) {
                             state = TabState::Selected(TabId(metadata.id), metadata.name);
-                            tx.broadcast(state.clone()).expect("tab state broadcast");
+                            tx.broadcast(state.clone())?;
                         }
                     }
                 }
             }
+
+            Ok(())
         });
 
         Ok(Self { _lifeline })

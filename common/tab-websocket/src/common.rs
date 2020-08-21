@@ -1,10 +1,10 @@
-use crate::WebSocket;
+use crate::WebsocketConnection;
 use futures::SinkExt;
 use log::error;
 use serde::Serialize;
 use tungstenite::{Error, Message};
 
-pub async fn send_message<Msg: Serialize>(websocket: &mut WebSocket, message: Msg) {
+pub async fn send_message<Msg: Serialize>(websocket: &mut WebsocketConnection, message: Msg) {
     let encoded = bincode::serialize(&message);
 
     if let Err(e) = encoded {
@@ -18,7 +18,7 @@ pub async fn send_message<Msg: Serialize>(websocket: &mut WebSocket, message: Ms
     }
 }
 
-pub async fn send_close(websocket: &mut WebSocket) {
+pub async fn send_close(websocket: &mut WebsocketConnection) {
     if let Err(e) = websocket.send(Message::Close(None)).await {
         match e {
             Error::ConnectionClosed | Error::AlreadyClosed => {

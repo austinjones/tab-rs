@@ -1,9 +1,7 @@
-use crate::{
-    impl_channel_clone, impl_channel_take, Channel, Storage,
-};
+use crate::{impl_channel_clone, impl_channel_take, Channel};
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
 
-impl<T: 'static> Channel for mpsc::Sender<T> {
+impl<T: Send + 'static> Channel for mpsc::Sender<T> {
     type Tx = Self;
     type Rx = mpsc::Receiver<T>;
 
@@ -19,7 +17,7 @@ impl<T: 'static> Channel for mpsc::Sender<T> {
 impl_channel_clone!(mpsc::Sender<T>);
 impl_channel_take!(mpsc::Receiver<T>);
 
-impl<T: 'static> Channel for broadcast::Sender<T> {
+impl<T: Send + 'static> Channel for broadcast::Sender<T> {
     type Tx = Self;
     type Rx = broadcast::Receiver<T>;
 
@@ -32,16 +30,18 @@ impl<T: 'static> Channel for broadcast::Sender<T> {
     }
 
     fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
-        tx.map(|tx| tx.subscribe())
+        // subcribe to tx, but if somehow tx has been taken, take rx
+        // this shouldn't happen, as Sender implements Clone
+        tx.map(|tx| tx.subscribe()).or_else(|| rx.take())
     }
 }
 
-impl_channel_take!(broadcast::Sender<T>);
+impl_channel_clone!(broadcast::Sender<T>);
 
 // this is actually overriden in clone_rx
 impl_channel_take!(broadcast::Receiver<T>);
 
-impl<T: 'static> Channel for oneshot::Sender<T> {
+impl<T: Send + 'static> Channel for oneshot::Sender<T> {
     type Tx = Self;
     type Rx = oneshot::Receiver<T>;
 
@@ -59,7 +59,7 @@ impl_channel_take!(oneshot::Receiver<T>);
 
 impl<T> Channel for watch::Sender<T>
 where
-    T: Default + Clone + 'static,
+    T: Default + Clone + Send + Sync + 'static,
 {
     type Tx = Self;
     type Rx = watch::Receiver<T>;

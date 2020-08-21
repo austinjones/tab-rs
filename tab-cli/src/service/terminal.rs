@@ -1,5 +1,5 @@
 use super::terminal_event::TerminalEventService;
-use crate::bus::client::ClientBus;
+use crate::bus::ClientBus;
 use crate::message::terminal::{TerminalRecv, TerminalSend};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::trace;
@@ -25,9 +25,9 @@ impl Service for TerminalService {
         let rx = bus.rx::<TerminalRecv>()?;
         let tx = bus.tx::<TerminalSend>()?;
 
-        let _output = Self::task("stdout", print_stdout(rx));
+        let _output = Self::try_task("stdout", print_stdout(rx));
 
-        let _input = Self::task("stdin", forward_stdin(tx));
+        let _input = Self::try_task("stdin", forward_stdin(tx));
 
         // let event_tx = TerminalEventTx { size: tx.size };
         let _events = TerminalEventService::spawn(bus)?;

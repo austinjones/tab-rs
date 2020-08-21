@@ -1,7 +1,7 @@
-use crate::bus::client::ClientBus;
+use crate::bus::ClientBus;
 use crate::{
     message::{
-        client::ClientShutdown,
+        main::MainShutdown,
         terminal::{TerminalRecv, TerminalSend},
     },
     state::{
@@ -10,6 +10,7 @@ use crate::{
     },
 };
 
+use anyhow::Context;
 use tab_api::{
     chunk::InputChunk,
     request::Request,
@@ -33,16 +34,17 @@ impl Service for ClientService {
             let rx_terminal_size = bus.rx::<TerminalSizeState>()?;
             let mut tx_request = bus.tx::<Request>()?;
 
-            Self::task("request_tab", async move {
+            Self::try_task("request_tab", async move {
                 while let Some(update) = rx_tab_state.recv().await {
                     if let TabState::Awaiting(name) = update {
                         let dimensions = rx_terminal_size.borrow().clone().0;
                         tx_request
                             .send(Request::CreateTab(CreateTabMetadata { name, dimensions }))
-                            .await
-                            .expect("send create tab");
+                            .await?;
                     }
                 }
+
+                Ok(())
             })
         };
 
@@ -93,9 +95,9 @@ impl Service for WebsocketMessageService {
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let tx_tab_metadata = bus.tx::<TabMetadata>()?;
         let tx_available_tabs = bus.tx::<TabStateAvailable>()?;
-        let mut tx_shutdown = Some(bus.tx::<ClientShutdown>()?);
+        let mut tx_shutdown = Some(bus.tx::<MainShutdown>()?);
 
-        let _websocket = Self::task("recv", async move {
+        let _websocket = Self::try_task("recv", async move {
             while let Some(msg) = rx_websocket.recv().await {
                 match msg {
                     Response::Output(tab_id, stdout) => {
@@ -103,25 +105,31 @@ impl Service for WebsocketMessageService {
                             tx_terminal
                                 .send(TerminalRecv::Stdout(stdout.data))
                                 .await
-                                .expect("send terminal data");
+                                .context("tx_terminal send")?;
                         }
                     }
                     Response::TabUpdate(tab) => {
-                        tx_tab_metadata.send(tab).expect("send tab metadata");
+                        tx_tab_metadata
+                            .send(tab)
+                            .map_err(|_| anyhow::Error::msg("tx_tab_metadata send"))?;
                     }
-                    Response::TabList(tabs) => tx_available_tabs
-                        .broadcast(TabStateAvailable(tabs))
-                        .expect("failed to update active tabs"),
+                    Response::TabList(tabs) => {
+                        tx_available_tabs.broadcast(TabStateAvailable(tabs))?
+                    }
                     Response::TabTerminated(id) => {
                         if rx_tab_state.borrow().is_selected(&id) {
-                            tx_shutdown
-                                .take()
-                                .map(|tx| tx.send(ClientShutdown {}).expect("tx shutdown failed"));
+                            if let Some(shutdown) = tx_shutdown.take() {
+                                shutdown
+                                    .send(MainShutdown {})
+                                    .map_err(|_| anyhow::Error::msg("tx_shutdown failed"))?;
+                            }
                         }
                     }
                     Response::Close => {}
                 }
             }
+
+            Ok(())
         });
 
         Ok(Self { _websocket })
@@ -144,19 +152,19 @@ impl Service for TerminalMessageService {
 
         let mut tx = bus.tx::<Request>()?;
 
-        let _terminal = Self::task("terminal", async move {
+        let _terminal = Self::try_task("terminal", async move {
             while let Some(msg) = rx.recv().await {
                 let tab_state = rx_tab_state.borrow().clone();
                 match (tab_state, msg) {
                     (TabState::Selected(id, _), TerminalSend::Stdin(data)) => {
                         let request = Request::Input(id, InputChunk { data });
-                        tx.send(request)
-                            .await
-                            .expect("failed to send websocket message")
+                        tx.send(request).await.context("Request send")?
                     }
                     _ => {}
                 }
             }
+
+            Ok(())
         });
 
         Ok(Self { _terminal })

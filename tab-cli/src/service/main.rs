@@ -1,20 +1,20 @@
 use super::{client::ClientService, tab_state::TabStateService, terminal::TerminalService};
-use crate::bus::client::ClientBus;
+use crate::bus::ClientBus;
 use crate::{
-    bus::main::MainBus,
-    message::{
-        client::ClientShutdown,
-        main::{MainRecv, MainShutdown},
-    },
+    bus::MainBus,
+    message::main::{MainRecv, MainShutdown},
     state::tab::TabStateSelect,
 };
 use log::{debug, error};
 use tab_api::{request::Request, response::Response};
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
-use tab_websocket::service::{
-    WebsocketBus, WebsocketRecv, WebsocketResource, WebsocketSend, WebsocketService,
-};
 
+use tab_websocket::{
+    bus::WebsocketConnectionBus,
+    message::connection::{WebsocketRecv, WebsocketSend},
+    resource::connection::WebsocketResource,
+    service::WebsocketService,
+};
 use tungstenite::Message as TungsteniteMessage;
 pub struct MainService {
     _main: Lifeline,
@@ -24,7 +24,6 @@ pub struct MainService {
     _tab_state: TabStateService,
     _websocket_send: Lifeline,
     _websocket_recv: Lifeline,
-    _shutdown: Lifeline,
 }
 
 impl Service for MainService {
@@ -33,23 +32,30 @@ impl Service for MainService {
 
     fn spawn(bus: &MainBus) -> anyhow::Result<Self> {
         let client_bus = ClientBus::default();
-        let websocket_bus = WebsocketBus::default();
-        websocket_bus.store_resource::<WebsocketResource>(bus.resource()?);
+
+        client_bus.take_tx::<MainShutdown, _>(bus);
+
+        let websocket_bus = WebsocketConnectionBus::default();
+        websocket_bus.take_resource::<WebsocketResource, _>(bus)?;
 
         let mut main_rx = bus.rx::<MainRecv>()?;
         // let mut tx_client = bus.tx::<ClientRecv>();
         let tx_select_tab = client_bus.tx::<TabStateSelect>()?;
 
-        let _main = Self::task("main_recv", async move {
+        let _main = Self::try_task("main_recv", async move {
             while let Some(msg) = main_rx.recv().await {
                 debug!("MainRecv: {:?}", &msg);
 
                 match msg {
-                    MainRecv::SelectTab(name) => tx_select_tab
-                        .broadcast(TabStateSelect::Selected(name))
-                        .expect("failed to send msg"),
+                    MainRecv::SelectTab(name) => {
+                        tx_select_tab
+                            .broadcast(TabStateSelect::Selected(name))
+                            .map_err(|err| anyhow::Error::msg("failed to send msg"))?;
+                    }
                 }
             }
+
+            Ok(())
         });
 
         let _websocket = WebsocketService::spawn(&websocket_bus)?;
@@ -92,17 +98,6 @@ impl Service for MainService {
         let _client = ClientService::spawn(&client_bus)?;
         let _terminal = TerminalService::spawn(&client_bus)?;
 
-        let _shutdown = {
-            let rx = client_bus.rx::<ClientShutdown>()?;
-            let tx = bus.tx::<MainShutdown>()?;
-
-            Self::task("shutdown", async {
-                rx.await.ok();
-                tx.send(MainShutdown {})
-                    .expect("failed to send main shutdown");
-            })
-        };
-
         Ok(Self {
             _main,
             _client,
@@ -111,7 +106,6 @@ impl Service for MainService {
             _tab_state,
             _websocket_send,
             _websocket_recv,
-            _shutdown,
         })
     }
 }
