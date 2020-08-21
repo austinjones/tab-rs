@@ -66,10 +66,10 @@ macro_rules! service_bus (
             ) -> Result<(), $crate::TakeChannelError>
             where
                 Msg: $crate::Message<Self> + 'static,
-                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Msg: $crate::Message<Source, Channel = <Msg as $crate::Message<Self>>::Channel>,
                 Source: $crate::dyn_bus::DynBus
             {
-                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, true, true)
+                self.storage.take_channel::<Msg, Source, Self, <Msg as $crate::Message<Self>>::Channel>(other, true, true)
             }
 
             fn take_rx<Msg, Source>(
@@ -78,10 +78,10 @@ macro_rules! service_bus (
             ) -> Result<(), $crate::TakeChannelError>
             where
                 Msg: $crate::Message<Self> + 'static,
-                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Msg: $crate::Message<Source, Channel = <Msg as $crate::Message<Self>>::Channel>,
                 Source: $crate::dyn_bus::DynBus
             {
-                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, true, false)
+                self.storage.take_channel::<Msg, Source, Self, <Msg as $crate::Message<Self>>::Channel>(other, true, false)
             }
 
             fn take_tx<Msg, Source>(
@@ -90,10 +90,10 @@ macro_rules! service_bus (
             ) -> Result<(), $crate::TakeChannelError>
             where
                 Msg: $crate::Message<Self> + 'static,
-                Msg: $crate::Message<Source, Channel = <Msg as Message<Self>>::Channel>,
+                Msg: $crate::Message<Source, Channel = <Msg as $crate::Message<Self>>::Channel>,
                 Source: $crate::dyn_bus::DynBus
             {
-                self.storage.take_channel::<Msg, Source, Self, <Msg as Message<Self>>::Channel>(other, false, true)
+                self.storage.take_channel::<Msg, Source, Self, <Msg as $crate::Message<Self>>::Channel>(other, false, true)
             }
 
             fn take_resource<Res, Source>(

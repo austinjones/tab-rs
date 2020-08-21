@@ -1,12 +1,10 @@
 use crate::message::{
     connection::{ConnectionRecv, ConnectionSend},
-    daemon::DaemonShutdown,
+    daemon::{CloseTab, CreateTab, DaemonShutdown},
 };
 use tab_api::config::DaemonConfig;
 use tab_service::{service_bus, Message, Resource};
-use tab_websocket::{
-    resource::listener::WebsocketListenerResource,
-};
+use tab_websocket::resource::listener::WebsocketListenerResource;
 use tokio::sync::{broadcast, mpsc, oneshot};
 
 service_bus!(pub DaemonBus);
@@ -24,4 +22,12 @@ impl Message<DaemonBus> for ConnectionSend {
 
 impl Message<DaemonBus> for ConnectionRecv {
     type Channel = broadcast::Sender<Self>;
+}
+
+impl Message<DaemonBus> for CreateTab {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<DaemonBus> for CloseTab {
+    type Channel = mpsc::Sender<Self>;
 }
