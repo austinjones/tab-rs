@@ -11,6 +11,7 @@ impl Service for TerminalEventService {
     type Bus = ClientBus;
     type Lifeline = anyhow::Result<Self>;
 
+    #[allow(unreachable_code)]
     fn spawn(bus: &ClientBus) -> Self::Lifeline {
         let tx = bus.tx::<TerminalSizeState>()?;
 

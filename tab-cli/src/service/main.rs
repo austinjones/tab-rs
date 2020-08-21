@@ -33,7 +33,7 @@ impl Service for MainService {
     fn spawn(bus: &MainBus) -> anyhow::Result<Self> {
         let client_bus = ClientBus::default();
 
-        client_bus.take_tx::<MainShutdown, _>(bus);
+        client_bus.take_tx::<MainShutdown, _>(bus)?;
 
         let websocket_bus = WebsocketConnectionBus::default();
         websocket_bus.take_resource::<WebsocketResource, _>(bus)?;
@@ -50,7 +50,7 @@ impl Service for MainService {
                     MainRecv::SelectTab(name) => {
                         tx_select_tab
                             .broadcast(TabStateSelect::Selected(name))
-                            .map_err(|err| anyhow::Error::msg("failed to send msg"))?;
+                            .map_err(|_err| anyhow::Error::msg("failed to send msg"))?;
                     }
                 }
             }

@@ -1,20 +1,13 @@
 use crate::pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyResponse, PtySender};
 
 use log::info;
-use std::{
-    collections::VecDeque,
-    process::{Command, ExitStatus},
-    sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
 
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    sync::RwLock,
-};
+use tokio::sync::RwLock;
 
 pub struct DaemonRuntime {
     tabs: RwLock<Vec<Arc<TabRuntime>>>,

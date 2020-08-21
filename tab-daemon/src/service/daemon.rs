@@ -2,8 +2,8 @@
 
 use crate::bus::DaemonBus;
 use listener::WebsocketService;
-use tab_api::config::DaemonConfig;
-use tab_service::{Bus, Service};
+
+use tab_service::{Service};
 
 mod listener;
 mod tab;

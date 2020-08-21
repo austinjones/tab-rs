@@ -1,23 +1,16 @@
 use daemonfile::DaemonFile;
-use endpoint::handle_request;
 
 use crate::bus::DaemonBus;
-use log::{error, info, LevelFilter};
-use runtime::DaemonRuntime;
+use log::{info, LevelFilter};
+
 use service::daemon::DaemonService;
-use session::DaemonSession;
+
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
-use std::{sync::Arc, time::Duration};
-use tab_api::{
-    config::{daemon_log, DaemonConfig},
-    response::Response,
-};
+use std::time::Duration;
+use tab_api::config::{daemon_log, DaemonConfig};
 use tab_service::{dyn_bus::DynBus, Service};
-use tab_websocket::{resource::listener::WebsocketListenerResource, server::spawn_server};
-use tokio::{
-    net::{TcpListener, TcpStream},
-    task,
-};
+use tab_websocket::resource::listener::WebsocketListenerResource;
+use tokio::net::TcpListener;
 
 mod bus;
 mod daemonfile;
@@ -63,7 +56,7 @@ async fn main() -> anyhow::Result<()> {
     bus.store_resource(config);
     bus.store_resource(websocket);
 
-    let service = DaemonService::spawn(&bus)?;
+    let _service = DaemonService::spawn(&bus)?;
 
     // TODO: intelligent shutdown behavior
     tokio::time::delay_for(Duration::from_millis(60000)).await;

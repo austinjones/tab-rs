@@ -5,7 +5,7 @@ use crate::message::{
 use tab_api::config::DaemonConfig;
 use tab_service::{service_bus, Message, Resource};
 use tab_websocket::{
-    message::listener::WebsocketConnectionMessage, resource::listener::WebsocketListenerResource,
+    resource::listener::WebsocketListenerResource,
 };
 use tokio::sync::{broadcast, mpsc, oneshot};
 

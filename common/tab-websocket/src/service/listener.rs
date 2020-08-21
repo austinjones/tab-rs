@@ -6,7 +6,7 @@ use crate::{
     message::listener::WebsocketConnectionMessage,
     resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
 };
-use log::{debug, error, info};
+use log::{debug, error};
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{net::TcpListener, sync::mpsc};
 pub struct WebsocketListenerService {
