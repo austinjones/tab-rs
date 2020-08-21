@@ -15,7 +15,6 @@ use tab_websocket::{
     resource::listener::WebsocketListenerResource,
     service::WebsocketListenerService,
 };
-use tokio::sync::{broadcast, mpsc};
 
 pub struct WebsocketService {
     _listener: WebsocketListenerService,
@@ -33,9 +32,9 @@ impl Service for WebsocketService {
         let _listener = WebsocketListenerService::spawn(&websocket_bus)?;
 
         let listener_bus = ListenerBus::default();
-        listener_bus.take_rx::<WebsocketConnectionMessage, _>(&websocket_bus);
-        listener_bus.take_tx::<ConnectionSend, _>(bus);
-        listener_bus.take_channel::<ConnectionRecv, _>(bus);
+        listener_bus.take_rx::<WebsocketConnectionMessage, _>(&websocket_bus)?;
+        listener_bus.take_tx::<ConnectionSend, _>(bus)?;
+        listener_bus.take_channel::<ConnectionRecv, _>(bus)?;
 
         let _new_session = Self::task("new_session", Self::new_session(listener_bus));
 
@@ -58,10 +57,10 @@ impl WebsocketService {
             let name = format!("connection_{}", index);
 
             let bus = ConnectionBus::default();
-            bus.take_tx::<ConnectionSend, _>(&bus);
-            bus.take_channel::<ConnectionRecv, _>(&bus);
-            bus.take_rx::<WebsocketRecv, _>(&msg.bus);
-            bus.take_tx::<WebsocketSend, _>(&msg.bus);
+            bus.take_tx::<ConnectionSend, _>(&bus)?;
+            bus.take_channel::<ConnectionRecv, _>(&bus)?;
+            bus.take_rx::<WebsocketRecv, _>(&msg.bus)?;
+            bus.take_tx::<WebsocketSend, _>(&msg.bus)?;
 
             let lifeline = Self::try_task(name.as_str(), Self::run_service(bus));
 

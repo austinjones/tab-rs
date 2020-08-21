@@ -10,7 +10,7 @@ impl Service for ConnectionService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let tx = bus.tx::<ConnectionSend>()?;
+        let _tx = bus.tx::<ConnectionSend>()?;
         Ok(ConnectionService {})
     }
 }

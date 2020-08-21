@@ -4,10 +4,7 @@ use std::{
     process::{Command, ExitStatus},
     sync::Arc,
 };
-use tab_api::{
-    chunk::{ChunkType, InputChunk, OutputChunk},
-    tab::{CreateTabMetadata, TabId, TabMetadata},
-};
+use tab_api::chunk::{InputChunk, OutputChunk};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
