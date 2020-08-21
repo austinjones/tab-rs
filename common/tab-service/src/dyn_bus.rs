@@ -1,8 +1,10 @@
 use crate::{
     bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, TakeResourceError},
+    type_name::type_name,
     Bus, Channel, ResourceInitializedError, Storage, TakeChannelError,
 };
 
+use log::debug;
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
@@ -35,13 +37,13 @@ macro_rules! service_bus (
             fn store_rx<Msg>(&self, rx: <Msg::Channel as $crate::Channel>::Rx) -> Result<(), $crate::AlreadyLinkedError>
                 where Msg: $crate::Message<Self> + 'static
             {
-                self.storage().store_channel::<Msg, Msg::Channel>(Some(rx), None)
+                self.storage().store_channel::<Msg, Msg::Channel, Self>(Some(rx), None)
             }
 
             fn store_tx<Msg>(&self, tx: <Msg::Channel as $crate::Channel>::Tx) -> Result<(), $crate::AlreadyLinkedError>
                 where Msg: $crate::Message<Self> + 'static
             {
-                self.storage().store_channel::<Msg, Msg::Channel>(None, Some(tx))
+                self.storage().store_channel::<Msg, Msg::Channel, Self>(None, Some(tx))
             }
 
             fn store_channel<Msg>(
@@ -51,11 +53,11 @@ macro_rules! service_bus (
             ) -> Result<(), $crate::AlreadyLinkedError>
                 where Msg: $crate::Message<Self> + 'static
             {
-                self.storage().store_channel::<Msg, Msg::Channel>(Some(rx), Some(tx))
+                self.storage().store_channel::<Msg, Msg::Channel, Self>(Some(rx), Some(tx))
             }
 
             fn store_resource<R: $crate::Resource<Self>>(&self, resource: R) {
-                self.storage.store_resource::<R>(resource)
+                self.storage.store_resource::<R, Self>(resource)
             }
 
             fn take_channel<Msg, Source>(
@@ -288,7 +290,7 @@ impl<B: Bus> Default for DynBusStorage<B> {
 }
 
 impl<B: Bus> DynBusStorage<B> {
-    pub fn link_channel<Msg>(&self)
+    pub fn link_channel<Msg, Bus>(&self)
     where
         Msg: Message<B> + 'static,
     {
@@ -303,6 +305,7 @@ impl<B: Bus> DynBusStorage<B> {
 
             let (tx, rx) = Msg::Channel::channel(capacity);
 
+            debug!("{} linked in {}", type_name::<Msg>(), type_name::<Bus>());
             state.rx.insert(id, BusSlot::new(Some(rx)));
             state.tx.insert(id, BusSlot::new(Some(tx)));
 
@@ -310,11 +313,11 @@ impl<B: Bus> DynBusStorage<B> {
         }
     }
 
-    pub fn clone_rx<Msg>(&self) -> Option<<Msg::Channel as Channel>::Rx>
+    pub fn clone_rx<Msg, Bus>(&self) -> Option<<Msg::Channel as Channel>::Rx>
     where
         Msg: Message<B> + 'static,
     {
-        self.link_channel::<Msg>();
+        self.link_channel::<Msg, Bus>();
 
         let id = TypeId::of::<Msg>();
 
@@ -333,11 +336,11 @@ impl<B: Bus> DynBusStorage<B> {
         slot.clone_rx::<Msg::Channel>(tx)
     }
 
-    pub fn clone_tx<Msg>(&self) -> Option<<Msg::Channel as Channel>::Tx>
+    pub fn clone_tx<Msg, Bus>(&self) -> Option<<Msg::Channel as Channel>::Tx>
     where
         Msg: Message<B> + 'static,
     {
-        self.link_channel::<Msg>();
+        self.link_channel::<Msg, Bus>();
 
         let id = TypeId::of::<Msg>();
 
@@ -366,7 +369,7 @@ impl<B: Bus> DynBusStorage<B> {
             .ok_or_else(|| TakeResourceError::taken::<Self, Res>())
     }
 
-    pub fn store_resource<Res: Send + 'static>(&self, value: Res) {
+    pub fn store_resource<Res: Send + 'static, Bus>(&self, value: Res) {
         let id = TypeId::of::<Res>();
 
         let mut state = self.state.write().unwrap();
@@ -376,12 +379,14 @@ impl<B: Bus> DynBusStorage<B> {
             resources.insert(id.clone(), BusSlot::empty());
         }
 
+        debug!("{} stored in {}", type_name::<Res>(), type_name::<Bus>());
+
         let slot = resources.get_mut(&id).unwrap();
 
         slot.put(value);
     }
 
-    pub fn store_channel<Msg, Chan>(
+    pub fn store_channel<Msg, Chan, Bus>(
         &self,
         rx: Option<Chan::Rx>,
         tx: Option<Chan::Tx>,
@@ -401,6 +406,21 @@ impl<B: Bus> DynBusStorage<B> {
             return Err(AlreadyLinkedError::new::<Self, Msg>());
         }
 
+        let link = match (rx.is_some(), tx.is_some()) {
+            (true, true) => Link::Both,
+            (true, false) => Link::Rx,
+            (false, true) => Link::Tx,
+            (false, false) => unreachable!(),
+        };
+
+        debug!(
+            "{}/{} stored in {}",
+            type_name::<Msg>(),
+            link,
+            type_name::<Bus>(),
+        );
+
+        target.channels.insert(id);
         target.tx.insert(id.clone(), BusSlot::new(tx));
         target.rx.insert(id.clone(), BusSlot::new(rx));
 
@@ -418,18 +438,46 @@ impl<B: Bus> DynBusStorage<B> {
         Chan: Channel,
         Source: DynBus,
     {
+        // TODO: clean up this function.  way too complicated
+        if !rx && !tx {
+            return Ok(());
+        }
+
+        other.storage().link_channel::<Msg, Source>();
+
         let id = TypeId::of::<Msg>();
 
         let mut target = self.state.write().expect("cannot lock other");
         if target.channels.contains(&id) {
-            return Err(TakeChannelError::already_linked::<Self, Msg>());
+            return Err(TakeChannelError::already_linked::<Target, Msg>());
         }
 
-        let source = other.storage();
+        let (rx_value, tx_value) = {
+            let source = other.storage();
+            let mut source = source.state.write().expect("cannot lock source");
 
-        let rx_value = if rx { source.clone_rx::<Msg>() } else { None };
-        let tx_value = if tx { source.clone_tx::<Msg>() } else { None };
-        drop(source);
+            let tx_value = if tx {
+                source
+                    .tx
+                    .get_mut(&id)
+                    .map(|v| v.clone_tx::<Chan>())
+                    .flatten()
+            } else {
+                None
+            };
+
+            let rx_value = if rx {
+                source
+                    .rx
+                    .get_mut(&id)
+                    .map(|v| v.clone_rx::<Chan>(tx_value.as_ref()))
+                    .flatten()
+            } else {
+                None
+            };
+
+            (rx_value, tx_value)
+        };
 
         let rx_missing = rx && rx_value.is_none();
         let tx_missing = tx && tx_value.is_none();
@@ -446,6 +494,21 @@ impl<B: Bus> DynBusStorage<B> {
             _ => {}
         }
 
+        let link = match (rx && rx_value.is_some(), tx && tx_value.is_some()) {
+            (true, true) => Link::Both,
+            (true, false) => Link::Rx,
+            (false, true) => Link::Tx,
+            (false, false) => unreachable!(),
+        };
+
+        target.channels.insert(id);
+        debug!(
+            "{}/{} moved: {} => {}",
+            type_name::<Msg>(),
+            link,
+            type_name::<Source>(),
+            type_name::<Target>()
+        );
         target.rx.insert(id.clone(), BusSlot::new(rx_value));
         target.tx.insert(id.clone(), BusSlot::new(tx_value));
 
@@ -474,6 +537,12 @@ impl<B: Bus> DynBusStorage<B> {
         let res = source.clone_resource::<Res>()?;
         drop(source);
 
+        debug!(
+            "Resource {} moved: {} => {}",
+            type_name::<Res>(),
+            type_name::<Source>(),
+            type_name::<Target>()
+        );
         target.resources.insert(id.clone(), BusSlot::new(Some(res)));
 
         Ok(())
@@ -524,9 +593,9 @@ where
     where
         Msg: crate::bus::Message<Self> + 'static,
     {
-        self.storage().link_channel::<Msg>();
+        self.storage().link_channel::<Msg, Self>();
         self.storage()
-            .clone_rx::<Msg>()
+            .clone_rx::<Msg, Self>()
             .ok_or_else(|| LinkTakenError::new::<Self, Msg>(Link::Rx))
     }
 
@@ -534,9 +603,9 @@ where
     where
         Msg: crate::bus::Message<Self> + 'static,
     {
-        self.storage().link_channel::<Msg>();
+        self.storage().link_channel::<Msg, Self>();
         self.storage()
-            .clone_tx::<Msg>()
+            .clone_tx::<Msg, Self>()
             .ok_or_else(|| LinkTakenError::new::<Self, Msg>(Link::Tx))
     }
 

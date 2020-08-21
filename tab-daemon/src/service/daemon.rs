@@ -1,16 +1,16 @@
 // mod runtime;
 
 use crate::bus::DaemonBus;
-use listener::WebsocketService;
+use listener::ListenerService;
 
-use tab_service::{Service};
+use tab_service::Service;
 
 mod listener;
 mod tab;
 mod tabs;
 
 pub struct DaemonService {
-    _listener: WebsocketService,
+    _listener: ListenerService,
 }
 
 impl Service for DaemonService {
@@ -18,7 +18,7 @@ impl Service for DaemonService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> anyhow::Result<Self> {
-        let _listener = WebsocketService::spawn(bus)?;
+        let _listener = ListenerService::spawn(bus)?;
         Ok(DaemonService { _listener })
     }
 }

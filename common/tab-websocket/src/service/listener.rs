@@ -21,47 +21,41 @@ impl Service for WebsocketListenerService {
         let listener = bus.resource::<WebsocketListenerResource>()?;
 
         let tx = bus.tx::<WebsocketConnectionMessage>()?;
-        let _accept = Self::task("accept", accept_connections(listener.0, tx));
+        let _accept = Self::try_task("accept", accept_connections(listener.0, tx));
 
-        todo!()
+        Ok(Self { _accept })
     }
 }
 
 async fn accept_connections(
     mut listener: TcpListener,
     mut tx: mpsc::Sender<WebsocketConnectionMessage>,
-) {
+) -> anyhow::Result<()> {
     loop {
-        let connect = listener.accept().await;
+        let (stream, addr) = listener.accept().await?;
 
-        match connect {
-            Ok((stream, _addr)) => {
-                // TODO: only accept connections from loopback address
-                debug!("connection opened from {:?}", _addr);
+        // TODO: only accept connections from loopback address
+        debug!("connection opened from {:?}", addr);
 
-                let conn_bus = WebsocketConnectionBus::default();
-                let bound = match bind(stream).await {
-                    Ok(res) => res,
-                    Err(e) => {
-                        error!("error binding websocket: {}", e);
-                        continue;
-                    }
-                };
-
-                conn_bus.store_resource(WebsocketResource(bound));
-                let service = WebsocketService::spawn(&conn_bus).expect("websocket spawn failed");
-
-                let message = WebsocketConnectionMessage {
-                    bus: conn_bus,
-                    lifeline: service,
-                };
-
-                tx.send(message).await.expect("tx failed");
-            }
+        let conn_bus = WebsocketConnectionBus::default();
+        let bound = match bind(stream).await {
+            Ok(res) => res,
             Err(e) => {
-                error!("tcp connection failed: {}", e);
-                break;
+                error!("error binding websocket: {}", e);
+                continue;
             }
-        }
+        };
+
+        conn_bus.store_resource(WebsocketResource(bound));
+        let service = WebsocketService::spawn(&conn_bus)?;
+
+        let message = WebsocketConnectionMessage {
+            bus: conn_bus,
+            lifeline: service,
+        };
+
+        tx.send(message)
+            .await
+            .map_err(|_| anyhow::Error::msg("send WebsocketConnectionMessage"))?;
     }
 }

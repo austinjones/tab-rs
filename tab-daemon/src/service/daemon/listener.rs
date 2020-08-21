@@ -5,6 +5,7 @@ use crate::{
     message::connection::{ConnectionRecv, ConnectionSend, ConnectionShutdown},
     service::connection::ConnectionService,
 };
+use log::debug;
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tab_websocket::{
     bus::WebsocketListenerBus,
@@ -16,12 +17,12 @@ use tab_websocket::{
     service::WebsocketListenerService,
 };
 
-pub struct WebsocketService {
+pub struct ListenerService {
     _listener: WebsocketListenerService,
     _new_session: Lifeline,
 }
 
-impl Service for WebsocketService {
+impl Service for ListenerService {
     type Bus = DaemonBus;
     type Lifeline = anyhow::Result<Self>;
 
@@ -36,7 +37,9 @@ impl Service for WebsocketService {
         listener_bus.take_tx::<ConnectionSend, _>(bus)?;
         listener_bus.take_channel::<ConnectionRecv, _>(bus)?;
 
-        let _new_session = Self::task("new_session", Self::new_session(listener_bus));
+        debug!("ListenerBus: {:?}", &listener_bus);
+
+        let _new_session = Self::try_task("new_session", Self::new_session(listener_bus));
 
         Ok(Self {
             _listener,
@@ -45,7 +48,7 @@ impl Service for WebsocketService {
     }
 }
 
-impl WebsocketService {
+impl ListenerService {
     async fn new_session(bus: ListenerBus) -> anyhow::Result<()> {
         // TODO: think about better ways to clean up this.
         let mut sessions = Vec::new();
@@ -56,13 +59,15 @@ impl WebsocketService {
         while let Some(msg) = rx_conn.recv().await {
             let name = format!("connection_{}", index);
 
-            let bus = ConnectionBus::default();
-            bus.take_tx::<ConnectionSend, _>(&bus)?;
-            bus.take_channel::<ConnectionRecv, _>(&bus)?;
-            bus.take_rx::<WebsocketRecv, _>(&msg.bus)?;
-            bus.take_tx::<WebsocketSend, _>(&msg.bus)?;
+            let conn_bus = ConnectionBus::default();
+            conn_bus.take_tx::<ConnectionSend, _>(&bus)?;
+            conn_bus.take_channel::<ConnectionRecv, _>(&bus)?;
+            conn_bus.take_tx::<WebsocketSend, _>(&msg.bus)?;
+            conn_bus.take_rx::<WebsocketRecv, _>(&msg.bus)?;
 
-            let lifeline = Self::try_task(name.as_str(), Self::run_service(bus));
+            debug!("ConnectionBus: {:?}", &bus);
+
+            let lifeline = Self::try_task(name.as_str(), Self::run_service(conn_bus));
 
             sessions.push((lifeline, msg.lifeline));
             index += 1;
@@ -77,7 +82,7 @@ impl WebsocketService {
         // keep service alive until we get a shutdown signal
         let _service = ConnectionService::spawn(&bus)?;
 
-        shutdown.await.expect("shutdown recv failed");
+        shutdown.await?;
 
         Ok(())
     }
