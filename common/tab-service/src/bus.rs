@@ -47,7 +47,7 @@ pub trait Bus: Debug + Sized {
     where
         Msg: Message<Self> + 'static;
 
-    fn resource<Res>(&self) -> Result<Res, ResourceError>
+    fn resource<Res>(&self) -> Result<Res, TakeResourceError>
     where
         Res: Resource<Self>;
 }
@@ -69,6 +69,7 @@ pub trait Bus: Debug + Sized {
 pub enum Link {
     Tx,
     Rx,
+    Both,
 }
 
 impl Display for Link {
@@ -76,7 +77,26 @@ impl Display for Link {
         match self {
             Link::Tx => f.write_str("Tx"),
             Link::Rx => f.write_str("Rx"),
+            Link::Both => f.write_str("Both"),
         }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum TakeChannelError {
+    #[error("channel already linked: {0}")]
+    AlreadyLinked(AlreadyLinkedError),
+    #[error("channel already taken: {0}")]
+    AlreadyTaken(LinkTakenError),
+}
+
+impl TakeChannelError {
+    pub fn already_linked<Bus, Msg>() -> Self {
+        Self::AlreadyLinked(AlreadyLinkedError::new::<Bus, Msg>())
+    }
+
+    pub fn already_taken<Bus, Msg>(link: Link) -> Self {
+        Self::AlreadyTaken(LinkTakenError::new::<Bus, Msg>(link))
     }
 }
 
@@ -116,14 +136,14 @@ impl AlreadyLinkedError {
 }
 
 #[derive(Error, Debug)]
-pub enum ResourceError {
+pub enum TakeResourceError {
     #[error("{0}")]
     Uninitialized(ResourceUninitializedError),
     #[error("{0}")]
     Taken(ResourceTakenError),
 }
 
-impl ResourceError {
+impl TakeResourceError {
     pub fn uninitialized<Bus, Res>() -> Self {
         Self::Uninitialized(ResourceUninitializedError::new::<Bus, Res>())
     }
