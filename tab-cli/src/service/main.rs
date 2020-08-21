@@ -50,7 +50,7 @@ impl Service for MainService {
                     MainRecv::SelectTab(name) => {
                         tx_select_tab
                             .broadcast(TabStateSelect::Selected(name))
-                            .map_err(|_err| anyhow::Error::msg("failed to send msg"))?;
+                            .map_err(|_err| anyhow::Error::msg("send TabStateSelect"))?;
                     }
                 }
             }
@@ -63,20 +63,21 @@ impl Service for MainService {
             let mut rx = client_bus.rx::<Request>()?;
             let mut tx = websocket_bus.tx::<WebsocketSend>()?;
 
-            Self::task("forward_request", async move {
+            Self::try_task("forward_request", async move {
                 while let Some(req) = rx.recv().await {
                     match bincode::serialize(&req) {
-                        Ok(vec) => tx
-                            .send(WebsocketSend(TungsteniteMessage::Binary(vec)))
-                            .await
-                            .expect("failed to send websocket msg"),
+                        Ok(vec) => {
+                            tx.send(WebsocketSend(TungsteniteMessage::Binary(vec)))
+                                .await?
+                        }
                         Err(e) => error!("failed to send websocket msg: {}", e),
                     };
                 }
 
                 tx.send(WebsocketSend(TungsteniteMessage::Close(None)))
-                    .await
-                    .expect("failed to close websocket");
+                    .await?;
+
+                Ok(())
             })
         };
 
@@ -84,13 +85,15 @@ impl Service for MainService {
             let mut rx = websocket_bus.rx::<WebsocketRecv>()?;
             let mut tx = client_bus.tx::<Response>()?;
 
-            Self::task("forward_request", async move {
+            Self::try_task("forward_request", async move {
                 while let Some(resp) = rx.recv().await {
                     match bincode::deserialize(resp.0.into_data().as_slice()) {
-                        Ok(resp) => tx.send(resp).await.expect("failed to send websocket msg"),
+                        Ok(resp) => tx.send(resp).await?,
                         Err(e) => error!("failed to send websocket msg: {}", e),
                     };
                 }
+
+                Ok(())
             })
         };
 

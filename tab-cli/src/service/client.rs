@@ -111,7 +111,7 @@ impl Service for WebsocketMessageService {
                     Response::TabUpdate(tab) => {
                         tx_tab_metadata
                             .send(tab)
-                            .map_err(|_| anyhow::Error::msg("tx_tab_metadata send"))?;
+                            .map_err(|_| anyhow::Error::msg("send TabMetadata"))?;
                     }
                     Response::TabList(tabs) => {
                         tx_available_tabs.broadcast(TabStateAvailable(tabs))?
@@ -121,7 +121,7 @@ impl Service for WebsocketMessageService {
                             if let Some(shutdown) = tx_shutdown.take() {
                                 shutdown
                                     .send(MainShutdown {})
-                                    .map_err(|_| anyhow::Error::msg("tx_shutdown failed"))?;
+                                    .map_err(|_| anyhow::Error::msg("send MainShutdown"))?;
                             }
                         }
                     }

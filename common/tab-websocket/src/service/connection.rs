@@ -12,6 +12,7 @@ use crate::common::{self, should_terminate};
 use futures::{SinkExt, StreamExt};
 use log::{error, trace};
 
+use anyhow::Context;
 use std::fmt::Debug;
 use tab_service::{
     LinkTakenError, ResourceTakenError, ResourceUninitializedError, TakeResourceError,
@@ -45,7 +46,7 @@ impl Service for WebsocketService {
             .tx::<WebsocketRecv>()
             .map_err(WebsocketSpawnError::link_taken)?;
 
-        let _runloop = Self::task("run", runloop(websocket, rx, tx));
+        let _runloop = Self::try_task("run", runloop(websocket, rx, tx));
 
         Ok(Self { _runloop })
     }
@@ -55,7 +56,7 @@ async fn runloop(
     mut websocket_drop: WebsocketResource,
     mut rx: mpsc::Receiver<WebsocketSend>,
     mut tx: mpsc::Sender<WebsocketRecv>,
-) {
+) -> anyhow::Result<()> {
     let websocket = &mut websocket_drop.0;
     loop {
         select!(
@@ -86,7 +87,7 @@ async fn runloop(
                     break;
                 }
 
-                tx.send(WebsocketRecv(message)).await.expect("tx send failed");
+                tx.send(WebsocketRecv(message)).await.context("send WebsocketRecv")?;
             },
             message = rx.recv() => {
                 if !message.is_some()  {
@@ -99,12 +100,13 @@ async fn runloop(
                 let message = message.unwrap();
 
                 trace!("send message: {:?}", &message);
-                websocket.send(message.0).await.expect("websocket send failed");
+                websocket.send(message.0).await.context("wire send Tungstenite::Message")?;
             },
         );
     }
 
     debug!("server loop terminated");
+    Ok(())
 }
 #[derive(Error, Debug)]
 pub enum WebsocketSpawnError {

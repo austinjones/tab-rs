@@ -5,12 +5,13 @@ use log::{info, LevelFilter};
 
 use service::daemon::DaemonService;
 
+use message::daemon::DaemonShutdown;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::config::{daemon_log, DaemonConfig};
-use tab_service::{dyn_bus::DynBus, Service};
+use tab_service::{dyn_bus::DynBus, Bus, Service};
 use tab_websocket::resource::listener::WebsocketListenerResource;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, select, signal::ctrl_c};
 
 mod bus;
 mod daemonfile;
@@ -57,9 +58,19 @@ async fn main() -> anyhow::Result<()> {
     bus.store_resource(websocket);
 
     let _service = DaemonService::spawn(&bus)?;
+    let shutdown = bus.rx::<DaemonShutdown>()?;
 
-    // TODO: intelligent shutdown behavior
-    tokio::time::delay_for(Duration::from_millis(60000)).await;
+    info!("Waiting for termination");
+    loop {
+        select! {
+            _ = ctrl_c() => {
+                break;
+            },
+            _ = shutdown => {
+                break;
+            }
+        }
+    }
 
     info!("tab daemon shutting down...");
     drop(daemon_file);
