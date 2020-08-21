@@ -13,7 +13,9 @@ use futures::{SinkExt, StreamExt};
 use log::{error, trace};
 
 use std::fmt::Debug;
-use tab_service::{LinkTakenError, ResourceError, ResourceTakenError, ResourceUninitializedError};
+use tab_service::{
+    LinkTakenError, ResourceTakenError, ResourceUninitializedError, TakeResourceError,
+};
 use thiserror::Error;
 use tungstenite::Error;
 
@@ -117,10 +119,10 @@ pub enum WebsocketSpawnError {
 }
 
 impl WebsocketSpawnError {
-    pub fn socket_error(err: ResourceError) -> Self {
+    pub fn socket_error(err: TakeResourceError) -> Self {
         match err {
-            ResourceError::Uninitialized(uninit) => Self::SocketUninitialized(uninit),
-            ResourceError::Taken(taken) => Self::SocketTaken(taken),
+            TakeResourceError::Uninitialized(uninit) => Self::SocketUninitialized(uninit),
+            TakeResourceError::Taken(taken) => Self::SocketTaken(taken),
         }
     }
 
