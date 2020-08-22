@@ -241,10 +241,7 @@ mod tests {
     use tab_api::config::DaemonConfig;
     use tab_service::{dyn_bus::DynBus, Bus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
-    use tab_websocket::{
-        resource::{connection::WebsocketResource},
-        service::WebsocketService,
-    };
+    use tab_websocket::{resource::connection::WebsocketResource, service::WebsocketService};
     use tungstenite::{handshake::client::Request, http};
 
     #[tokio::test]
