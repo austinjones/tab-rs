@@ -7,13 +7,14 @@ use crate::{
 };
 use tab_api::config::DaemonConfig;
 use tab_service::{service_bus, Message, Resource};
-use tab_websocket::resource::listener::WebsocketListenerResource;
+use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
 
 service_bus!(pub DaemonBus);
 
 impl Resource<DaemonBus> for DaemonConfig {}
 impl Resource<DaemonBus> for WebsocketListenerResource {}
+impl Resource<DaemonBus> for WebsocketAuthToken {}
 
 impl Message<DaemonBus> for DaemonShutdown {
     type Channel = oneshot::Sender<Self>;

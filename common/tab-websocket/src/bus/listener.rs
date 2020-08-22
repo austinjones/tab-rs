@@ -1,5 +1,6 @@
 use crate::{
-    message::listener::WebsocketConnectionMessage, resource::listener::WebsocketListenerResource,
+    message::listener::WebsocketConnectionMessage,
+    resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
 };
 use tab_service::{service_bus, Message, Resource};
 use tokio::sync::mpsc;
@@ -15,3 +16,4 @@ impl Message<WebsocketListenerBus> for WebsocketConnectionMessage {
 // }
 
 impl Resource<WebsocketListenerBus> for WebsocketListenerResource {}
+impl Resource<WebsocketListenerBus> for WebsocketAuthToken {}
