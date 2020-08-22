@@ -234,11 +234,10 @@ impl ListenerService {
 mod tests {
     use super::ListenerService;
     use crate::bus::DaemonBus;
-    use crate::bus::ListenerBus;
+    
     use tab_service::{dyn_bus::DynBus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
     use tab_websocket::{
-        message::connection::WebsocketSend,
         resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
         service::WebsocketService,
     };
@@ -252,7 +251,7 @@ mod tests {
         let websocket = WebsocketListenerResource(server);
         bus.store_resource(websocket);
 
-        let listener = ListenerService::spawn(&bus)?;
+        let _listener = ListenerService::spawn(&bus)?;
 
         Ok(())
     }
