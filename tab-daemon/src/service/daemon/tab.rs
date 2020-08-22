@@ -1,4 +1,3 @@
-
 use crate::{
     bus::TabBus,
     message::{
@@ -8,7 +7,7 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest, PtySender},
 };
 use anyhow::Context;
-use log::{error, info};
+use log::{debug, error, info};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -114,6 +113,8 @@ impl TabService {
 
             tx.send(message)
                 .map_err(|_err| anyhow::Error::msg("tx TabSend::Scrollback failed"))?;
+
+            debug!("sent scrollback");
         } else {
             error!("scrollback requested before init");
         }

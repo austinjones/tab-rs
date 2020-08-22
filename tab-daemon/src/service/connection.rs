@@ -12,7 +12,8 @@ use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};
 use tab_service::{channels::subscription, Bus, Lifeline, Service};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
-use tokio::{stream::StreamExt, sync::mpsc};
+use time::Duration;
+use tokio::{stream::StreamExt, sync::mpsc, time};
 use tungstenite::Message as TungsteniteMessage;
 pub struct ConnectionService {
     _run: Lifeline,
@@ -82,9 +83,9 @@ impl Service for ConnectionService {
                     Event::Daemon(msg) => {
                         Self::recv_daemon(
                             msg,
-                            &mut subscription_index,
                             &mut tx_websocket,
                             &rx_subscription,
+                            &mut subscription_index,
                         )
                         .await?
                     }
@@ -146,6 +147,8 @@ impl ConnectionService {
                     .await
                     .context("tx_subscription closed")?;
 
+                time::delay_for(Duration::from_millis(10)).await;
+
                 tx_daemon
                     .send(ConnectionSend::RequestScrollback(id))
                     .await?;
@@ -175,9 +178,9 @@ impl ConnectionService {
 
     async fn recv_daemon(
         msg: ConnectionRecv,
-        subscription_index: &mut HashMap<usize, usize>,
         tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         rx_subscription: &subscription::Receiver<TabId>,
+        subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         match msg {
             ConnectionRecv::TabStarted(metadata) => {
@@ -189,36 +192,33 @@ impl ConnectionService {
                     .context("tx_websocket closed")?;
             }
             ConnectionRecv::Scrollback(message) => {
-                if !rx_subscription.contains(&message.id) {
-                    return Ok(());
-                }
+                if let Some(identifier) = rx_subscription.get_identifier(&message.id) {
+                    debug!("processing scrollback for tab {}", message.id);
 
-                let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();
+                    let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();
 
-                for chunk in message.scrollback().await {
-                    let index = chunk.index;
-                    Self::send_output(message.id, chunk, tx_websocket).await?;
-                    subscription_index.insert(subscription_id, index);
+                    for chunk in message.scrollback().await {
+                        let index = chunk.index;
+                        Self::send_output(
+                            message.id,
+                            subscription_id,
+                            chunk,
+                            tx_websocket,
+                            subscription_index,
+                        )
+                        .await?;
+                        subscription_index.insert(subscription_id, index);
+                    }
                 }
             }
             // TODO: this way of handling scrollback isn't perfect
             // if the terminal is generating output, the scrollback may arrive too late.
             // the historical channel would fix this, but it'd also destory some of the tokio::broadcast goodness w/ TabId
             ConnectionRecv::Output(id, chunk) => {
-                if !rx_subscription.contains(&id) {
-                    return Ok(());
+                if let Some(identifier) = rx_subscription.get_identifier(&id) {
+                    Self::send_output(id, identifier, chunk, tx_websocket, subscription_index)
+                        .await?;
                 }
-
-                let subscription_id = rx_subscription.get_identifier(&id).unwrap();
-                let index = chunk.index;
-
-                if let Some(sub_index) = subscription_index.get(&subscription_id) {
-                    if index <= *sub_index {
-                        return Ok(());
-                    }
-                }
-
-                Self::send_output(id, chunk, tx_websocket).await?;
             }
             ConnectionRecv::TabStopped(id) => {
                 let response = Response::TabTerminated(id);
@@ -234,15 +234,27 @@ impl ConnectionService {
 
     async fn send_output(
         id: TabId,
+        subscription_id: usize,
         chunk: OutputChunk,
         tx_websocket: &mut mpsc::Sender<WebsocketSend>,
+        subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
+        let index = chunk.index;
+
+        if let Some(sub_index) = subscription_index.get(&subscription_id) {
+            if index <= *sub_index {
+                return Ok(());
+            }
+        }
+
         let response = Response::Output(id, chunk);
         let message = Self::serialize(response)?;
         tx_websocket
             .send(message)
             .await
             .context("tx_websocket closed")?;
+
+        subscription_index.insert(subscription_id, index);
 
         Ok(())
     }
