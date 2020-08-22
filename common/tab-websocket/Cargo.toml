@@ -20,3 +20,7 @@ log = "0.4"
 
 tab-service = {path = "../tab-service"}
 async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.2.1"
+tab-service-test = { path = "../tab-service-test" }
