@@ -1,6 +1,6 @@
 // mod session;
 
-use crate::state::{connection::ConnectionState, tab::TabsState};
+use crate::state::tab::TabsState;
 use crate::{
     bus::ConnectionBus,
     message::connection::{ConnectionRecv, ConnectionSend},
@@ -53,7 +53,6 @@ impl Service for ConnectionService {
         let mut rx_tabs_state = bus.rx::<TabsState>()?;
 
         let _run = Self::try_task("run", async move {
-            let mut state = ConnectionState::default();
             let mut subscription_index: HashMap<usize, usize> = HashMap::new();
 
             let tabs = rx_tabs_state
@@ -73,7 +72,6 @@ impl Service for ConnectionService {
                     Event::Websocket(msg) => {
                         Self::recv_websocket(
                             msg,
-                            &mut state,
                             &mut tx_subscription,
                             &mut tx_websocket,
                             &mut tx_daemon,
@@ -116,31 +114,15 @@ impl ConnectionService {
 
     async fn recv_websocket(
         msg: WebsocketRecv,
-        state: &mut ConnectionState,
         tx_subscription: &mut subscription::Sender<TabId>,
         tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         tx_daemon: &mut mpsc::Sender<ConnectionSend>,
     ) -> anyhow::Result<()> {
         let request = Self::deserialize(msg)?;
 
-        if let Request::Auth(_auth) = request {
-            // TODO: validate auth
-            state.auth = true;
-            return Ok(());
-        }
-
-        if !state.auth {
-            let send = Self::serialize(Response::Unauthorized)?;
-            tx_websocket
-                .send(send)
-                .await
-                .context("tx_websocket closed")?;
-        }
-
         debug!("received Request: {:?}", &request);
 
         match request {
-            Request::Auth(_) => unreachable!(),
             Request::Subscribe(id) => {
                 tx_subscription
                     .send(Subscription::Subscribe(id))

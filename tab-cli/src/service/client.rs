@@ -37,9 +37,6 @@ impl Service for ClientService {
             let mut tx_request = bus.tx::<Request>()?;
 
             Self::try_task("request_tab", async move {
-                // TODO: get UUID from daemonfile
-                tx_request.send(Request::Auth(vec![])).await?;
-
                 while let Some(update) = rx_tab_state.recv().await {
                     if let TabState::Awaiting(name) = update {
                         let dimensions = rx_terminal_size.borrow().clone().0;
@@ -106,9 +103,6 @@ impl Service for WebsocketMessageService {
         let _websocket = Self::try_task("recv", async move {
             while let Some(msg) = rx_websocket.recv().await {
                 match msg {
-                    Response::Unauthorized => {
-                        error!("Websocket connection is unauthorized");
-                    }
                     Response::Output(tab_id, stdout) => {
                         if rx_tab_state.borrow().is_selected(&tab_id) {
                             tx_terminal

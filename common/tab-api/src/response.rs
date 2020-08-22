@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
-    Unauthorized,
     Output(TabId, OutputChunk),
     TabUpdate(TabMetadata),
     TabList(Vec<TabMetadata>),

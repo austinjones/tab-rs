@@ -6,9 +6,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
-    /// Authenticates with the daemon
-    Auth(Vec<u8>),
-
     /// Subscribes to stdout/stderr on the given tab
     /// The WebSocket will produce a series of Chunk messages,
     /// The messages will have incrementing (but not sequential) indeces.
