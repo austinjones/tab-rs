@@ -6,7 +6,7 @@ use crate::{
     message::connection::{ConnectionRecv, ConnectionSend},
 };
 use anyhow::Context;
-use log::{debug};
+use log::debug;
 use std::collections::HashMap;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};

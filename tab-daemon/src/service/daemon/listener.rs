@@ -234,7 +234,7 @@ impl ListenerService {
 mod tests {
     use super::ListenerService;
     use crate::bus::DaemonBus;
-    
+
     use tab_service::{dyn_bus::DynBus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
     use tab_websocket::{

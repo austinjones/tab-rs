@@ -9,7 +9,7 @@ use crate::{
     state::tab::TabsState,
 };
 use log::{debug, info};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{stream::StreamExt, sync::broadcast};

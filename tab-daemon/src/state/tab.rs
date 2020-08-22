@@ -1,4 +1,4 @@
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 
 type TabsMap = HashMap<TabId, TabMetadata>;
