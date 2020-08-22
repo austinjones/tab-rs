@@ -7,12 +7,12 @@ use crate::{
 };
 use tab_service::{service_bus, Message, Resource};
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::sync::{broadcast, mpsc, oneshot, watch};
+use tokio::sync::{broadcast, mpsc, watch};
 
 service_bus!(pub MainBus);
 
 impl Message<MainBus> for MainShutdown {
-    type Channel = oneshot::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<MainBus> for MainRecv {

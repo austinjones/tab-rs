@@ -1,7 +1,7 @@
 use daemonfile::DaemonFile;
 
 use crate::bus::DaemonBus;
-use log::{error, info, LevelFilter};
+use log::{info, LevelFilter};
 
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
@@ -59,7 +59,10 @@ async fn main_async() -> anyhow::Result<()> {
     let websocket = WebsocketListenerResource(server);
 
     let pid = std::process::id();
-    let config = DaemonConfig { pid, port };
+    let config = DaemonConfig {
+        pid: pid as i32,
+        port,
+    };
 
     let daemon_file = DaemonFile::new(&config)?;
     info!("Daemon started.");
