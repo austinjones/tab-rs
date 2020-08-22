@@ -6,7 +6,7 @@ use crate::{
     state::terminal::TerminalMode,
 };
 use tab_service::{service_bus, Message, Resource};
-use tab_websocket::resource::connection::WebsocketResource;
+use tab_websocket::resource::{connection::WebsocketResource, listener::WebsocketAuthToken};
 use tokio::sync::{broadcast, mpsc, watch};
 
 service_bus!(pub MainBus);

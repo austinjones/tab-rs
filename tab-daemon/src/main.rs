@@ -9,9 +9,10 @@ use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::config::{daemon_log, DaemonConfig};
 use tab_service::{dyn_bus::DynBus, Bus, Service};
-use tab_websocket::resource::listener::WebsocketListenerResource;
+use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::{net::TcpListener, select, signal::ctrl_c};
 
+mod auth;
 mod bus;
 mod channels;
 mod daemonfile;
@@ -37,6 +38,27 @@ pub fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub async fn new_bus() -> anyhow::Result<DaemonBus> {
+    let server = TcpListener::bind("127.0.0.1:0").await?;
+    let port = server.local_addr()?.port();
+    let websocket = WebsocketListenerResource(server);
+
+    let auth_token = auth::gen_token();
+    let pid = std::process::id();
+    let config = DaemonConfig {
+        pid: pid as i32,
+        port,
+        auth_token: auth_token.clone(),
+    };
+
+    let bus = DaemonBus::default();
+    bus.store_resource::<DaemonConfig>(config);
+    bus.store_resource::<WebsocketAuthToken>(auth_token.into());
+    bus.store_resource::<WebsocketListenerResource>(websocket);
+
+    Ok(bus)
+}
+
 async fn main_async() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
@@ -54,24 +76,13 @@ async fn main_async() -> anyhow::Result<()> {
     ])
     .unwrap();
 
-    let server = TcpListener::bind("127.0.0.1:0").await?;
-    let port = server.local_addr()?.port();
-    let websocket = WebsocketListenerResource(server);
-
-    let pid = std::process::id();
-    let config = DaemonConfig {
-        pid: pid as i32,
-        port,
-    };
+    let bus = new_bus().await?;
+    let config = bus.resource::<DaemonConfig>()?;
 
     let daemon_file = DaemonFile::new(&config)?;
     info!("Daemon started.");
-    info!("Daemon pid: {}", pid);
-    info!("Daemon port: {}", port);
-
-    let bus = DaemonBus::default();
-    bus.store_resource(config);
-    bus.store_resource(websocket);
+    info!("Daemon pid: {}", config.pid);
+    info!("Daemon port: {}", config.port);
 
     let _service = DaemonService::spawn(&bus)?;
     let shutdown = bus.rx::<DaemonShutdown>()?;
