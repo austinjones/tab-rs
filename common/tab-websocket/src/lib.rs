@@ -9,7 +9,7 @@ use tokio::net::TcpStream;
 
 use auth::AuthHandler;
 use resource::listener::WebsocketAuthToken;
-use tungstenite::{client, handshake::client::Request, Message};
+use tungstenite::{handshake::client::Request, Message};
 
 mod auth;
 pub mod bus;
@@ -35,7 +35,7 @@ pub async fn connect_authorized(
         .header("Authorization", token.trim())
         .body(())?;
 
-    let (stream, resp) = connect_async(request).await?;
+    let (stream, _resp) = connect_async(request).await?;
     Ok(stream)
 }
 

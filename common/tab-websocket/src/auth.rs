@@ -48,7 +48,7 @@ impl AuthHandler {
         }
 
         let token = request.headers().get("authorization").unwrap().to_str();
-        if let Err(e) = token {
+        if let Err(_e) = token {
             return AuthState::RejectAuth;
         }
 

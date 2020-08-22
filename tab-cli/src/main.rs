@@ -14,7 +14,7 @@ use std::{
 use tab_api::config::{is_running, load_daemon_file, DaemonConfig};
 use tab_service::{dyn_bus::DynBus, Bus, Service};
 
-use tab_websocket::resource::{connection::WebsocketResource, listener::WebsocketAuthToken};
+use tab_websocket::resource::{connection::WebsocketResource};
 use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
 
 mod bus;

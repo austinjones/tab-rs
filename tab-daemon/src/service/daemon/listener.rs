@@ -14,7 +14,7 @@ use anyhow::Context;
 use log::{debug, error};
 use std::sync::Arc;
 use subscription::Subscription;
-use tab_api::{chunk::OutputChunk, config::DaemonConfig, tab::TabId};
+use tab_api::{chunk::OutputChunk, tab::TabId};
 use tab_service::{channels::subscription, dyn_bus::DynBus, Bus, Lifeline, Service};
 use tab_websocket::{
     bus::{WebsocketConnectionBus, WebsocketListenerBus},
@@ -242,7 +242,7 @@ mod tests {
     use tab_service::{dyn_bus::DynBus, Bus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
     use tab_websocket::{
-        resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
+        resource::{connection::WebsocketResource},
         service::WebsocketService,
     };
     use tungstenite::{handshake::client::Request, http};

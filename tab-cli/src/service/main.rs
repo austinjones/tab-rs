@@ -15,7 +15,7 @@ use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tab_websocket::{
     bus::WebsocketConnectionBus,
     message::connection::{WebsocketRecv, WebsocketSend},
-    resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
+    resource::{connection::WebsocketResource},
     service::WebsocketService,
 };
 use tungstenite::Message as TungsteniteMessage;
