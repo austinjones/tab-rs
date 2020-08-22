@@ -74,9 +74,8 @@ mod tests {
     };
     use std::net::SocketAddr;
     use tab_service::{dyn_bus::DynBus, Bus, Service};
-    use tab_service_test::*;
-    use tokio::net::TcpListener;
     use tab_service_test::assert_completes;
+    use tokio::net::TcpListener;
 
     async fn serve() -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, SocketAddr)>
     {
