@@ -1,12 +1,10 @@
-use crate::{
-    message::{
-        daemon::CloseTab,
-        tab::{TabRecv, TabSend},
-    },
+use crate::message::{
+    daemon::CloseTab,
+    tab::{TabRecv, TabSend},
 };
 
 use tab_service::{service_bus, Message};
-use tokio::sync::{broadcast};
+use tokio::sync::broadcast;
 
 service_bus!(pub TabBus);
 

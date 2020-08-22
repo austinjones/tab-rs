@@ -44,6 +44,7 @@ impl Service for TabService {
 }
 
 impl TabService {
+    #[allow(unreachable_code)]
     async fn run(
         id: TabId,
         mut rx: broadcast::Receiver<TabRecv>,

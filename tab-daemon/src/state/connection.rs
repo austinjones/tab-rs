@@ -1,6 +1,3 @@
-
-
-
 #[derive(Clone, Debug)]
 pub struct ConnectionState {
     pub auth: bool,

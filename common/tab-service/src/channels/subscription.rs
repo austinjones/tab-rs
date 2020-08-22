@@ -144,10 +144,7 @@ mod channel {
 }
 
 mod messages {
-    use std::{
-        collections::{HashMap},
-        hash::Hash,
-    };
+    use std::{collections::HashMap, hash::Hash};
 
     #[derive(Debug, Clone)]
     pub enum Subscription<T> {
