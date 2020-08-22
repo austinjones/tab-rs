@@ -23,11 +23,15 @@ use tab_websocket::{
         listener::WebsocketConnectionMessage,
     },
     resource::listener::WebsocketListenerResource,
-    service::WebsocketListenerService,
+    service::{WebsocketListenerService, WebsocketService},
 };
-use tokio::{
-    sync::{broadcast, mpsc, oneshot},
-};
+use tokio::sync::{broadcast, mpsc, oneshot};
+
+struct ConnectionLifeline {
+    pub _websocket: WebsocketService,
+    pub _forward: Lifeline,
+    pub _reverse: Lifeline,
+}
 
 pub struct ListenerService {
     _listener: WebsocketListenerService,
@@ -94,11 +98,11 @@ impl ListenerService {
 
             debug!("ConnectionBus: {:?}", &bus);
 
-            let forward_conn = Self::try_task(
+            let _forward = Self::try_task(
                 format!("{}_output", &name).as_str(),
                 Self::run_output(rx_tab, tx_conn, id_subscription),
             );
-            let reverse_conn = Self::try_task(
+            let _reverse = Self::try_task(
                 format!("{}_input", &name).as_str(),
                 Self::run_input(
                     rx_conn,
@@ -108,16 +112,26 @@ impl ListenerService {
                     tx_shutdown,
                 ),
             );
-            let run_service = Self::try_task(name.as_str(), Self::run_service(conn_bus));
 
-            sessions.push((run_service, msg.lifeline, forward_conn, reverse_conn));
+            let support_lifeline = ConnectionLifeline {
+                _websocket: msg.lifeline,
+                _forward,
+                _reverse,
+            };
+            let run_service =
+                Self::try_task(name.as_str(), Self::run_service(conn_bus, support_lifeline));
+
+            sessions.push(run_service);
             index += 1;
         }
 
         Ok(())
     }
 
-    async fn run_service(bus: ConnectionBus) -> anyhow::Result<()> {
+    async fn run_service(
+        bus: ConnectionBus,
+        support_lifeline: ConnectionLifeline,
+    ) -> anyhow::Result<()> {
         let shutdown = bus.rx::<ConnectionShutdown>()?;
 
         // keep service alive until we get a shutdown signal
@@ -125,6 +139,7 @@ impl ListenerService {
         drop(bus);
 
         shutdown.await.context("rx ConnectionShutdown closed")?;
+        drop(support_lifeline);
 
         Ok(())
     }
