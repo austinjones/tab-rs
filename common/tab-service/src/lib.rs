@@ -25,6 +25,13 @@ pub trait Service {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline;
 
+    fn spawn_bus() -> (Self::Bus, Self::Lifeline) {
+        let bus = Self::Bus::default();
+        let lifeline = Self::spawn(&bus);
+
+        (bus, lifeline)
+    }
+
     fn task<Out>(name: &str, fut: impl Future<Output = Out> + Send + 'static) -> Lifeline
     where
         Out: Debug + Send + 'static,

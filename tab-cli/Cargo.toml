@@ -30,3 +30,6 @@ anyhow = "1.0"
 thiserror = "1.0"
 
 crossterm = "0.17"
+
+[dev-dependencies]
+tokio-test = "0.2.1"
