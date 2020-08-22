@@ -229,3 +229,51 @@ impl ListenerService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ListenerService;
+    use crate::bus::DaemonBus;
+    use crate::bus::ListenerBus;
+    use tab_service::{dyn_bus::DynBus, Service};
+    use tab_websocket::bus::WebsocketConnectionBus;
+    use tab_websocket::{
+        message::connection::WebsocketSend,
+        resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
+        service::WebsocketService,
+    };
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn test_listener_spawn() -> anyhow::Result<()> {
+        let bus = DaemonBus::default();
+
+        let server = TcpListener::bind("127.0.0.1:0").await?;
+        let websocket = WebsocketListenerResource(server);
+        bus.store_resource(websocket);
+
+        let listener = ListenerService::spawn(&bus)?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_listener_accepts_connection() -> anyhow::Result<()> {
+        let bus = DaemonBus::default();
+
+        let server = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = server.local_addr()?;
+        let websocket = WebsocketListenerResource(server);
+        bus.store_resource(websocket);
+
+        let _listener = ListenerService::spawn(&bus)?;
+
+        let websocket_bus = WebsocketConnectionBus::default();
+        let connection = tab_websocket::connect(format!("ws://{}", addr)).await?;
+        websocket_bus.store_resource(WebsocketResource(connection));
+
+        let _connection = WebsocketService::spawn(&websocket_bus)?;
+
+        Ok(())
+    }
+}

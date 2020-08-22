@@ -4,5 +4,6 @@ members = [
     "tab-daemon",
     "common/tab-api",
     "common/tab-websocket",
-    "common/tab-service"
+    "common/tab-service",
+    "common/tab-service-test"
 ]

@@ -59,3 +59,131 @@ async fn accept_connections(
             .map_err(|_| anyhow::Error::msg("send WebsocketConnectionMessage"))?;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::WebsocketListenerService;
+    use crate::{
+        bus::*,
+        message::{
+            connection::{WebsocketRecv, WebsocketSend},
+            listener::WebsocketConnectionMessage,
+        },
+        resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
+        service::WebsocketService,
+    };
+    use std::net::SocketAddr;
+    use tab_service::{dyn_bus::DynBus, Bus, Service};
+    use tab_service_test::*;
+    use tokio::net::TcpListener;
+    use tab_service_test::assert_completes;
+
+    async fn serve() -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, SocketAddr)>
+    {
+        let bus = WebsocketListenerBus::default();
+
+        let server = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = server.local_addr()?;
+        let websocket = WebsocketListenerResource(server);
+        bus.store_resource(websocket);
+
+        let lifeline = WebsocketListenerService::spawn(&bus)?;
+        Ok((bus, lifeline, addr))
+    }
+
+    async fn connect(
+        addr: SocketAddr,
+    ) -> anyhow::Result<(WebsocketConnectionBus, WebsocketService)> {
+        let bus = WebsocketConnectionBus::default();
+        let connection = crate::connect(format!("ws://{}", addr)).await?;
+        bus.store_resource(WebsocketResource(connection));
+
+        let lifeline = WebsocketService::spawn(&bus)?;
+        Ok((bus, lifeline))
+    }
+
+    #[tokio::test]
+    async fn test_listener_spawn() -> anyhow::Result<()> {
+        let bus = WebsocketListenerBus::default();
+
+        let server = TcpListener::bind("127.0.0.1:0").await?;
+        let websocket = WebsocketListenerResource(server);
+        bus.store_resource(websocket);
+
+        let listener = WebsocketListenerService::spawn(&bus)?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_listener_accepts_connection() -> anyhow::Result<()> {
+        let (listener_bus, listener, addr) = serve().await?;
+
+        let bus = WebsocketConnectionBus::default();
+        let connection = crate::connect(format!("ws://{}", addr)).await?;
+        bus.store_resource(WebsocketResource(connection));
+
+        let sender = WebsocketService::spawn(&bus)?;
+
+        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let conn = rx_conn.try_recv();
+
+        assert!(conn.is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_request() -> anyhow::Result<()> {
+        let (listener_bus, _serve, addr) = serve().await?;
+        let (bus, _connect) = connect(addr).await?;
+
+        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let conn = rx_conn.try_recv()?;
+
+        let mut tx_request = bus.tx::<WebsocketSend>()?;
+        let mut rx_request = conn.bus.rx::<WebsocketRecv>()?;
+
+        tx_request
+            .send(WebsocketSend(tungstenite::Message::Text(
+                "request".to_string(),
+            )))
+            .await?;
+
+        assert_completes!(async move {
+            let request_recv = rx_request.recv().await.expect("rx_request recv");
+            let request_recv = request_recv.0.into_text().expect("into text");
+            assert_eq!("request", request_recv);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_send_response() -> anyhow::Result<()> {
+        let (listener_bus, _serve, addr) = serve().await?;
+        let (bus, _connect) = connect(addr).await?;
+
+        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let conn = rx_conn.try_recv()?;
+
+        let mut rx_response = bus.rx::<WebsocketRecv>()?;
+
+        let mut tx_response = conn.bus.tx::<WebsocketSend>()?;
+
+        tx_response
+            .send(WebsocketSend(tungstenite::Message::Text(
+                "response".to_string(),
+            )))
+            .await?;
+
+        assert_completes!(async move {
+            let response_recv = rx_response.recv().await;
+            assert!(response_recv.is_some());
+            let response_recv = response_recv.unwrap().0.into_text().expect("into text");
+            assert_eq!("response", response_recv);
+        });
+
+        Ok(())
+    }
+}

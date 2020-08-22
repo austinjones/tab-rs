@@ -374,24 +374,6 @@ impl Drop for Child {
 }
 
 /// A Future for getting the Pty file descriptor.
-///
-/// # Example
-///
-/// ```
-/// extern crate tokio;
-/// extern crate tokio_pty_process;
-///
-/// use tokio_pty_process::{AsyncPtyMaster, AsyncPtyFd};
-/// use tokio::prelude::*;
-///
-/// fn main() {
-///     let master = AsyncPtyMaster::open()
-///         .expect("Could not open the PTY");
-///
-///     let fd = AsyncPtyFd::from(master).wait()
-///         .expect("Could not get the File descriptor");
-/// }
-/// ```
 pub struct AsyncPtyFd<T: AsAsyncPtyFd>(T);
 
 impl<T: AsAsyncPtyFd> AsyncPtyFd<T> {
@@ -456,88 +438,9 @@ where
 /// Trait containing generalized methods for PTYs
 pub trait PollPtyMaster {
     /// Return the full pathname of the slave device counterpart
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate tokio;
-    /// extern crate tokio_pty_process;
-    ///
-    /// use std::ffi::OsString;
-    /// use tokio::prelude::*;
-    /// use tokio_pty_process::{AsyncPtyMaster, PtyMaster};
-    ///
-    /// struct PtsName<T: PtyMaster>(T);
-    ///
-    /// impl<T: PtyMaster> Future for PtsName<T> {
-    ///     type Item = OsString;
-    ///     type Error = std::io::Error;
-    ///
-    ///     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-    ///         self.0.ptsname()
-    ///     }
-    /// }
-    ///
-    /// fn main() {
-    ///     let master = AsyncPtyMaster::open().expect("Could not open the PTY");
-    ///
-    ///     let ptsname = PtsName(master).wait().expect("Could not get the ptsname");
-    ///
-    ///     println!("PTS name: {}", ptsname.to_string_lossy());
-    /// }
-    /// ```
     fn poll_ptsname(&self, cx: &mut Context<'_>) -> Poll<Result<OsString, io::Error>>;
 
     /// Resize the PTY
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate tokio;
-    /// extern crate tokio_pty_process;
-    /// extern crate libc;
-    ///
-    /// use tokio_pty_process::{AsyncPtyMaster, PtyMaster, CommandExt};
-    /// use tokio::prelude::*;
-    /// use std::ffi::OsString;
-    /// use libc::c_ushort;
-    /// struct Resize<T: PtyMaster> {
-    ///     pty: T,
-    ///     rows: c_ushort,
-    ///     cols: c_ushort,
-    /// }
-    ///
-    /// impl<T: PtyMaster> Future for Resize<T> {
-    ///     type Item = ();
-    ///     type Error = std::io::Error;
-    ///
-    ///     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-    ///         self.pty.resize(self.rows, self.cols)
-    ///     }
-    /// }
-    ///
-    /// fn main() {
-    ///     let master = AsyncPtyMaster::open().expect("Could not open the PTY");
-    ///
-    ///     // On macos, it's only possible to resize a PTY with a child spawned
-    ///     // On it, so let's just do that:
-    ///     #[cfg(target_os="macos")]
-    ///     let mut child = std::process::Command::new("cat")
-    ///         .spawn_pty_async(&master)
-    ///         .expect("Could not spawn child");
-    ///
-    ///     Resize {
-    ///         pty: master,
-    ///         cols: 80,
-    ///         rows: 50,
-    ///     }
-    ///     .wait()
-    ///     .expect("Could not resize the PTY");
-    ///
-    ///     #[cfg(target_os="macos")]
-    ///     child.kill().expect("Could not kill child");
-    /// }
-    /// ```
     fn poll_resize(
         &self,
         cx: &mut Context<'_>,
@@ -546,46 +449,6 @@ pub trait PollPtyMaster {
     ) -> Poll<Result<(), io::Error>>;
 
     /// Get the PTY size
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// extern crate tokio;
-    /// extern crate tokio_pty_process;
-    /// extern crate libc;
-    ///
-    /// use tokio_pty_process::{AsyncPtyMaster, PtyMaster, CommandExt};
-    /// use tokio::prelude::*;
-    /// use std::ffi::OsString;
-    /// use libc::c_ushort;
-    ///
-    /// struct GetSize<'a, T: PtyMaster> (&'a T);
-    /// impl<'a, T: PtyMaster> Future for GetSize<'a, T> {
-    ///     type Item = (c_ushort, c_ushort);
-    ///     type Error = std::io::Error;
-    ///     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-    ///         self.0.winsize()
-    ///     }
-    /// }
-    ///
-    /// fn main() {
-    ///     let master = AsyncPtyMaster::open().expect("Could not open the PTY");
-    ///
-    ///     // On macos, it's only possible to resize a PTY with a child spawned
-    ///     // On it, so let's just do that:
-    ///     #[cfg(target_os="macos")]
-    ///     let mut child = std::process::Command::new("cat")
-    ///         .spawn_pty_async(&master)
-    ///         .expect("Could not spawn child");
-    ///
-    ///     let (rows, cols) = GetSize(&master)
-    ///         .wait()
-    ///         .expect("Could not get PTY size");
-    ///
-    ///     #[cfg(target_os="macos")]
-    ///     child.kill().expect("Could not kill child");
-    /// }
-    /// ```
     fn poll_winsize(&self, cx: &mut Context<'_>) -> Poll<Result<(c_ushort, c_ushort), io::Error>>;
 }
 
@@ -780,8 +643,8 @@ mod tests {
     /// the underlying `read(2)` system call, because Tokio uses epoll to test
     /// the FD's readiness in a way that works orthogonal to whether it's set
     /// to non-blocking mode.
-    #[test]
-    fn basic_nonblocking() {
+    #[tokio::test]
+    async fn basic_nonblocking() {
         let master = AsyncPtyMaster::open().unwrap();
 
         let fd = master.as_raw_fd();
@@ -793,8 +656,8 @@ mod tests {
         assert_eq!(errno, libc::EWOULDBLOCK as i32);
     }
 
-    #[test]
-    fn test_winsize() {
+    #[tokio::test]
+    async fn test_winsize() {
         let master = AsyncPtyMaster::open().expect("Could not open the PTY");
 
         // On macos, it's only possible to resize a PTY with a child spawned
@@ -819,5 +682,46 @@ mod tests {
 
         #[cfg(target_os = "macos")]
         child.kill().expect("Could not kill child");
+    }
+
+    #[tokio::test]
+    async fn test_size() {
+        let master = AsyncPtyMaster::open().expect("Could not open the PTY");
+
+        // On macos, it's only possible to resize a PTY with a child spawned
+        // On it, so let's just do that:
+        #[cfg(target_os = "macos")]
+        let mut child = std::process::Command::new("cat")
+            .spawn_pty_async(&master)
+            .expect("Could not spawn child");
+
+        let (rows, cols) = master.size().await.expect("Could not get PTY size");
+
+        #[cfg(target_os = "macos")]
+        child.kill().expect("Could not kill child");
+    }
+
+    #[tokio::test]
+    async fn test_resize() {
+        let master = AsyncPtyMaster::open().expect("Could not open the PTY");
+
+        // On macos, it's only possible to resize a PTY with a child spawned
+        // On it, so let's just do that:
+        #[cfg(target_os = "macos")]
+        let mut child = std::process::Command::new("cat")
+            .spawn_pty_async(&master)
+            .expect("Could not spawn child");
+
+        let resize = master.resize((80, 50)).await.expect("resize failed");
+
+        #[cfg(target_os = "macos")]
+        child.kill().expect("Could not kill child");
+    }
+
+    #[tokio::test]
+    async fn test_from_fd() {
+        let master = AsyncPtyMaster::open().expect("Could not open the PTY");
+
+        let fd = AsyncPtyFd::from(master).await;
     }
 }
