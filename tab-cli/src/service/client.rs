@@ -97,7 +97,7 @@ impl Service for WebsocketMessageService {
         let mut rx_websocket = bus.rx::<Response>()?;
         let rx_tab_state = bus.rx::<TabState>()?;
 
-        let mut tx_terminal = bus.tx::<TerminalRecv>()?;
+        let tx_terminal = bus.tx::<TerminalRecv>()?;
         let tx_tab_metadata = bus.tx::<TabMetadata>()?;
         let tx_available_tabs = bus.tx::<TabStateAvailable>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
@@ -113,7 +113,7 @@ impl Service for WebsocketMessageService {
                         if rx_tab_state.borrow().is_selected(&tab_id) {
                             tx_terminal
                                 .send(TerminalRecv::Stdout(stdout.data))
-                                .map_err(|e| anyhow::Error::msg("tx TerminalRecv::Stdout"))?;
+                                .map_err(|_e| anyhow::Error::msg("tx TerminalRecv::Stdout"))?;
                         }
                     }
                     Response::TabUpdate(tab) => {

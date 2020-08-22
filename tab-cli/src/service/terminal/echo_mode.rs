@@ -44,7 +44,7 @@ impl Drop for TerminalEchoService {
 }
 
 async fn forward_stdin(
-    mut tx: broadcast::Sender<TerminalSend>,
+    tx: broadcast::Sender<TerminalSend>,
     mut tx_shutdown: mpsc::Sender<MainShutdown>,
 ) -> anyhow::Result<()> {
     let mut stdin = tokio::io::stdin();

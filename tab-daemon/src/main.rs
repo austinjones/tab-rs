@@ -1,7 +1,7 @@
 use daemonfile::DaemonFile;
 
 use crate::bus::DaemonBus;
-use log::{error, info, LevelFilter};
+use log::{info, LevelFilter};
 
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;

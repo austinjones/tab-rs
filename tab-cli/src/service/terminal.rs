@@ -1,4 +1,4 @@
-use crate::{bus::ClientBus, state::terminal::TerminalMode};
+use crate::{state::terminal::TerminalMode};
 
 use crate::bus::MainBus;
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
-use terminal_event::TerminalEventService;
+
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;

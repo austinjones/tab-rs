@@ -7,7 +7,7 @@ use crate::{
 };
 use simplelog::TerminalMode;
 use tab_service::{service_bus, Message};
-use tokio::sync::{broadcast, mpsc, oneshot, watch};
+use tokio::sync::{broadcast, mpsc, watch};
 
 service_bus!(pub TerminalBus);
 

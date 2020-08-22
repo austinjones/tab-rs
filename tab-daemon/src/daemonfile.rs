@@ -4,7 +4,7 @@ use std::{
     io::{BufReader, BufWriter},
     path::PathBuf,
 };
-use tab_api::config::{daemon_file, is_running, load_config, load_daemon_file, DaemonConfig};
+use tab_api::config::{daemon_file, is_running, load_daemon_file, DaemonConfig};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
