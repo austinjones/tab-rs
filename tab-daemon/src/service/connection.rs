@@ -70,19 +70,13 @@ impl Service for ConnectionService {
             while let Some(event) = rx.next().await {
                 match event {
                     Event::Websocket(msg) => {
-                        Self::recv_websocket(
-                            msg,
-                            &mut tx_subscription,
-                            &mut tx_websocket,
-                            &mut tx_daemon,
-                        )
-                        .await?
+                        Self::recv_websocket(msg, &mut tx_subscription, &mut tx_daemon).await?
                     }
                     Event::Daemon(msg) => {
                         Self::recv_daemon(
                             msg,
-                            &mut tx_websocket,
                             &rx_subscription,
+                            &mut tx_websocket,
                             &mut subscription_index,
                         )
                         .await?
@@ -115,7 +109,6 @@ impl ConnectionService {
     async fn recv_websocket(
         msg: WebsocketRecv,
         tx_subscription: &mut subscription::Sender<TabId>,
-        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         tx_daemon: &mut mpsc::Sender<ConnectionSend>,
     ) -> anyhow::Result<()> {
         let request = Self::deserialize(msg)?;
@@ -160,8 +153,8 @@ impl ConnectionService {
 
     async fn recv_daemon(
         msg: ConnectionRecv,
-        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         rx_subscription: &subscription::Receiver<TabId>,
+        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         match msg {
