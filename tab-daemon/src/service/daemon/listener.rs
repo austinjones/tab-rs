@@ -22,7 +22,7 @@ use tab_websocket::{
         connection::{WebsocketRecv, WebsocketSend},
         listener::WebsocketConnectionMessage,
     },
-    resource::listener::WebsocketListenerResource,
+    resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
     service::{WebsocketListenerService, WebsocketService},
 };
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -44,7 +44,8 @@ impl Service for ListenerService {
 
     fn spawn(bus: &Self::Bus) -> anyhow::Result<Self> {
         let websocket_bus = WebsocketListenerBus::default();
-        websocket_bus.take_resource::<WebsocketListenerResource, _>(bus)?;
+        websocket_bus.take_resource::<WebsocketListenerResource, DaemonBus>(bus)?;
+        websocket_bus.take_resource::<WebsocketAuthToken, DaemonBus>(bus)?;
 
         let _listener = WebsocketListenerService::spawn(&websocket_bus)?;
 
@@ -233,24 +234,19 @@ impl ListenerService {
 #[cfg(test)]
 mod tests {
     use super::ListenerService;
-    use crate::bus::DaemonBus;
 
-    use tab_service::{dyn_bus::DynBus, Service};
+    use async_tungstenite::tokio::connect_async;
+    use http::StatusCode;
+    use std::fmt::Debug;
+    use tab_api::config::DaemonConfig;
+    use tab_service::{dyn_bus::DynBus, Bus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
-    use tab_websocket::{
-        resource::{connection::WebsocketResource, listener::WebsocketListenerResource},
-        service::WebsocketService,
-    };
-    use tokio::net::TcpListener;
+    use tab_websocket::{resource::connection::WebsocketResource, service::WebsocketService};
+    use tungstenite::{handshake::client::Request, http};
 
     #[tokio::test]
     async fn test_listener_spawn() -> anyhow::Result<()> {
-        let bus = DaemonBus::default();
-
-        let server = TcpListener::bind("127.0.0.1:0").await?;
-        let websocket = WebsocketListenerResource(server);
-        bus.store_resource(websocket);
-
+        let bus = crate::new_bus().await?;
         let _listener = ListenerService::spawn(&bus)?;
 
         Ok(())
@@ -258,20 +254,83 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_accepts_connection() -> anyhow::Result<()> {
-        let bus = DaemonBus::default();
-
-        let server = TcpListener::bind("127.0.0.1:0").await?;
-        let addr = server.local_addr()?;
-        let websocket = WebsocketListenerResource(server);
-        bus.store_resource(websocket);
+        let bus = crate::new_bus().await?;
+        let config = bus.resource::<DaemonConfig>()?;
 
         let _listener = ListenerService::spawn(&bus)?;
 
         let websocket_bus = WebsocketConnectionBus::default();
-        let connection = tab_websocket::connect(format!("ws://{}", addr)).await?;
+        let connection = tab_websocket::connect_authorized(
+            format!("ws://127.0.0.1:{}", config.port),
+            config.auth_token,
+        )
+        .await?;
         websocket_bus.store_resource(WebsocketResource(connection));
 
         let _connection = WebsocketService::spawn(&websocket_bus)?;
+
+        Ok(())
+    }
+
+    fn assert_status_err<T: Debug>(
+        expect: http::StatusCode,
+        result: Result<T, tungstenite::Error>,
+    ) {
+        if let Err(tungstenite::Error::Http(code)) = result {
+            assert_eq!(expect, code);
+        } else {
+            panic!(
+                "tungstenite::Error::Http({}) expected, found: {:?}",
+                expect, result
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_listener_rejects_unauthorized() -> anyhow::Result<()> {
+        let bus = crate::new_bus().await?;
+        let config = bus.resource::<DaemonConfig>()?;
+        let _listener = ListenerService::spawn(&bus)?;
+
+        let connection = tab_websocket::connect(format!("ws://127.0.0.1:{}", config.port)).await;
+        assert!(connection.is_err());
+        assert_status_err(StatusCode::UNAUTHORIZED, connection);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_listener_rejects_bad_token() -> anyhow::Result<()> {
+        let bus = crate::new_bus().await?;
+        let config = bus.resource::<DaemonConfig>()?;
+        let _listener = ListenerService::spawn(&bus)?;
+
+        let connection = tab_websocket::connect_authorized(
+            format!("ws://127.0.0.1:{}", config.port),
+            "BAD TOKEN".into(),
+        )
+        .await;
+        assert!(connection.is_err());
+        assert_status_err(StatusCode::UNAUTHORIZED, connection);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_listener_rejects_origin() -> anyhow::Result<()> {
+        let bus = crate::new_bus().await?;
+        let config = bus.resource::<DaemonConfig>()?;
+        let _listener = ListenerService::spawn(&bus)?;
+
+        let request = Request::builder()
+            .uri(format!("ws://127.0.0.1:{}", config.port))
+            .header("Authorization", config.auth_token)
+            .header("Origin", "http://badwebsite.com")
+            .body(())?;
+        let result = connect_async(request).await;
+
+        assert!(result.is_err());
+        assert_status_err(StatusCode::FORBIDDEN, result);
 
         Ok(())
     }

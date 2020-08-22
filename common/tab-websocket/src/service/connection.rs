@@ -132,3 +132,57 @@ impl WebsocketSpawnError {
         Self::BusFailure(err)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::WebsocketService;
+    use crate::bus::WebsocketConnectionBus;
+    use crate::{
+        connect_authorized,
+        message::{
+            connection::{WebsocketRecv, WebsocketSend},
+            listener::WebsocketConnectionMessage,
+        },
+        resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
+        service::listener,
+    };
+    use tab_service::{dyn_bus::DynBus, Bus, Service};
+    use tab_service_test::assert_completes;
+    use tungstenite::Message;
+
+    #[tokio::test]
+    async fn connect_authenticated() -> anyhow::Result<()> {
+        let (listener_bus, _lifeline, addr) = listener::serve("TOKEN").await?;
+
+        let url = format!("ws://{}", addr);
+        let connect = connect_authorized(url, "TOKEN".to_string()).await?;
+
+        let bus = WebsocketConnectionBus::default();
+        bus.store_resource::<WebsocketAuthToken>("TOKEN".into());
+        bus.store_resource::<WebsocketResource>(WebsocketResource(connect));
+
+        let mut tx_request = bus.tx::<WebsocketSend>()?;
+        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+
+        let _service = WebsocketService::spawn(&bus)?;
+
+        tx_request
+            .send(WebsocketSend(Message::Text("request".to_string())))
+            .await?;
+
+        assert_completes!(async move {
+            let conn = rx_conn.recv().await;
+            assert!(conn.is_some());
+            let conn = conn.unwrap();
+            let conn_bus = conn.bus;
+            let mut rx_request = conn_bus
+                .rx::<WebsocketRecv>()
+                .expect("conn_bus rx WebsocketRecv");
+            let request_recv = rx_request.recv().await.expect("rx_request recv");
+            let request_recv = request_recv.0.into_text().expect("into text");
+            assert_eq!("request", request_recv);
+        });
+
+        Ok(())
+    }
+}

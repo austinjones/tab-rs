@@ -104,7 +104,8 @@ async fn spawn(
 
     let bus = MainBus::default();
 
-    let websocket = tab_websocket::connect(ws_url).await?;
+    let websocket =
+        tab_websocket::connect_authorized(ws_url, daemon_file.auth_token.clone()).await?;
     let websocket = WebsocketResource(websocket);
     bus.store_resource(websocket);
 
@@ -165,6 +166,11 @@ async fn launch_daemon(dev: bool) -> anyhow::Result<DaemonConfig> {
         };
     }
 
+    let timeout_duration = if dev {
+        Duration::from_secs(30)
+    } else {
+        Duration::from_secs(2)
+    };
     let mut index = 0;
     let daemon_file = loop {
         if let Some(daemon_file) = load_daemon_file()? {
@@ -174,7 +180,7 @@ async fn launch_daemon(dev: bool) -> anyhow::Result<DaemonConfig> {
         }
 
         time::delay_for(Duration::from_millis(50)).await;
-        if Instant::now().duration_since(start_wait) > Duration::from_secs(2) {
+        if Instant::now().duration_since(start_wait) > timeout_duration {
             return Err(anyhow::Error::msg("timeout while waiting for tab daemon"));
         }
 

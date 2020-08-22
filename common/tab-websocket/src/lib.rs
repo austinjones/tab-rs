@@ -7,8 +7,11 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use tokio::net::TcpStream;
 
-use tungstenite::Message;
+use auth::AuthHandler;
+use resource::listener::WebsocketAuthToken;
+use tungstenite::{handshake::client::Request, Message};
 
+mod auth;
 pub mod bus;
 mod common;
 pub mod message;
@@ -23,8 +26,25 @@ pub async fn connect(url: String) -> Result<WebsocketConnection, tungstenite::Er
     Ok(tuple.0)
 }
 
-pub async fn bind(tcp: TcpStream) -> Result<WebsocketConnection, tungstenite::Error> {
-    async_tungstenite::tokio::accept_async(tcp).await
+pub async fn connect_authorized(
+    url: String,
+    token: String,
+) -> Result<WebsocketConnection, tungstenite::Error> {
+    let request = Request::builder()
+        .uri(url)
+        .header("Authorization", token.trim())
+        .body(())?;
+
+    let (stream, _resp) = connect_async(request).await?;
+    Ok(stream)
+}
+
+pub async fn bind(
+    tcp: TcpStream,
+    auth_token: WebsocketAuthToken,
+) -> Result<WebsocketConnection, tungstenite::Error> {
+    let auth = AuthHandler::new(auth_token);
+    async_tungstenite::tokio::accept_hdr_async(tcp, auth).await
 }
 
 pub fn decode<T: DeserializeOwned>(

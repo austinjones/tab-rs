@@ -24,6 +24,7 @@ impl Default for Config {
 pub struct DaemonConfig {
     pub pid: i32,
     pub port: u16,
+    pub auth_token: String,
 }
 
 impl_storage_clone!(DaemonConfig);
