@@ -89,7 +89,7 @@ impl Service for TabStateService {
                         tabs.insert(name, id);
                     }
                     Event::Terminated(terminated_id) => {
-                        if let TabState::Selected(selected_id, ref name) = state {
+                        if let TabState::Selected(selected_id, ref _name) = state {
                             if terminated_id == selected_id {
                                 state = TabState::None;
                                 tx.broadcast(state.clone())?;
@@ -98,8 +98,8 @@ impl Service for TabStateService {
 
                         let remove: Vec<String> = tabs
                             .iter()
-                            .filter(|(name, id)| **id == terminated_id)
-                            .map(|(name, id)| name.clone())
+                            .filter(|(_, id)| **id == terminated_id)
+                            .map(|(name, _)| name.clone())
                             .collect();
 
                         for name in remove.into_iter() {

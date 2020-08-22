@@ -1,4 +1,4 @@
-use crate::bus::DaemonBus;
+
 use crate::{
     bus::TabBus,
     message::{
@@ -31,7 +31,7 @@ impl Service for TabService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let id = TAB_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
         let id = TabId(id as u16);
-        let shutdown = bus.rx::<CloseTab>()?;
+        let _shutdown = bus.rx::<CloseTab>()?;
 
         let rx = bus.rx::<TabRecv>()?;
         let tx = bus.tx::<TabSend>()?;
@@ -113,7 +113,7 @@ impl TabService {
             let message = TabSend::Scrollback(scrollback);
 
             tx.send(message)
-                .map_err(|err| anyhow::Error::msg("tx TabSend::Scrollback failed"))?;
+                .map_err(|_err| anyhow::Error::msg("tx TabSend::Scrollback failed"))?;
         } else {
             error!("scrollback requested before init");
         }
@@ -136,7 +136,7 @@ impl TabService {
                     tx.send(TabSend::Output(output))
                         .map_err(|_e| anyhow::Error::msg("send TabSend::Output"))?;
                 }
-                crate::pty_process::PtyResponse::Terminated(term) => {
+                crate::pty_process::PtyResponse::Terminated(_term) => {
                     tx.send(TabSend::Stopped(id))
                         .map_err(|_e| anyhow::Error::msg("send TabSend::Exit"))?;
                 }

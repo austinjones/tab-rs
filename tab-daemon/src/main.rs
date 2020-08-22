@@ -1,11 +1,10 @@
 use daemonfile::DaemonFile;
 
 use crate::bus::DaemonBus;
-use log::{info, LevelFilter};
-
-use service::daemon::DaemonService;
+use log::{error, info, LevelFilter};
 
 use message::daemon::DaemonShutdown;
+use service::daemon::DaemonService;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::config::{daemon_log, DaemonConfig};
@@ -16,24 +15,29 @@ use tokio::{net::TcpListener, select, signal::ctrl_c};
 mod bus;
 mod channels;
 mod daemonfile;
-mod endpoint;
 mod message;
 mod pty_process;
-mod runtime;
 mod service;
-mod session;
 mod state;
 
-#[tokio::main(max_threads = 32)]
-async fn main() -> anyhow::Result<()> {
-    run().await?;
+pub fn main() -> anyhow::Result<()> {
+    let mut runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_io()
+        .enable_time()
+        .build()
+        .unwrap();
 
-    info!("exit");
+    let result = runtime.block_on(async { main_async().await });
+
+    runtime.shutdown_timeout(Duration::from_millis(25));
+
+    result?;
 
     Ok(())
 }
 
-async fn run() -> anyhow::Result<()> {
+async fn main_async() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
     CombinedLogger::init(vec![

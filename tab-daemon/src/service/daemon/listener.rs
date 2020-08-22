@@ -26,7 +26,6 @@ use tab_websocket::{
     service::WebsocketListenerService,
 };
 use tokio::{
-    stream::StreamExt,
     sync::{broadcast, mpsc, oneshot},
 };
 
@@ -180,10 +179,10 @@ impl ListenerService {
 
     async fn run_input(
         mut rx: mpsc::Receiver<ConnectionSend>,
-        mut tx: broadcast::Sender<TabRecv>,
+        tx: broadcast::Sender<TabRecv>,
         mut tx_create: mpsc::Sender<CreateTab>,
         mut tx_close: mpsc::Sender<CloseTab>,
-        mut tx_shutdown: oneshot::Sender<ConnectionShutdown>,
+        tx_shutdown: oneshot::Sender<ConnectionShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {

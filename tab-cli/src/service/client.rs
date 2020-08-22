@@ -127,7 +127,7 @@ impl Service for WebsocketMessageService {
                         tx_available_tabs.broadcast(TabStateAvailable(tabs))?
                     }
                     Response::TabTerminated(id) => {
-                        tx_tab_terminated.send(TabTerminated(id));
+                        tx_tab_terminated.send(TabTerminated(id)).await?;
                         if rx_tab_state.borrow().is_selected(&id) {
                             if let Some(shutdown) = tx_shutdown.take() {
                                 shutdown

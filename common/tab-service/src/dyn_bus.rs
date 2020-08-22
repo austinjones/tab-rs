@@ -1,7 +1,7 @@
 use crate::{
-    bus::{AlreadyLinkedError, Link, LinkTakenError, Message, Resource, TakeResourceError},
+    bus::{AlreadyLinkedError, Link, Message, Resource, TakeResourceError},
     type_name::type_name,
-    Bus, Channel, ResourceInitializedError, Storage, TakeChannelError,
+    Bus, Channel, Storage, TakeChannelError,
 };
 
 use log::debug;

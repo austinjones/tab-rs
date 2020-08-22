@@ -105,15 +105,11 @@ impl PtyReceiver {
         let scrollback = pty.scrollback.read().await.clone_queue();
 
         PtyReceiver {
-            pty,
+            pty: pty,
             scrollback,
             receiver,
             accept_index: 0,
         }
-    }
-
-    pub fn scrollback(&self) -> PtyScrollback {
-        PtyScrollback::new(self.pty.clone())
     }
 
     pub async fn recv(&mut self) -> Result<PtyResponse, RecvError> {

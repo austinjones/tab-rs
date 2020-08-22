@@ -1,9 +1,9 @@
-use super::daemon::CreateTab;
+
 use crate::pty_process::PtyScrollback;
 use std::sync::Arc;
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
-    tab::{CreateTabMetadata, TabId, TabMetadata},
+    tab::{TabId, TabMetadata},
 };
 
 #[derive(Debug, Clone)]

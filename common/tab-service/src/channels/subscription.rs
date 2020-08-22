@@ -145,7 +145,7 @@ mod channel {
 
 mod messages {
     use std::{
-        collections::{HashMap, HashSet},
+        collections::{HashMap},
         hash::Hash,
     };
 
