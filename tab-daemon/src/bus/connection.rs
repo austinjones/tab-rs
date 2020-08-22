@@ -5,7 +5,7 @@ use crate::{
 use tab_api::tab::TabId;
 use tab_service::{channels::subscription, service_bus, Message};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
-use tokio::sync::{broadcast, mpsc, oneshot, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 
 service_bus!(pub ConnectionBus);
 

@@ -1,6 +1,5 @@
 use crate::{
     message::{
-        connection::{ConnectionRecv, ConnectionSend},
         daemon::{CloseTab, CreateTab},
         tab::{TabRecv, TabSend},
     },

@@ -1,5 +1,5 @@
 use super::tab::TabScrollback;
-use crate::pty_process::PtyScrollback;
+
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
     tab::{CreateTabMetadata, TabId, TabMetadata},

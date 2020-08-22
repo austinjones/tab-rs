@@ -3,11 +3,10 @@ use crate::{
         daemon::CloseTab,
         tab::{TabRecv, TabSend},
     },
-    state::tab::TabsState,
 };
-use tab_api::tab::TabId;
-use tab_service::{channels::subscription, service_bus, Message};
-use tokio::sync::{broadcast, watch};
+
+use tab_service::{service_bus, Message};
+use tokio::sync::{broadcast};
 
 service_bus!(pub TabBus);
 

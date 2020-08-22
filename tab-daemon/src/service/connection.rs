@@ -8,7 +8,7 @@ use crate::{
 use anyhow::Context;
 use log::{debug, info};
 use std::collections::HashMap;
-use subscription::{Subscription, SubscriptionState};
+use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};
 use tab_service::{channels::subscription, Bus, Lifeline, Service};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
@@ -67,29 +67,26 @@ impl Service for ConnectionService {
                 tx_websocket.send(message).await?;
             }
 
-            loop {
-                info!("connection bus loop");
-                while let Some(event) = rx.next().await {
-                    match event {
-                        Event::Websocket(msg) => {
-                            Self::recv_websocket(
-                                msg,
-                                &mut state,
-                                &mut tx_subscription,
-                                &mut tx_websocket,
-                                &mut tx_daemon,
-                            )
-                            .await?
-                        }
-                        Event::Daemon(msg) => {
-                            Self::recv_daemon(
-                                msg,
-                                &mut subscription_index,
-                                &mut tx_websocket,
-                                &rx_subscription,
-                            )
-                            .await?
-                        }
+            while let Some(event) = rx.next().await {
+                match event {
+                    Event::Websocket(msg) => {
+                        Self::recv_websocket(
+                            msg,
+                            &mut state,
+                            &mut tx_subscription,
+                            &mut tx_websocket,
+                            &mut tx_daemon,
+                        )
+                        .await?
+                    }
+                    Event::Daemon(msg) => {
+                        Self::recv_daemon(
+                            msg,
+                            &mut subscription_index,
+                            &mut tx_websocket,
+                            &rx_subscription,
+                        )
+                        .await?
                     }
                 }
             }
@@ -125,7 +122,7 @@ impl ConnectionService {
     ) -> anyhow::Result<()> {
         let request = Self::deserialize(msg)?;
 
-        if let Request::Auth(auth) = request {
+        if let Request::Auth(_auth) = request {
             // TODO: validate auth
             state.auth = true;
             return Ok(());

@@ -27,13 +27,11 @@ pub fn main() -> anyhow::Result<()> {
         .build()
         .unwrap();
 
-    runtime.block_on(async {
-        match main_async().await {
-            Ok(()) => {}
-            Err(e) => error!("fatal error: {}", e),
-        };
-    });
+    let result = runtime.block_on(async { main_async().await });
+
     runtime.shutdown_timeout(Duration::from_millis(25));
+
+    result?;
 
     Ok(())
 }
