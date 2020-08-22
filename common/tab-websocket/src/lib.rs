@@ -7,8 +7,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use tokio::net::TcpStream;
 
-use tungstenite::Message;
-
+use tungstenite::{handshake::server::Callback, Message};
 pub mod bus;
 mod common;
 pub mod message;
@@ -24,7 +23,21 @@ pub async fn connect(url: String) -> Result<WebsocketConnection, tungstenite::Er
 }
 
 pub async fn bind(tcp: TcpStream) -> Result<WebsocketConnection, tungstenite::Error> {
-    async_tungstenite::tokio::accept_async(tcp).await
+    async_tungstenite::tokio::accept_hdr_async(tcp, || ).await
+}
+
+impl Callback for RejectOriginHeader {
+    fn on_request(
+        self,
+        request: &tungstenite::handshake::server::Request,
+        response: tungstenite::handshake::server::Response,
+    ) -> Result<tungstenite::handshake::server::Response, tungstenite::handshake::server::ErrorResponse> {
+        if request.headers().get("origin").is_some() {
+            let response = Response::
+            return Err()
+        }
+    }
+    
 }
 
 pub fn decode<T: DeserializeOwned>(
