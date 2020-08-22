@@ -58,6 +58,7 @@ async fn forward_stdin(
         let mut buf = vec![0; read];
         buf.copy_from_slice(&buffer[0..read]);
 
+        // this is ctrl-w
         if buf.contains(&23u8) {
             tx_shutdown.send(MainShutdown {}).await?;
             break;
