@@ -1,4 +1,10 @@
-on: push
+on: 
+  push:
+    branches:    
+      - master
+
+  pull_request:
+
 
 name: Continuous Integration
 
