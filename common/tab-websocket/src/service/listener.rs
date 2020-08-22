@@ -74,9 +74,8 @@ mod tests {
     };
     use std::net::SocketAddr;
     use tab_service::{dyn_bus::DynBus, Bus, Service};
-    use tab_service_test::*;
-    use tokio::net::TcpListener;
     use tab_service_test::assert_completes;
+    use tokio::net::TcpListener;
 
     async fn serve() -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, SocketAddr)>
     {
@@ -110,20 +109,20 @@ mod tests {
         let websocket = WebsocketListenerResource(server);
         bus.store_resource(websocket);
 
-        let listener = WebsocketListenerService::spawn(&bus)?;
+        let _listener = WebsocketListenerService::spawn(&bus)?;
 
         Ok(())
     }
 
     #[tokio::test]
     async fn test_listener_accepts_connection() -> anyhow::Result<()> {
-        let (listener_bus, listener, addr) = serve().await?;
+        let (listener_bus, _listener, addr) = serve().await?;
 
         let bus = WebsocketConnectionBus::default();
         let connection = crate::connect(format!("ws://{}", addr)).await?;
         bus.store_resource(WebsocketResource(connection));
 
-        let sender = WebsocketService::spawn(&bus)?;
+        let _sender = WebsocketService::spawn(&bus)?;
 
         let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
         let conn = rx_conn.try_recv();

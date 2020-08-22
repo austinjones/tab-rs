@@ -6,7 +6,7 @@ use crate::{
     },
     state::{
         tab::{TabState, TabStateAvailable, TabStateSelect},
-        terminal::{TerminalSizeState},
+        terminal::TerminalSizeState,
     },
 };
 use tab_api::{request::Request, response::Response, tab::TabMetadata};

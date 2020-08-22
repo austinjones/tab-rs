@@ -695,7 +695,7 @@ mod tests {
             .spawn_pty_async(&master)
             .expect("Could not spawn child");
 
-        let (rows, cols) = master.size().await.expect("Could not get PTY size");
+        let (_rows, _cols) = master.size().await.expect("Could not get PTY size");
 
         #[cfg(target_os = "macos")]
         child.kill().expect("Could not kill child");
@@ -712,7 +712,7 @@ mod tests {
             .spawn_pty_async(&master)
             .expect("Could not spawn child");
 
-        let resize = master.resize((80, 50)).await.expect("resize failed");
+        let _resize = master.resize((80, 50)).await.expect("resize failed");
 
         #[cfg(target_os = "macos")]
         child.kill().expect("Could not kill child");
@@ -722,6 +722,6 @@ mod tests {
     async fn test_from_fd() {
         let master = AsyncPtyMaster::open().expect("Could not open the PTY");
 
-        let fd = AsyncPtyFd::from(master).await;
+        let _fd = AsyncPtyFd::from(master).await;
     }
 }

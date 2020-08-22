@@ -94,7 +94,7 @@ impl PtyScrollback {
 }
 
 pub struct PtyReceiver {
-    pty: Arc<PtyProcess>,
+    _pty: Arc<PtyProcess>,
     scrollback: VecDeque<OutputChunk>,
     receiver: Receiver<PtyResponse>,
     accept_index: usize,
@@ -105,7 +105,7 @@ impl PtyReceiver {
         let scrollback = pty.scrollback.read().await.clone_queue();
 
         PtyReceiver {
-            pty: pty,
+            _pty: pty,
             scrollback,
             receiver,
             accept_index: 0,

@@ -1,4 +1,3 @@
-
 use crate::pty_process::PtyScrollback;
 use std::sync::Arc;
 use tab_api::{
