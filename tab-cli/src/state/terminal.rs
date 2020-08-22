@@ -8,3 +8,15 @@ impl Default for TerminalSizeState {
         TerminalSizeState(dimensions)
     }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TerminalMode {
+    Echo,
+    Crossterm,
+}
+
+impl Default for TerminalMode {
+    fn default() -> Self {
+        Self::Crossterm
+    }
+}

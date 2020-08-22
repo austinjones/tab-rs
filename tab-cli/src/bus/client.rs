@@ -6,7 +6,7 @@ use crate::{
     },
     state::{
         tab::{TabState, TabStateAvailable, TabStateSelect},
-        terminal::TerminalSizeState,
+        terminal::{TerminalMode, TerminalSizeState},
     },
 };
 use tab_api::{request::Request, response::Response, tab::TabMetadata};
@@ -23,11 +23,11 @@ impl Message<ClientBus> for Response {
 }
 
 impl Message<ClientBus> for TerminalSend {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<ClientBus> for TerminalRecv {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<ClientBus> for TabState {

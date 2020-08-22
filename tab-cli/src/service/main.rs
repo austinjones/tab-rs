@@ -2,8 +2,11 @@ use super::{client::ClientService, tab_state::TabStateService, terminal::Termina
 use crate::bus::ClientBus;
 use crate::{
     bus::MainBus,
-    message::main::{MainRecv, MainShutdown},
-    state::tab::TabStateSelect,
+    message::{
+        main::{MainRecv, MainShutdown},
+        terminal::{TerminalRecv, TerminalSend},
+    },
+    state::{tab::TabStateSelect, terminal::TerminalMode},
 };
 use log::{debug, error};
 use tab_api::{request::Request, response::Response};
@@ -31,15 +34,17 @@ impl Service for MainService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &MainBus) -> anyhow::Result<Self> {
-        let client_bus = ClientBus::default();
-
-        client_bus.take_tx::<MainShutdown, _>(bus)?;
-
         let websocket_bus = WebsocketConnectionBus::default();
         websocket_bus.take_resource::<WebsocketResource, _>(bus)?;
 
+        let tx_terminal_mode = bus.tx::<TerminalMode>()?;
         let mut main_rx = bus.rx::<MainRecv>()?;
-        // let mut tx_client = bus.tx::<ClientRecv>();
+
+        let client_bus = ClientBus::default();
+        client_bus.take_tx::<MainShutdown, MainBus>(bus)?;
+
+        client_bus.take_channel::<TerminalSend, MainBus>(bus)?;
+        client_bus.take_tx::<TerminalRecv, MainBus>(bus)?;
         let tx_select_tab = client_bus.tx::<TabStateSelect>()?;
 
         let _tab_state = TabStateService::spawn(&client_bus)?;
@@ -49,9 +54,14 @@ impl Service for MainService {
 
                 match msg {
                     MainRecv::SelectTab(name) => {
+                        tx_terminal_mode.broadcast(TerminalMode::Echo)?;
+
                         tx_select_tab
                             .broadcast(TabStateSelect::Selected(name))
                             .map_err(|_err| anyhow::Error::msg("send TabStateSelect"))?;
+                    }
+                    MainRecv::SelectInteractive => {
+                        tx_terminal_mode.broadcast(TerminalMode::Crossterm)?;
                     }
                 }
             }
@@ -99,7 +109,7 @@ impl Service for MainService {
         };
 
         let _client = ClientService::spawn(&client_bus)?;
-        let _terminal = TerminalService::spawn(&client_bus)?;
+        let _terminal = TerminalService::spawn(&bus)?;
 
         Ok(Self {
             _main,

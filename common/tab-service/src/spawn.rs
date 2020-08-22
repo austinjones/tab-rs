@@ -103,7 +103,7 @@ where
 
         // attempt to complete the future
         if let Poll::Ready(result) = self.as_mut().project().future.poll(cx) {
-            debug!("FINISH {} {:?}", self.name, result);
+            debug!("END {} {:?}", self.name, result);
             return Poll::Ready(());
         }
 

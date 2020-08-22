@@ -113,8 +113,7 @@ impl Service for WebsocketMessageService {
                         if rx_tab_state.borrow().is_selected(&tab_id) {
                             tx_terminal
                                 .send(TerminalRecv::Stdout(stdout.data))
-                                .await
-                                .context("tx_terminal send")?;
+                                .map_err(|e| anyhow::Error::msg("tx TerminalRecv::Stdout"))?;
                         }
                     }
                     Response::TabUpdate(tab) => {
@@ -163,7 +162,8 @@ impl Service for TerminalMessageService {
         let mut tx = bus.tx::<Request>()?;
 
         let _terminal = Self::try_task("terminal", async move {
-            while let Some(msg) = rx.recv().await {
+            // TODO: replace with better error handling for the broadcast channel
+            while let Ok(msg) = rx.recv().await {
                 let tab_state = rx_tab_state.borrow().clone();
                 match (tab_state, msg) {
                     (TabState::Selected(id, _), TerminalSend::Stdin(data)) => {

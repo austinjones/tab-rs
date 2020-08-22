@@ -12,7 +12,11 @@ use tab_api::config::load_daemon_file;
 use tab_service::{dyn_bus::DynBus, Bus, Service};
 
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::{select, signal::ctrl_c};
+use tokio::{
+    select,
+    signal::ctrl_c,
+    sync::{mpsc, oneshot},
+};
 
 mod bus;
 mod message;
@@ -66,8 +70,26 @@ fn init() -> ArgMatches<'static> {
 async fn main_async() -> anyhow::Result<()> {
     println!("Starting.");
 
-    let _matches = init();
+    let matches = init();
+    let select_tab = matches.value_of("TAB");
+    let (mut tx, shutdown, service) = spawn().await?;
 
+    if let Some(tab) = select_tab {
+        tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+    } else {
+        tx.send(MainRecv::SelectInteractive).await?;
+    }
+
+    wait_for_shutdown(shutdown).await;
+
+    Ok(())
+}
+
+async fn spawn() -> anyhow::Result<(
+    mpsc::Sender<MainRecv>,
+    oneshot::Receiver<MainShutdown>,
+    MainService,
+)> {
     let daemon_file = load_daemon_file()?.unwrap();
     let ws_url = format!("ws://127.0.0.1:{}", daemon_file.port);
 
@@ -78,29 +100,30 @@ async fn main_async() -> anyhow::Result<()> {
     bus.store_resource(websocket);
 
     info!("Launching MainService");
-    let _service = MainService::spawn(&bus)?;
+    let service = MainService::spawn(&bus)?;
 
     let mut tx = bus.tx::<MainRecv>()?;
-    tx.send(MainRecv::SelectTab("tabby".to_string())).await?;
-
     let main_shutdown = bus.rx::<MainShutdown>()?;
 
+    Ok((tx, main_shutdown, service))
+}
+
+async fn wait_for_shutdown(receiver: oneshot::Receiver<MainShutdown>) {
     info!("Waiting for termination");
+
     loop {
         select! {
             _ = ctrl_c() => {
                 break;
             },
-            _ = main_shutdown => {
+            _ = receiver => {
                 break;
             }
         }
     }
 
     info!("Complete.  Shutting down");
-    Ok(())
 }
-
 async fn start_daemon() -> anyhow::Result<()> {
     // Command::new("tab-daemon").spawn()?.await?;
     Ok(())
