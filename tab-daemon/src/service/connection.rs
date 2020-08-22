@@ -6,7 +6,7 @@ use crate::{
     message::connection::{ConnectionRecv, ConnectionSend},
 };
 use anyhow::Context;
-use log::{debug, info};
+use log::{debug};
 use std::collections::HashMap;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};
@@ -192,7 +192,7 @@ impl ConnectionService {
                     .context("tx_websocket closed")?;
             }
             ConnectionRecv::Scrollback(message) => {
-                if let Some(identifier) = rx_subscription.get_identifier(&message.id) {
+                if let Some(_identifier) = rx_subscription.get_identifier(&message.id) {
                     debug!("processing scrollback for tab {}", message.id);
 
                     let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();

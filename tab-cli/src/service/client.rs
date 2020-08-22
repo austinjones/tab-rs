@@ -97,10 +97,10 @@ impl Service for WebsocketMessageService {
         let mut rx_websocket = bus.rx::<Response>()?;
         let rx_tab_state = bus.rx::<TabState>()?;
 
-        let mut tx_terminal = bus.tx::<TerminalRecv>()?;
+        let tx_terminal = bus.tx::<TerminalRecv>()?;
         let tx_tab_metadata = bus.tx::<TabMetadata>()?;
         let tx_available_tabs = bus.tx::<TabStateAvailable>()?;
-        let mut tx_shutdown = Some(bus.tx::<MainShutdown>()?);
+        let mut tx_shutdown = bus.tx::<MainShutdown>()?;
         let mut tx_tab_terminated = bus.tx::<TabTerminated>()?;
 
         let _websocket = Self::try_task("recv", async move {
@@ -113,7 +113,7 @@ impl Service for WebsocketMessageService {
                         if rx_tab_state.borrow().is_selected(&tab_id) {
                             tx_terminal
                                 .send(TerminalRecv::Stdout(stdout.data))
-                                .map_err(|e| anyhow::Error::msg("tx TerminalRecv::Stdout"))?;
+                                .map_err(|_e| anyhow::Error::msg("tx TerminalRecv::Stdout"))?;
                         }
                     }
                     Response::TabUpdate(tab) => {
@@ -128,11 +128,10 @@ impl Service for WebsocketMessageService {
                     Response::TabTerminated(id) => {
                         tx_tab_terminated.send(TabTerminated(id)).await?;
                         if rx_tab_state.borrow().is_selected(&id) {
-                            if let Some(shutdown) = tx_shutdown.take() {
-                                shutdown
-                                    .send(MainShutdown {})
-                                    .map_err(|_| anyhow::Error::msg("send MainShutdown"))?;
-                            }
+                            tx_shutdown
+                                .send(MainShutdown {})
+                                .await
+                                .map_err(|_| anyhow::Error::msg("send MainShutdown"))?;
                         }
                     }
                 }

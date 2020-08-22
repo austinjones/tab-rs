@@ -1,5 +1,5 @@
 use crate::bus::TerminalBus;
-use crate::{bus::ClientBus, state::terminal::TerminalSizeState};
+use crate::{state::terminal::TerminalSizeState};
 use anyhow::Context;
 use crossterm::event::Event;
 use std::time::Duration;
