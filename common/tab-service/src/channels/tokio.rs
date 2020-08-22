@@ -30,9 +30,14 @@ impl<T: Send + 'static> Channel for broadcast::Sender<T> {
     }
 
     fn clone_rx(rx: &mut Option<Self::Rx>, tx: Option<&Self::Tx>) -> Option<Self::Rx> {
-        // subcribe to tx, but if somehow tx has been taken, take rx
-        // this shouldn't happen, as Sender implements Clone
-        tx.map(|tx| tx.subscribe()).or_else(|| rx.take())
+        // tokio channels have a size-limited queue
+        // if one receiver stops processing messages,
+        // the senders block
+
+        // we take from rx first, getting the bus out of the way
+        // then we subscribe using the sender
+        // tx should always be here, but just in case.. tx.map( ... )
+        rx.take().or_else(|| tx.map(|tx| tx.subscribe()))
     }
 }
 

@@ -42,6 +42,7 @@ impl Service for MainService {
         // let mut tx_client = bus.tx::<ClientRecv>();
         let tx_select_tab = client_bus.tx::<TabStateSelect>()?;
 
+        let _tab_state = TabStateService::spawn(&client_bus)?;
         let _main = Self::try_task("main_recv", async move {
             while let Some(msg) = main_rx.recv().await {
                 debug!("MainRecv: {:?}", &msg);
@@ -97,7 +98,6 @@ impl Service for MainService {
             })
         };
 
-        let _tab_state = TabStateService::spawn(&client_bus)?;
         let _client = ClientService::spawn(&client_bus)?;
         let _terminal = TerminalService::spawn(&client_bus)?;
 

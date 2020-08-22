@@ -1,5 +1,5 @@
 mod bus;
-mod channels;
+pub mod channels;
 pub mod dyn_bus;
 mod request;
 mod spawn;
@@ -54,7 +54,8 @@ pub trait Service {
                     }
                 }
                 Err(e) => {
-                    error!("ERR: {}, err: {}", service_name, e);
+                    let e = e.context(format!("task: {}", service_name));
+                    error!("ERR: {}, err: {:?}", service_name, e);
                 }
             }
         })

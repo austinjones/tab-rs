@@ -26,20 +26,4 @@ pub enum Request {
 
     /// Terminates the shell on the given tab
     CloseTab(TabId),
-
-    /// Lists all active tabs
-    ListTabs,
-
-    /// Closes the websocket
-    Close,
-}
-
-impl Request {
-    pub fn is_close(&self) -> bool {
-        if let Request::Close = self {
-            true
-        } else {
-            false
-        }
-    }
 }

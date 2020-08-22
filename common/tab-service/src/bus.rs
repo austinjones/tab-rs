@@ -39,11 +39,11 @@ pub trait Bus: Debug + Sized {
     where
         Msg: Message<Self> + 'static;
 
-    fn rx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Rx, LinkTakenError>
+    fn rx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Rx, TakeChannelError>
     where
         Msg: Message<Self> + 'static;
 
-    fn tx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Tx, LinkTakenError>
+    fn tx<Msg>(&self) -> Result<<Msg::Channel as Channel>::Tx, TakeChannelError>
     where
         Msg: Message<Self> + 'static;
 
@@ -84,6 +84,8 @@ impl Display for Link {
 
 #[derive(Error, Debug)]
 pub enum TakeChannelError {
+    #[error("channel endpoints partially taken: {0}")]
+    PartialTake(NotTakenError),
     #[error("channel already linked: {0}")]
     AlreadyLinked(AlreadyLinkedError),
     #[error("channel already taken: {0}")]
@@ -91,12 +93,35 @@ pub enum TakeChannelError {
 }
 
 impl TakeChannelError {
+    pub fn partial_take<Bus, Msg>(link: Link) -> Self {
+        Self::PartialTake(NotTakenError::new::<Bus, Msg>(link))
+    }
+
     pub fn already_linked<Bus, Msg>() -> Self {
         Self::AlreadyLinked(AlreadyLinkedError::new::<Bus, Msg>())
     }
 
     pub fn already_taken<Bus, Msg>(link: Link) -> Self {
         Self::AlreadyTaken(LinkTakenError::new::<Bus, Msg>(link))
+    }
+}
+
+//TODO: encode Bus and Link types
+#[derive(Error, Debug)]
+#[error("endpoint not taken: {bus} < {message}::{link} >")]
+pub struct NotTakenError {
+    pub bus: String,
+    pub message: String,
+    pub link: Link,
+}
+
+impl NotTakenError {
+    pub fn new<Bus, Message>(link: Link) -> Self {
+        NotTakenError {
+            bus: type_name::<Bus>().to_string(),
+            message: type_name::<Message>().to_string(),
+            link,
+        }
     }
 }
 
