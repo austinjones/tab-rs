@@ -59,7 +59,10 @@ async fn main_async() -> anyhow::Result<()> {
     let websocket = WebsocketListenerResource(server);
 
     let pid = std::process::id();
-    let config = DaemonConfig { pid, port };
+    let config = DaemonConfig {
+        pid: pid as i32,
+        port,
+    };
 
     let daemon_file = DaemonFile::new(&config)?;
     info!("Daemon started.");

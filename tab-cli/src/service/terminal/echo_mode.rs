@@ -1,16 +1,14 @@
-use super::terminal_event::TerminalEventService;
-use crate::bus::ClientBus;
 use crate::bus::TerminalBus;
-use crate::{
-    message::terminal::{TerminalRecv, TerminalSend},
-    state::terminal::TerminalMode,
+use crate::message::{
+    main::MainShutdown,
+    terminal::{TerminalRecv, TerminalSend},
 };
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::trace;
 use tab_service::{Bus, Lifeline, Service};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    sync::{broadcast, mpsc, watch},
+    sync::{broadcast, mpsc},
 };
 
 pub struct TerminalEchoService {
@@ -27,10 +25,11 @@ impl Service for TerminalEchoService {
 
         let rx = bus.rx::<TerminalRecv>()?;
         let tx = bus.tx::<TerminalSend>()?;
+        let tx_shutdown = bus.tx::<MainShutdown>()?;
 
         let _output = Self::try_task("stdout", print_stdout(rx));
 
-        let _input = Self::try_task("stdin", forward_stdin(tx));
+        let _input = Self::try_task("stdin", forward_stdin(tx, tx_shutdown));
 
         // let event_tx = TerminalEventTx { size: tx.size };
 
@@ -44,7 +43,10 @@ impl Drop for TerminalEchoService {
     }
 }
 
-async fn forward_stdin(mut tx: broadcast::Sender<TerminalSend>) -> anyhow::Result<()> {
+async fn forward_stdin(
+    mut tx: broadcast::Sender<TerminalSend>,
+    mut tx_shutdown: mpsc::Sender<MainShutdown>,
+) -> anyhow::Result<()> {
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
 
@@ -55,6 +57,11 @@ async fn forward_stdin(mut tx: broadcast::Sender<TerminalSend>) -> anyhow::Resul
 
         let mut buf = vec![0; read];
         buf.copy_from_slice(&buffer[0..read]);
+
+        if buf.contains(&23u8) {
+            tx_shutdown.send(MainShutdown {}).await?;
+            break;
+        }
 
         trace!("stdin chunk of len {}", read);
         // TODO: use selected tab

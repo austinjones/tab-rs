@@ -55,5 +55,5 @@ impl Message<ClientBus> for TerminalSizeState {
 }
 
 impl Message<ClientBus> for MainShutdown {
-    type Channel = oneshot::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }

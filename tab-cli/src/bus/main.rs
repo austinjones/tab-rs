@@ -12,7 +12,7 @@ use tokio::sync::{broadcast, mpsc, oneshot, watch};
 service_bus!(pub MainBus);
 
 impl Message<MainBus> for MainShutdown {
-    type Channel = oneshot::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<MainBus> for MainRecv {

@@ -6,6 +6,7 @@ use std::{
     io::{BufReader, BufWriter},
     path::{Path, PathBuf},
 };
+use sysinfo::SystemExt;
 use tab_service::impl_storage_clone;
 
 /// User-facing config for persistent cli & daemon behavior
@@ -21,7 +22,7 @@ impl Default for Config {
 /// Config created for each daemon process
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonConfig {
-    pub pid: u32,
+    pub pid: i32,
     pub port: u16,
 }
 
@@ -41,6 +42,17 @@ pub fn daemon_file() -> Result<PathBuf> {
     Ok(dir)
 }
 
+pub fn is_running(config: &DaemonConfig) -> bool {
+    let mut system = sysinfo::System::new_all();
+    system.refresh_process(config.pid);
+
+    let running = system.get_processes();
+    if running.contains_key(&config.pid) {
+        true
+    } else {
+        false
+    }
+}
 pub fn daemon_log() -> Result<PathBuf> {
     let mut dir = dotdir_path()?;
     dir.push("daemon.log");
