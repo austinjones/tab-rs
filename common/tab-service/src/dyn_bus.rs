@@ -26,6 +26,7 @@ macro_rules! service_bus (
 
     (($($vis:tt)*) struct $name:ident $(< $( $gen:ident ),+ >)? ) => {
         #[derive(Debug)]
+        #[allow(non_snake_case)]
         $($vis)* struct $name $(< $( $gen: std::fmt::Debug ),+ >)? {
             storage: $crate::dyn_bus::DynBusStorage<Self>,
             $(
