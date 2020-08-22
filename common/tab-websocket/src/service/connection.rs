@@ -15,7 +15,7 @@ use log::{error, trace};
 use anyhow::Context;
 use std::fmt::Debug;
 use tab_service::{
-    LinkTakenError, ResourceTakenError, ResourceUninitializedError, TakeResourceError,
+    ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError,
 };
 use thiserror::Error;
 use tungstenite::Error;
@@ -40,11 +40,11 @@ impl Service for WebsocketService {
 
         let rx = bus
             .rx::<WebsocketSend>()
-            .map_err(WebsocketSpawnError::link_taken)?;
+            .map_err(WebsocketSpawnError::bus_failure)?;
 
         let tx = bus
             .tx::<WebsocketRecv>()
-            .map_err(WebsocketSpawnError::link_taken)?;
+            .map_err(WebsocketSpawnError::bus_failure)?;
 
         let _runloop = Self::try_task("run", runloop(websocket, rx, tx));
 
@@ -117,7 +117,7 @@ pub enum WebsocketSpawnError {
     SocketUninitialized(ResourceUninitializedError),
 
     #[error("websocket channel taken: {0}")]
-    LinkTaken(LinkTakenError),
+    BusFailure(TakeChannelError),
 }
 
 impl WebsocketSpawnError {
@@ -128,7 +128,7 @@ impl WebsocketSpawnError {
         }
     }
 
-    pub fn link_taken(err: LinkTakenError) -> Self {
-        Self::LinkTaken(err)
+    pub fn bus_failure(err: TakeChannelError) -> Self {
+        Self::BusFailure(err)
     }
 }

@@ -14,6 +14,7 @@ use tab_websocket::resource::listener::WebsocketListenerResource;
 use tokio::{net::TcpListener, select, signal::ctrl_c};
 
 mod bus;
+mod channels;
 mod daemonfile;
 mod endpoint;
 mod message;
@@ -25,6 +26,14 @@ mod state;
 
 #[tokio::main(max_threads = 32)]
 async fn main() -> anyhow::Result<()> {
+    run().await?;
+
+    info!("exit");
+
+    Ok(())
+}
+
+async fn run() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
     CombinedLogger::init(vec![

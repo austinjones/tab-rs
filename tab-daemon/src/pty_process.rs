@@ -50,6 +50,7 @@ pub struct PtySender {
     tx_response: tokio::sync::broadcast::Sender<PtyResponse>,
 }
 
+// TODO: rewrite as a proper service
 impl PtySender {
     pub(super) fn new(
         pty: Arc<PtyProcess>,
@@ -67,8 +68,28 @@ impl PtySender {
         self.tx_request.send(request).await
     }
 
+    pub async fn scrollback(&self) -> PtyScrollback {
+        PtyScrollback::new(self.pty.clone())
+    }
+
     pub async fn subscribe(&self) -> PtyReceiver {
         PtyReceiver::new(self.pty.clone(), self.tx_response.subscribe()).await
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PtyScrollback {
+    pty: Arc<PtyProcess>,
+}
+
+impl PtyScrollback {
+    pub(super) fn new(pty: Arc<PtyProcess>) -> Self {
+        Self { pty }
+    }
+
+    pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
+        let scrollback = self.pty.scrollback.read().await.clone_queue();
+        scrollback.into_iter()
     }
 }
 
@@ -91,6 +112,10 @@ impl PtyReceiver {
         }
     }
 
+    pub fn scrollback(&self) -> PtyScrollback {
+        PtyScrollback::new(self.pty.clone())
+    }
+
     pub async fn recv(&mut self) -> Result<PtyResponse, RecvError> {
         if let Some(chunk) = self.scrollback.pop_front() {
             self.accept_index = chunk.index;
@@ -111,6 +136,7 @@ impl PtyReceiver {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PtyProcess {
     scrollback: Arc<RwLock<ScrollbackBuffer>>,
 }
@@ -135,6 +161,7 @@ impl PtyProcess {
         tokio::spawn(Self::write_input(write, rx_request));
 
         let tx_exit = tx_response.clone();
+        // TODO: convert to tab-service task?
         tokio::spawn(async move {
             // TODO: error handling
             let exit_code = child.await.expect("Failed to get exit status");
@@ -239,6 +266,8 @@ impl PtyProcess {
 }
 
 type ArcLockScrollbackBuffer = Arc<RwLock<ScrollbackBuffer>>;
+
+#[derive(Debug, Clone)]
 struct ScrollbackBuffer {
     size: usize,
     min_capacity: usize,

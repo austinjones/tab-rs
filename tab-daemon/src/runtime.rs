@@ -27,7 +27,7 @@ impl DaemonRuntime {
         let mut tabs = self.tabs.write().await;
         let id = tabs.len();
         let metadata = TabMetadata {
-            id: id as u16,
+            id: TabId(id as u16),
             name: create.name.clone(),
             dimensions: create.dimensions.clone(),
         };
@@ -97,7 +97,7 @@ impl TabRuntime {
     }
 
     pub fn id(&self) -> TabId {
-        TabId(self.metadata.id)
+        self.metadata.id
     }
 
     pub fn name(&self) -> &str {

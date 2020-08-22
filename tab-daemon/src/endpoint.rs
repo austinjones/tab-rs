@@ -45,10 +45,6 @@ pub async fn handle_request(
             CreateTabEndpoint::handle(session, metadata, response_sink).await?
         }
         Request::CloseTab(_tab) => unimplemented!(),
-        Request::ListTabs => {
-            response_sink.send(Response::TabList(vec![])).await?;
-        }
-        Request::Close => error!("close message should not be sent to server"),
     }
 
     info!("end request: {:?}", description);

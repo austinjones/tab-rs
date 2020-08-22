@@ -1,5 +1,6 @@
 use crate::{
     message::{
+        client::TabTerminated,
         main::MainShutdown,
         terminal::{TerminalRecv, TerminalSend},
     },
@@ -35,6 +36,10 @@ impl Message<ClientBus> for TabState {
 
 impl Message<ClientBus> for TabMetadata {
     type Channel = broadcast::Sender<Self>;
+}
+
+impl Message<ClientBus> for TabTerminated {
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<ClientBus> for TabStateSelect {
