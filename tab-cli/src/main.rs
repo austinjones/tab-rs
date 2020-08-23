@@ -59,9 +59,15 @@ fn init() -> ArgMatches<'static> {
                 .help("runs the daemon using `cargo run`"),
         )
         .arg(
-            Arg::with_name("COMMAND")
-                .short("c")
-                .possible_values(&["list", "_autocomplete-tab"])
+            Arg::with_name("COMPLETION")
+                .long("_completion")
+                .takes_value(true)
+                .help("runs the daemon using `cargo run`"),
+        )
+        .arg(
+            Arg::with_name("CLOSE")
+                .short("w")
+                .takes_value(false)
                 .help("print debug information verbosely"),
         )
         .arg(
@@ -79,17 +85,23 @@ fn init() -> ArgMatches<'static> {
 }
 
 async fn main_async() -> anyhow::Result<()> {
-    println!("Starting.");
-
     let matches = init();
     let select_tab = matches.value_of("TAB");
     let dev = matches.is_present("DEV");
     let (mut tx, shutdown, _service) = spawn(dev).await?;
+    let completion = matches.value_of("COMPLETION");
+    let close = matches.is_present("CLOSE");
 
-    if let Some(tab) = select_tab {
-        tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+    if let Some(comp) = completion {
+        tx.send(MainRecv::AutocompleteTab(comp.to_string())).await?;
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
+    } else if let Some(tab) = select_tab {
+        if close {
+            tx.send(MainRecv::CloseTab(tab.to_string())).await?;
+        } else {
+            tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+        }
     } else {
         tx.send(MainRecv::SelectInteractive).await?;
     }

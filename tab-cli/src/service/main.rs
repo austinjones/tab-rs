@@ -61,6 +61,7 @@ impl Service for MainService {
         client_bus.take_tx::<TabsRecv, MainBus>(bus)?;
 
         let tx_select_tab = client_bus.tx::<TabStateSelect>()?;
+        let mut tx_websocket = client_bus.tx::<Request>()?;
 
         let _tab_state = TabStateService::spawn(&client_bus)?;
         let _tabs_state = TabsStateService::spawn(&bus)?;
@@ -89,6 +90,39 @@ impl Service for MainService {
 
                             tx_shutdown.send(MainShutdown {}).await?;
                         }
+                    }
+                    MainRecv::AutocompleteTab(complete) => {
+                        while let Some(state) = rx_tabs_state.recv().await {
+                            if !state.initialized {
+                                continue;
+                            }
+
+                            Self::echo_completion(&state.tabs, complete.as_str());
+
+                            tx_shutdown.send(MainShutdown {}).await?;
+                        }
+                    }
+                    MainRecv::CloseTab(name) => {
+                        while let Some(state) = rx_tabs_state.recv().await {
+                            if !state.initialized {
+                                continue;
+                            }
+
+                            let found = state.tabs.values().find(|tab| &tab.name == &name);
+                            match found {
+                                Some(tab) => {
+                                    tx_websocket.send(Request::CloseTab(tab.id)).await?;
+                                    println!("Tab '{}' closed.", name);
+                                }
+                                None => {
+                                    println!("No tab found with name: '{}'", name);
+                                }
+                            }
+
+                            break;
+                        }
+
+                        tx_shutdown.send(MainShutdown {}).await?;
                     }
                 }
             }
@@ -153,6 +187,8 @@ impl Service for MainService {
 
 impl MainService {
     pub fn echo_tabs(tabs: &HashMap<TabId, TabMetadata>) {
+        debug!("echo tabs: {:?}", tabs);
+
         let mut names: Vec<&str> = tabs.values().map(|v| v.name.as_str()).collect();
         names.sort();
 
@@ -165,5 +201,39 @@ impl MainService {
         for name in names {
             println!("\t{}", name);
         }
+    }
+
+    pub fn echo_completion(tabs: &HashMap<TabId, TabMetadata>, completion: &str) {
+        debug!("echo completion: {:?}, {}", tabs, completion);
+
+        let mut names: Vec<&str> = tabs
+            .values()
+            .map(|v| v.name.as_str())
+            .filter(|name| name.starts_with(completion))
+            .collect();
+
+        names.sort_by(|a, b| {
+            let a_len = Self::overlap(a, completion);
+            let b_len = Self::overlap(b, completion);
+
+            a_len.cmp(&b_len)
+        });
+
+        for name in names {
+            println!("{}", name);
+        }
+    }
+
+    fn overlap(value: &str, target: &str) -> usize {
+        let mut matches = 0;
+        for (a, b) in value.chars().zip(target.chars()) {
+            if a != b {
+                return matches;
+            }
+
+            matches += 1;
+        }
+
+        return matches;
     }
 }
