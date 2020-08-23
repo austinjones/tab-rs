@@ -1,7 +1,7 @@
 use crate::{bus::MainBus, message::tabs::TabsRecv, state::tabs::TabsState};
+use log::info;
 use std::collections::HashMap;
 use tab_service::{Bus, Lifeline, Service};
-use log::info;
 pub struct TabsStateService {
     _run: Lifeline,
 }

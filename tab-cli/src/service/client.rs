@@ -13,7 +13,7 @@ use crate::{
 };
 
 use anyhow::Context;
-use log::debug;
+
 use tab_api::{
     chunk::InputChunk,
     request::Request,
