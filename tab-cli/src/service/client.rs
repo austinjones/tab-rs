@@ -146,6 +146,8 @@ impl Service for WebsocketMessageService {
                 }
             }
 
+            tx_shutdown.send(MainShutdown {});
+
             Ok(())
         });
 

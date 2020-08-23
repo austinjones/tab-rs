@@ -21,7 +21,7 @@ pub struct TabService {
     _run: Lifeline,
 }
 
-const TAB_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+static TAB_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl Service for TabService {
     type Bus = TabBus;
