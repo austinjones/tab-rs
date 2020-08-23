@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use log::{debug, error};
+
 use std::net::SocketAddr;
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{net::TcpListener, sync::mpsc};
@@ -66,7 +67,6 @@ async fn accept_connections(
     }
 }
 
-#[cfg(test)]
 pub(crate) async fn serve(
     token: &str,
 ) -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, SocketAddr)> {

@@ -3,6 +3,7 @@ use crate::{
     message::{
         client::TabTerminated,
         main::MainShutdown,
+        tabs::TabsRecv,
         terminal::{TerminalRecv, TerminalSend},
     },
     state::{
@@ -12,7 +13,7 @@ use crate::{
 };
 
 use anyhow::Context;
-use log::{debug, error};
+
 use tab_api::{
     chunk::InputChunk,
     request::Request,
@@ -37,9 +38,6 @@ impl Service for ClientService {
             let mut tx_request = bus.tx::<Request>()?;
 
             Self::try_task("request_tab", async move {
-                // TODO: get UUID from daemonfile
-                tx_request.send(Request::Auth(vec![])).await?;
-
                 while let Some(update) = rx_tab_state.recv().await {
                     if let TabState::Awaiting(name) = update {
                         let dimensions = rx_terminal_size.borrow().clone().0;
@@ -101,13 +99,20 @@ impl Service for WebsocketMessageService {
         let tx_tab_metadata = bus.tx::<TabMetadata>()?;
         let tx_available_tabs = bus.tx::<TabStateAvailable>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
+        let mut tx_tabs = bus.tx::<TabsRecv>()?;
         let mut tx_tab_terminated = bus.tx::<TabTerminated>()?;
 
         let _websocket = Self::try_task("recv", async move {
             while let Some(msg) = rx_websocket.recv().await {
                 match msg {
-                    Response::Unauthorized => {
-                        error!("Websocket connection is unauthorized");
+                    Response::Init(init) => {
+                        tx_tabs.send(TabsRecv::Init(init.tabs.clone())).await?;
+
+                        for (_id, metadata) in init.tabs {
+                            tx_tab_metadata
+                                .send(metadata)
+                                .map_err(|_| anyhow::Error::msg("send TabMetadata"))?;
+                        }
                     }
                     Response::Output(tab_id, stdout) => {
                         if rx_tab_state.borrow().is_selected(&tab_id) {
@@ -117,16 +122,20 @@ impl Service for WebsocketMessageService {
                         }
                     }
                     Response::TabUpdate(tab) => {
-                        debug!("received tab: {:?}", &tab);
                         tx_tab_metadata
-                            .send(tab)
+                            .send(tab.clone())
                             .map_err(|_| anyhow::Error::msg("send TabMetadata"))?;
+
+                        tx_tabs.send(TabsRecv::Update(tab)).await?;
                     }
                     Response::TabList(tabs) => {
                         tx_available_tabs.broadcast(TabStateAvailable(tabs))?
                     }
                     Response::TabTerminated(id) => {
+                        tx_tabs.send(TabsRecv::Terminated(id)).await?;
+
                         tx_tab_terminated.send(TabTerminated(id)).await?;
+
                         if rx_tab_state.borrow().is_selected(&id) {
                             tx_shutdown
                                 .send(MainShutdown {})

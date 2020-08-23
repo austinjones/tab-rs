@@ -18,6 +18,7 @@ pub struct TabsService {
     _run: Lifeline,
 }
 
+#[derive(Debug)]
 enum TabEvent {
     Create(CreateTab),
     Close(CloseTab),
@@ -64,6 +65,7 @@ impl Service for TabsService {
                 .merge(rx_tab_send.map(TabEvent::tabsend));
 
             while let Some(msg) = stream.next().await {
+                info!("tabs state msg received: {:?}", msg);
                 match msg {
                     TabEvent::Create(create) => {
                         debug!("received create tab event: {:?}", &create);

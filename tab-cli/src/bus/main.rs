@@ -1,9 +1,10 @@
 use crate::{
     message::{
         main::{MainRecv, MainShutdown},
+        tabs::TabsRecv,
         terminal::{TerminalRecv, TerminalSend},
     },
-    state::terminal::TerminalMode,
+    state::{tabs::TabsState, terminal::TerminalMode},
 };
 use tab_service::{service_bus, Message, Resource};
 use tab_websocket::resource::connection::WebsocketResource;
@@ -29,6 +30,14 @@ impl Message<MainBus> for TerminalSend {
 
 impl Message<MainBus> for TerminalRecv {
     type Channel = broadcast::Sender<Self>;
+}
+
+impl Message<MainBus> for TabsRecv {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<MainBus> for TabsState {
+    type Channel = watch::Sender<Self>;
 }
 
 impl Resource<MainBus> for WebsocketResource {}
