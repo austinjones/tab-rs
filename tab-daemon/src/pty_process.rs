@@ -7,7 +7,7 @@ use std::{
 use tab_api::chunk::{InputChunk, OutputChunk};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
-    AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
+    AsyncPtyFd, AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
 use tokio::sync::broadcast::RecvError;
 use tokio::{
@@ -176,8 +176,10 @@ impl PtyProcess {
     ) -> anyhow::Result<(Child, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf)> {
         let pty = AsyncPtyMaster::open()?;
 
+        let fd = AsyncPtyFd::from(pty).await;
+
         let mut child = Command::new(options.command);
-        let child = child.spawn_pty_async(&pty)?;
+        let child = child.spawn_pty_async(&fd)?;
 
         pty.resize(options.dimensions)
             .await
