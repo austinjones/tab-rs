@@ -1,6 +1,6 @@
 // mod session;
 
-use crate::state::{connection::ConnectionState, tab::TabsState};
+use crate::state::tab::TabsState;
 use crate::{
     bus::ConnectionBus,
     message::connection::{ConnectionRecv, ConnectionSend},
@@ -9,7 +9,12 @@ use anyhow::Context;
 use log::debug;
 use std::collections::HashMap;
 use subscription::Subscription;
-use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};
+use tab_api::{
+    chunk::OutputChunk,
+    request::Request,
+    response::{InitResponse, Response},
+    tab::TabId,
+};
 use tab_service::{channels::subscription, Bus, Lifeline, Service};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
 use time::Duration;
@@ -53,13 +58,19 @@ impl Service for ConnectionService {
         let mut rx_tabs_state = bus.rx::<TabsState>()?;
 
         let _run = Self::try_task("run", async move {
-            let mut state = ConnectionState::default();
             let mut subscription_index: HashMap<usize, usize> = HashMap::new();
 
             let tabs = rx_tabs_state
                 .recv()
                 .await
                 .ok_or_else(|| anyhow::Error::msg("rx TabsState closed"))?;
+
+            let init = InitResponse {
+                tabs: tabs.tabs.clone(),
+            };
+            let init = Response::Init(init);
+            let init = Self::serialize(init)?;
+            tx_websocket.send(init).await?;
 
             for tab in tabs.tabs.values() {
                 debug!("notifying client of existing tab {}", &tab.name);
@@ -71,20 +82,13 @@ impl Service for ConnectionService {
             while let Some(event) = rx.next().await {
                 match event {
                     Event::Websocket(msg) => {
-                        Self::recv_websocket(
-                            msg,
-                            &mut state,
-                            &mut tx_subscription,
-                            &mut tx_websocket,
-                            &mut tx_daemon,
-                        )
-                        .await?
+                        Self::recv_websocket(msg, &mut tx_subscription, &mut tx_daemon).await?
                     }
                     Event::Daemon(msg) => {
                         Self::recv_daemon(
                             msg,
-                            &mut tx_websocket,
                             &rx_subscription,
+                            &mut tx_websocket,
                             &mut subscription_index,
                         )
                         .await?
@@ -116,31 +120,14 @@ impl ConnectionService {
 
     async fn recv_websocket(
         msg: WebsocketRecv,
-        state: &mut ConnectionState,
         tx_subscription: &mut subscription::Sender<TabId>,
-        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         tx_daemon: &mut mpsc::Sender<ConnectionSend>,
     ) -> anyhow::Result<()> {
         let request = Self::deserialize(msg)?;
 
-        if let Request::Auth(_auth) = request {
-            // TODO: validate auth
-            state.auth = true;
-            return Ok(());
-        }
-
-        if !state.auth {
-            let send = Self::serialize(Response::Unauthorized)?;
-            tx_websocket
-                .send(send)
-                .await
-                .context("tx_websocket closed")?;
-        }
-
         debug!("received Request: {:?}", &request);
 
         match request {
-            Request::Auth(_) => unreachable!(),
             Request::Subscribe(id) => {
                 tx_subscription
                     .send(Subscription::Subscribe(id))
@@ -178,8 +165,8 @@ impl ConnectionService {
 
     async fn recv_daemon(
         msg: ConnectionRecv,
-        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         rx_subscription: &subscription::Receiver<TabId>,
+        tx_websocket: &mut mpsc::Sender<WebsocketSend>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         match msg {
