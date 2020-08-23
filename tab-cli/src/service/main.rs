@@ -1,17 +1,26 @@
-use super::{client::ClientService, tab_state::TabStateService, terminal::TerminalService};
+use super::{
+    client::ClientService, tab_state::TabStateService, tabs::TabsStateService,
+    terminal::TerminalService,
+};
 use crate::bus::ClientBus;
 use crate::{
     bus::MainBus,
     message::{
         main::{MainRecv, MainShutdown},
+        tabs::TabsRecv,
         terminal::{TerminalRecv, TerminalSend},
     },
-    state::{tab::TabStateSelect, terminal::TerminalMode},
+    state::{tab::TabStateSelect, tabs::TabsState, terminal::TerminalMode},
 };
 use log::{debug, error};
-use tab_api::{request::Request, response::Response};
+use tab_api::{
+    request::Request,
+    response::Response,
+    tab::{TabId, TabMetadata},
+};
 use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 
+use std::collections::HashMap;
 use tab_websocket::{
     bus::WebsocketConnectionBus,
     message::connection::{WebsocketRecv, WebsocketSend},
@@ -25,6 +34,7 @@ pub struct MainService {
     _websocket: WebsocketService,
     _terminal: TerminalService,
     _tab_state: TabStateService,
+    _tabs_state: TabsStateService,
     _websocket_send: Lifeline,
     _websocket_recv: Lifeline,
 }
@@ -39,15 +49,21 @@ impl Service for MainService {
 
         let tx_terminal_mode = bus.tx::<TerminalMode>()?;
         let mut main_rx = bus.rx::<MainRecv>()?;
+        let mut tx_shutdown = bus.tx::<MainShutdown>()?;
+        let mut rx_tabs_state = bus.rx::<TabsState>()?;
 
         let client_bus = ClientBus::default();
         client_bus.take_tx::<MainShutdown, MainBus>(bus)?;
 
         client_bus.take_channel::<TerminalSend, MainBus>(bus)?;
         client_bus.take_tx::<TerminalRecv, MainBus>(bus)?;
+
+        client_bus.take_tx::<TabsRecv, MainBus>(bus)?;
+
         let tx_select_tab = client_bus.tx::<TabStateSelect>()?;
 
         let _tab_state = TabStateService::spawn(&client_bus)?;
+        let _tabs_state = TabsStateService::spawn(&bus)?;
         let _main = Self::try_task("main_recv", async move {
             while let Some(msg) = main_rx.recv().await {
                 debug!("MainRecv: {:?}", &msg);
@@ -62,6 +78,17 @@ impl Service for MainService {
                     }
                     MainRecv::SelectInteractive => {
                         tx_terminal_mode.broadcast(TerminalMode::Crossterm)?;
+                    }
+                    MainRecv::ListTabs => {
+                        while let Some(state) = rx_tabs_state.recv().await {
+                            if !state.initialized {
+                                continue;
+                            }
+
+                            Self::echo_tabs(&state.tabs);
+
+                            tx_shutdown.send(MainShutdown {}).await?;
+                        }
                     }
                 }
             }
@@ -117,8 +144,26 @@ impl Service for MainService {
             _websocket,
             _terminal,
             _tab_state,
+            _tabs_state,
             _websocket_send,
             _websocket_recv,
         })
+    }
+}
+
+impl MainService {
+    pub fn echo_tabs(tabs: &HashMap<TabId, TabMetadata>) {
+        let mut names: Vec<&str> = tabs.values().map(|v| v.name.as_str()).collect();
+        names.sort();
+
+        if names.len() == 0 {
+            println!("No active tabs.");
+            return;
+        }
+
+        println!("Available tabs:");
+        for name in names {
+            println!("\t{}", name);
+        }
     }
 }

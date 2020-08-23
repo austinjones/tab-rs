@@ -65,6 +65,11 @@ fn init() -> ArgMatches<'static> {
                 .help("print debug information verbosely"),
         )
         .arg(
+            Arg::with_name("LIST")
+                .short("l")
+                .help("lists all the active tabs"),
+        )
+        .arg(
             Arg::with_name("TAB")
                 .help("Switches to the provided tab")
                 .required(false)
@@ -83,6 +88,8 @@ async fn main_async() -> anyhow::Result<()> {
 
     if let Some(tab) = select_tab {
         tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+    } else if matches.is_present("LIST") {
+        tx.send(MainRecv::ListTabs).await?;
     } else {
         tx.send(MainRecv::SelectInteractive).await?;
     }

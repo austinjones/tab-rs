@@ -2,6 +2,7 @@ use crate::{
     message::{
         client::TabTerminated,
         main::MainShutdown,
+        tabs::TabsRecv,
         terminal::{TerminalRecv, TerminalSend},
     },
     state::{
@@ -14,6 +15,11 @@ use tab_service::{service_bus, Message};
 use tokio::sync::{broadcast, mpsc, watch};
 
 service_bus!(pub ClientBus);
+
+impl Message<ClientBus> for TabsRecv {
+    type Channel = mpsc::Sender<Self>;
+}
+
 impl Message<ClientBus> for Request {
     type Channel = mpsc::Sender<Self>;
 }

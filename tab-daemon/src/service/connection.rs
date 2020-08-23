@@ -9,7 +9,12 @@ use anyhow::Context;
 use log::debug;
 use std::collections::HashMap;
 use subscription::Subscription;
-use tab_api::{chunk::OutputChunk, request::Request, response::Response, tab::TabId};
+use tab_api::{
+    chunk::OutputChunk,
+    request::Request,
+    response::{InitResponse, Response},
+    tab::TabId,
+};
 use tab_service::{channels::subscription, Bus, Lifeline, Service};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
 use time::Duration;
@@ -59,6 +64,13 @@ impl Service for ConnectionService {
                 .recv()
                 .await
                 .ok_or_else(|| anyhow::Error::msg("rx TabsState closed"))?;
+
+            let init = InitResponse {
+                tabs: tabs.tabs.clone(),
+            };
+            let init = Response::Init(init);
+            let init = Self::serialize(init)?;
+            tx_websocket.send(init).await?;
 
             for tab in tabs.tabs.values() {
                 debug!("notifying client of existing tab {}", &tab.name);
