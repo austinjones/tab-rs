@@ -176,10 +176,8 @@ impl PtyProcess {
     ) -> anyhow::Result<(Child, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf)> {
         let pty = AsyncPtyMaster::open()?;
 
-        let fd = AsyncPtyFd::from(pty).await;
-
         let mut child = Command::new(options.command);
-        let child = child.spawn_pty_async(&fd)?;
+        let child = child.spawn_pty_async(&pty)?;
 
         pty.resize(options.dimensions)
             .await
