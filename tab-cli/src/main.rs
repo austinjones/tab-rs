@@ -1,6 +1,6 @@
 use clap::{App, Arg, ArgMatches};
 
-use log::{debug, error, info, LevelFilter};
+use log::{debug, info, LevelFilter};
 use service::main::*;
 
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};

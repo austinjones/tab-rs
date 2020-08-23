@@ -214,7 +214,7 @@ impl MainService {
 
         names.sort_by(|a, b| {
             let a_len = Self::overlap(a, completion);
-            let b_len = Self::overlap(a, completion);
+            let b_len = Self::overlap(b, completion);
 
             a_len.cmp(&b_len)
         });
