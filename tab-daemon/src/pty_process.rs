@@ -7,7 +7,7 @@ use std::{
 use tab_api::chunk::{InputChunk, OutputChunk};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
-    AsyncPtyFd, AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
+    AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
 use tokio::sync::broadcast::RecvError;
 use tokio::{
@@ -189,8 +189,6 @@ impl PtyProcess {
     }
 
     fn new() -> PtyProcess {
-        // let mut child = Command::new("fish")
-        //     .args(&["--interactive", "--debug=debug,proc-internal-proc"])
         let scrollback: ArcLockScrollbackBuffer = Arc::new(RwLock::new(ScrollbackBuffer::new()));
 
         PtyProcess { scrollback }
@@ -233,15 +231,6 @@ impl PtyProcess {
 
     async fn write_stdin(mut stdin: impl AsyncWriteExt + Unpin, mut chunk: InputChunk) {
         info!("writing stdin chunk: {:?}", &chunk);
-
-        // TODO: refactor this into a shared sender struct
-        // tx.send(Chunk {
-        //     index: index.load(Ordering::SeqCst),
-        //     channel: ChunkType::Stdout,
-        //     data: chunk.data.clone(),
-        // })
-        // .expect("stdin echo failed");
-        // index.fetch_add(1, Ordering::SeqCst);
 
         // TODO: deal with error handling
         stdin

@@ -3,20 +3,20 @@ use daemonfile::DaemonFile;
 use crate::bus::DaemonBus;
 use log::{info, LevelFilter};
 
+use lifeline::{dyn_bus::DynBus, Bus, Service};
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::config::{daemon_log, DaemonConfig};
-use tab_service::{dyn_bus::DynBus, Bus, Service};
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::{net::TcpListener, select, signal::ctrl_c};
 
 mod auth;
 mod bus;
-mod channels;
 mod daemonfile;
 mod message;
+mod prelude;
 mod pty_process;
 mod service;
 mod state;
@@ -104,20 +104,3 @@ async fn main_async() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-// async fn accept_connection(runtime: Arc<DaemonRuntime>, stream: TcpStream) -> anyhow::Result<()> {
-//     let addr = stream.peer_addr()?;
-
-//     info!("connection opened from `{}`", addr);
-
-//     let mut session = DaemonSession::new(runtime);
-//     let (mut rx_request, tx_response) = spawn_server(stream, Response::is_close).await?;
-
-//     while let Some(msg) = rx_request.recv().await {
-//         handle_request(msg, &mut session, tx_response.clone()).await?
-//     }
-
-//     info!("connection closed from `{}`", addr);
-
-//     Ok(())
-// }

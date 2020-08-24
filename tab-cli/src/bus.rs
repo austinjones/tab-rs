@@ -1,7 +1,7 @@
-mod client;
 mod main;
+mod tab;
 mod terminal;
 
-pub use client::ClientBus;
-pub use main::MainBus;
-pub use terminal::TerminalBus;
+pub use main::*;
+pub use tab::*;
+pub use terminal::*;

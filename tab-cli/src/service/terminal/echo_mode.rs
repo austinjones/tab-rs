@@ -1,11 +1,6 @@
-use crate::bus::TerminalBus;
-use crate::message::{
-    main::MainShutdown,
-    terminal::{TerminalRecv, TerminalSend},
-};
+use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
+use crate::prelude::*;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use log::trace;
-use tab_service::{Bus, Lifeline, Service};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     sync::{broadcast, mpsc},
@@ -25,13 +20,11 @@ impl Service for TerminalEchoService {
 
         let rx = bus.rx::<TerminalRecv>()?;
         let tx = bus.tx::<TerminalSend>()?;
-        let tx_shutdown = bus.tx::<MainShutdown>()?;
+        let tx_shutdown = bus.tx::<TerminalShutdown>()?;
 
         let _output = Self::try_task("stdout", print_stdout(rx));
 
         let _input = Self::try_task("stdin", forward_stdin(tx, tx_shutdown));
-
-        // let event_tx = TerminalEventTx { size: tx.size };
 
         Ok(TerminalEchoService { _input, _output })
     }
@@ -45,7 +38,7 @@ impl Drop for TerminalEchoService {
 
 async fn forward_stdin(
     tx: broadcast::Sender<TerminalSend>,
-    mut tx_shutdown: mpsc::Sender<MainShutdown>,
+    mut tx_shutdown: mpsc::Sender<TerminalShutdown>,
 ) -> anyhow::Result<()> {
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
@@ -60,7 +53,7 @@ async fn forward_stdin(
 
         // this is ctrl-w
         if buf.contains(&23u8) {
-            tx_shutdown.send(MainShutdown {}).await?;
+            tx_shutdown.send(TerminalShutdown {}).await?;
             break;
         }
 

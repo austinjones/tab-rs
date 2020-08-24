@@ -24,8 +24,6 @@ pub async fn spawn_server<
     let _addr = stream.peer_addr()?;
     let mut websocket = async_tungstenite::tokio::accept_async(stream).await?;
 
-    // let mut websocket = parse_bincode(websocket);
-
     let (mut tx_request, rx_request) = mpsc::channel::<Request>(4);
     let (tx_response, mut rx_response) = mpsc::channel::<Response>(4);
 

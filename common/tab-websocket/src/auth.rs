@@ -32,7 +32,6 @@ impl AuthHandler {
     }
 
     pub fn validate_token(&self, request: &Request) -> AuthState {
-        // AuthState::RejectOrigin
         if request.headers().get("origin").is_some() {
             return AuthState::RejectOrigin;
         }

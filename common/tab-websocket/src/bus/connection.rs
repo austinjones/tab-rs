@@ -2,10 +2,10 @@ use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
     resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
 };
-use tab_service::{service_bus, Message, Resource};
+use lifeline::{lifeline_bus, Message, Resource};
 use tokio::sync::mpsc;
 
-service_bus!(pub WebsocketConnectionBus);
+lifeline_bus!(pub struct WebsocketConnectionBus);
 
 impl Message<WebsocketConnectionBus> for WebsocketRecv {
     type Channel = mpsc::Sender<Self>;

@@ -1,6 +1,6 @@
 use clap::{App, Arg, ArgMatches};
 
-use log::{debug, info, LevelFilter};
+use crate::prelude::*;
 use service::main::*;
 
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
@@ -12,13 +12,20 @@ use std::{
     time::{Duration, Instant},
 };
 use tab_api::config::{is_running, load_daemon_file, DaemonConfig};
-use tab_service::{dyn_bus::DynBus, Bus, Service};
 
+use dyn_bus::DynBus;
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
+use tokio::{
+    process::Command,
+    select,
+    signal::ctrl_c,
+    sync::{broadcast, mpsc},
+    time,
+};
 
 mod bus;
 mod message;
+mod prelude;
 mod service;
 mod state;
 
@@ -88,22 +95,25 @@ async fn main_async() -> anyhow::Result<()> {
     let matches = init();
     let select_tab = matches.value_of("TAB");
     let dev = matches.is_present("DEV");
-    let (mut tx, shutdown, _service) = spawn(dev).await?;
+    let (tx, shutdown, _service) = spawn(dev).await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");
 
     if let Some(comp) = completion {
-        tx.send(MainRecv::AutocompleteTab(comp.to_string())).await?;
+        tx.send(MainRecv::AutocompleteTab(comp.to_string()))
+            .map_err(into_msg)?;
     } else if matches.is_present("LIST") {
-        tx.send(MainRecv::ListTabs).await?;
+        tx.send(MainRecv::ListTabs).map_err(into_msg)?;
     } else if let Some(tab) = select_tab {
         if close {
-            tx.send(MainRecv::CloseTab(tab.to_string())).await?;
+            tx.send(MainRecv::CloseTab(tab.to_string()))
+                .map_err(into_msg)?;
         } else {
-            tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+            tx.send(MainRecv::SelectTab(tab.to_string()))
+                .map_err(into_msg)?;
         }
     } else {
-        tx.send(MainRecv::SelectInteractive).await?;
+        tx.send(MainRecv::SelectInteractive).map_err(into_msg)?;
     }
 
     wait_for_shutdown(shutdown).await;
@@ -114,7 +124,7 @@ async fn main_async() -> anyhow::Result<()> {
 async fn spawn(
     dev: bool,
 ) -> anyhow::Result<(
-    mpsc::Sender<MainRecv>,
+    broadcast::Sender<MainRecv>,
     mpsc::Receiver<MainShutdown>,
     MainService,
 )> {
