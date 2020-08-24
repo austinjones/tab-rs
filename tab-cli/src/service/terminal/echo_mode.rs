@@ -30,8 +30,6 @@ impl Service for TerminalEchoService {
 
         let _input = Self::try_task("stdin", forward_stdin(tx, tx_shutdown));
 
-        // let event_tx = TerminalEventTx { size: tx.size };
-
         Ok(TerminalEchoService { _input, _output })
     }
 }

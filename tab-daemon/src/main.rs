@@ -104,20 +104,3 @@ async fn main_async() -> anyhow::Result<()> {
 
     Ok(())
 }
-
-// async fn accept_connection(runtime: Arc<DaemonRuntime>, stream: TcpStream) -> anyhow::Result<()> {
-//     let addr = stream.peer_addr()?;
-
-//     info!("connection opened from `{}`", addr);
-
-//     let mut session = DaemonSession::new(runtime);
-//     let (mut rx_request, tx_response) = spawn_server(stream, Response::is_close).await?;
-
-//     while let Some(msg) = rx_request.recv().await {
-//         handle_request(msg, &mut session, tx_response.clone()).await?
-//     }
-
-//     info!("connection closed from `{}`", addr);
-
-//     Ok(())
-// }

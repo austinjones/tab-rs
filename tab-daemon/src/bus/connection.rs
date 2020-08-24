@@ -49,10 +49,6 @@ impl Message<ConnectionBus> for TabsState {
     type Channel = mpsc::Sender<Self>;
 }
 
-// impl Message<ConnectionBus> for TabsState {
-//     type Channel = watch::Sender<Self>;
-// }
-
 impl Resource<ConnectionBus> for WebsocketResource {}
 impl WebsocketMessageBus for ConnectionBus {
     type Send = Response;

@@ -38,10 +38,6 @@ impl Message<TerminalBus> for TerminalShutdown {
     type Channel = mpsc::Sender<Self>;
 }
 
-// impl Message<TerminalBus> for MainShutdown {
-//     type Channel = mpsc::Sender<Self>;
-// }
-
 pub struct MainTerminalCarrier {
     pub(super) _main: Lifeline,
     pub(super) _forward_shutdown: Lifeline,

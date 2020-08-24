@@ -36,18 +36,6 @@ impl Message<ListenerBus> for TabsState {
     type Channel = watch::Sender<Self>;
 }
 
-// impl Message<ListenerBus> for CreateTab {
-//     type Channel = mpsc::Sender<Self>;
-// }
-
-// impl Message<ListenerBus> for CloseTab {
-//     type Channel = mpsc::Sender<Self>;
-// }
-
-// impl Message<ListenerBus> for TabsState {
-//     type Channel = watch::Sender<Self>;
-// }
-
 pub struct ConnectionMessageCarrier {
     _forward_connection: Lifeline,
 }

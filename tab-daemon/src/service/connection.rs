@@ -44,7 +44,6 @@ impl Service for ConnectionService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        // let _tx = bus.tx::<ConnectionSend>()?;
         let rx_websocket = bus
             .rx::<Request>()?
             .filter(|r| r.is_ok())

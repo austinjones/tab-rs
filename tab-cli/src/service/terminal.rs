@@ -33,9 +33,6 @@ impl Service for TerminalService {
         let _main_terminal = terminal_bus.carry_from(bus)?;
 
         let mut rx_terminal_mode = terminal_bus.rx::<TerminalMode>()?;
-        // terminal_bus.take_tx::<TerminalSend, MainBus>(bus)?;
-        // terminal_bus.take_channel::<TerminalRecv, MainBus>(bus)?;
-        // terminal_bus.take_tx::<MainShutdown, MainBus>(bus)?;
 
         let _terminal_mode = Self::try_task("dispatch_mode", async move {
             let mut service = ServiceLifeline::None;

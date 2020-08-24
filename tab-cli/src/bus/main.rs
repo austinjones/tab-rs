@@ -41,18 +41,6 @@ impl Message<MainBus> for Response {
     type Channel = broadcast::Sender<Self>;
 }
 
-// impl Message<MainBus> for TerminalMode {
-//     type Channel = watch::Sender<Self>;
-// }
-
-// impl Message<MainBus> for TerminalSend {
-//     type Channel = broadcast::Sender<Self>;
-// }
-
-// impl Message<MainBus> for TerminalRecv {
-//     type Channel = broadcast::Sender<Self>;
-// }
-
 impl Resource<MainBus> for WebsocketResource {}
 
 impl WebsocketMessageBus for MainBus {

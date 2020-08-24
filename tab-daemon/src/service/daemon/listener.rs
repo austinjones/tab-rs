@@ -53,12 +53,6 @@ impl Service for ListenerService {
         let _connection_carrier = listener_bus.carry_from(&websocket_bus)?;
 
         let _tabs = TabsService::spawn(&listener_bus)?;
-        // listener_bus.take_rx::<WebsocketConnectionMessage, WebsocketListenerBus>(&websocket_bus)?;
-        // listener_bus.take_channel::<TabSend, DaemonBus>(bus)?;
-        // listener_bus.take_channel::<TabRecv, DaemonBus>(bus)?;
-        // listener_bus.take_tx::<CreateTab, DaemonBus>(bus)?;
-        // listener_bus.take_tx::<CloseTab, DaemonBus>(bus)?;
-        // listener_bus.take_rx::<TabsState, DaemonBus>(bus)?;
 
         debug!("ListenerBus: {:#?}", &listener_bus);
 

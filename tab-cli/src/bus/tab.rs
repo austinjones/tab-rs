@@ -100,6 +100,22 @@ impl FromCarrier<MainBus> for TabBus {
             })
         };
 
+        let _forward_recv = {
+            let mut rx_request = self.rx::<Request>()?;
+            let tx_request = from.tx::<Request>()?;
+
+            Self::try_task("forward_request", async move {
+                while let Some(request) = rx_request.recv().await {
+                    tx_request
+                        .send(request)
+                        .map_err(into_msg)
+                        .context("tx Request")?;
+                }
+
+                Ok(())
+            })
+        };
+
         let _create_tab = {
             let mut rx_tab_state = self.rx::<TabState>()?;
             let rx_terminal_size = self.rx::<TerminalSizeState>()?;
@@ -156,13 +172,10 @@ impl FromCarrier<MainBus> for TabBus {
                                 .broadcast(TabStateAvailable(tabs))
                                 .context("tx TabStateAvailable")?,
                             Response::TabTerminated(id) => {
-                                debug!("got tab terminated");
                                 tx_tabs.send(TabsRecv::Terminated(id)).await?;
 
                                 tx_tab_terminated.send(TabTerminated(id)).await?;
-                                debug!("got tab terminated msg on id {}", id);
                                 if rx_tab_state.borrow().is_selected(&id) {
-                                    debug!("sending main shutdown message");
                                     tx_shutdown
                                         .send(MainShutdown {})
                                         .await
