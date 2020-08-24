@@ -1,4 +1,3 @@
-use super::WebsocketService;
 use crate::bus::WebsocketConnectionBus;
 use crate::{
     bind,
@@ -11,9 +10,11 @@ use crate::{
 };
 use log::{debug, error};
 
+use lifeline::Task;
+use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use std::net::SocketAddr;
-use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{net::TcpListener, sync::mpsc};
+
 pub struct WebsocketListenerService {
     _accept: Lifeline,
 }
@@ -54,12 +55,9 @@ async fn accept_connections(
         };
 
         conn_bus.store_resource(WebsocketResource(bound));
-        let service = WebsocketService::spawn(&conn_bus)?;
+        // let service = WebsocketService::spawn(&conn_bus)?;
 
-        let message = WebsocketConnectionMessage {
-            bus: conn_bus,
-            lifeline: service,
-        };
+        let message = WebsocketConnectionMessage { bus: conn_bus };
 
         tx.send(message)
             .await
@@ -97,9 +95,9 @@ mod tests {
         },
         service::WebsocketService,
     };
+    use lifeline::assert_completes;
+    use lifeline::{dyn_bus::DynBus, Bus, Service};
     use std::net::SocketAddr;
-    use tab_service::{dyn_bus::DynBus, Bus, Service};
-    use tab_service_test::assert_completes;
     use tokio::net::TcpListener;
 
     async fn connect(
@@ -157,6 +155,7 @@ mod tests {
 
         let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
         let conn = rx_conn.try_recv()?;
+        let _serve = WebsocketService::spawn(&conn.bus)?;
 
         let mut tx_request = bus.tx::<WebsocketSend>()?;
         let mut rx_request = conn.bus.rx::<WebsocketRecv>()?;
@@ -183,6 +182,7 @@ mod tests {
 
         let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
         let conn = rx_conn.try_recv()?;
+        let _serve = WebsocketService::spawn(&conn.bus)?;
 
         let mut rx_response = bus.rx::<WebsocketRecv>()?;
 

@@ -1,16 +1,17 @@
-use crate::bus::ClientBus;
+use crate::prelude::*;
 use crate::{
-    message::client::TabTerminated,
+    message::{client::TabTerminated, tabs::TabShutdown},
     state::tab::{TabState, TabStateSelect},
 };
 
-use log::{debug, info};
+use anyhow::Context;
+use lifeline::Task;
+use lifeline::{Bus, Lifeline, Service};
 use std::collections::HashMap;
 use tab_api::{
     request::Request,
     tab::{TabId, TabMetadata},
 };
-use tab_service::{Bus, Lifeline, Service};
 use tokio::stream::StreamExt;
 pub struct TabStateService {
     _lifeline: Lifeline,
@@ -23,16 +24,17 @@ enum Event {
 }
 
 impl Service for TabStateService {
-    type Bus = ClientBus;
+    type Bus = TabBus;
     type Lifeline = anyhow::Result<Self>;
 
-    fn spawn(bus: &ClientBus) -> Self::Lifeline {
+    fn spawn(bus: &TabBus) -> Self::Lifeline {
         let rx_tab = bus.rx::<TabStateSelect>()?;
         let rx_tab_metadata = bus.rx::<TabMetadata>()?;
-        let tx = bus.tx::<TabState>()?;
-
-        let mut tx_websocket = bus.tx::<Request>()?;
         let rx_tab_terminated = bus.rx::<TabTerminated>()?;
+
+        let tx = bus.tx::<TabState>()?;
+        let mut tx_websocket = bus.tx::<Request>()?;
+        let mut tx_shutdown = bus.tx::<TabShutdown>()?;
 
         let _lifeline = Self::try_task("run", async move {
             let mut state = TabState::None;
@@ -74,7 +76,6 @@ impl Service for TabStateService {
                         }
                     },
                     Event::Metadata(metadata) => {
-                        debug!("got tab metadata: {:?}", &metadata);
                         if state.is_awaiting(metadata.name.as_str()) {
                             info!("tab active {}", metadata.name.as_str());
 
@@ -93,6 +94,10 @@ impl Service for TabStateService {
                             if terminated_id == selected_id {
                                 state = TabState::None;
                                 tx.broadcast(state.clone())?;
+                                tx_shutdown
+                                    .send(TabShutdown {})
+                                    .await
+                                    .context("tx TabShutdown")?;
                             }
                         }
 

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
 use std::{
@@ -7,7 +8,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use sysinfo::SystemExt;
-use tab_service::impl_storage_clone;
 
 /// User-facing config for persistent cli & daemon behavior
 #[derive(Serialize, Deserialize)]

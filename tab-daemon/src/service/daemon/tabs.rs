@@ -1,21 +1,21 @@
 use super::tab::TabService;
-use crate::bus::TabBus;
+use crate::prelude::*;
 use crate::{
-    bus::DaemonBus,
     message::{
         daemon::{CloseTab, CreateTab},
         tab::{TabRecv, TabSend},
     },
     state::tab::TabsState,
 };
-use log::{debug, info};
+use lifeline::Task;
+use lifeline::{Bus, Lifeline, Service};
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
-use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{stream::StreamExt, sync::broadcast};
 
 pub struct TabsService {
     _run: Lifeline,
+    _listener_carrier: ListenerTabCarrier,
 }
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl TabEvent {
 }
 
 impl Service for TabsService {
-    type Bus = DaemonBus;
+    type Bus = ListenerBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
@@ -52,8 +52,7 @@ impl Service for TabsService {
         let tx_tabs_state = bus.tx::<TabsState>()?;
 
         let tab_bus = TabBus::default();
-        tab_bus.take_channel::<TabRecv, DaemonBus>(bus)?;
-        tab_bus.take_tx::<TabSend, DaemonBus>(bus)?;
+        let _listener_carrier = tab_bus.carry_from(bus)?;
 
         let _run = Self::try_task("run", async move {
             let mut tabs: HashMap<TabId, TabMetadata> = HashMap::new();
@@ -66,6 +65,7 @@ impl Service for TabsService {
 
             while let Some(msg) = stream.next().await {
                 info!("tabs state msg received: {:?}", msg);
+
                 match msg {
                     TabEvent::Create(create) => {
                         debug!("received create tab event: {:?}", &create);
@@ -99,21 +99,28 @@ impl Service for TabsService {
 
                         tx_tabs_state.broadcast(TabsState::new(&tabs))?;
                     }
-                    TabEvent::TabSend(event) => match event? {
-                        TabSend::Stopped(id) => {
-                            tabs.remove(&id);
-                            lifelines.remove(&id);
+                    TabEvent::TabSend(event) => {
+                        debug!("tab event: {:?}", &event);
+                        match event? {
+                            TabSend::Stopped(id) => {
+                                debug!("tab stopped: {}", id);
+                                tabs.remove(&id);
+                                lifelines.remove(&id);
 
-                            tx_tabs_state.broadcast(TabsState::new(&tabs))?;
+                                tx_tabs_state.broadcast(TabsState::new(&tabs))?;
+                            }
+                            _ => {}
                         }
-                        _ => {}
-                    },
+                    }
                 }
             }
 
             Ok(())
         });
 
-        Ok(Self { _run })
+        Ok(Self {
+            _run,
+            _listener_carrier,
+        })
     }
 }

@@ -4,7 +4,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Request {
     /// Subscribes to stdout/stderr on the given tab
     /// The WebSocket will produce a series of Chunk messages,
@@ -23,4 +23,7 @@ pub enum Request {
 
     /// Terminates the shell on the given tab
     CloseTab(TabId),
+
+    /// Terminates the shell on the given tab, by name
+    CloseNamedTab(String),
 }

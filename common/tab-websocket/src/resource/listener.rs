@@ -1,4 +1,4 @@
-use tab_service::{impl_storage_clone, impl_storage_take};
+use lifeline::{impl_storage_clone, impl_storage_take};
 use tokio::net::TcpListener;
 
 #[derive(Debug)]
