@@ -10,7 +10,6 @@ use crate::{
 };
 use anyhow::Context;
 use dyn_bus::DynBus;
-use log::debug;
 
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus, WebsocketListenerBus},

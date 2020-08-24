@@ -1,4 +1,5 @@
 use super::{tab_state::TabStateService, tabs::TabsStateService, terminal::TerminalService};
+use crate::prelude::*;
 use crate::{
     bus::MainBus,
     message::{
@@ -9,7 +10,6 @@ use crate::{
     state::{tab::TabStateSelect, tabs::TabsState, terminal::TerminalMode},
 };
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
-use log::debug;
 use tab_api::request::Request;
 
 use crate::prelude::*;

@@ -177,6 +177,8 @@ mod test {
             assert!(conn.is_some());
             let conn = conn.unwrap();
             let conn_bus = conn.bus;
+            let _service = WebsocketService::spawn(&conn_bus);
+
             let mut rx_request = conn_bus
                 .rx::<WebsocketRecv>()
                 .expect("conn_bus rx WebsocketRecv");

@@ -9,7 +9,6 @@ use crate::{
 };
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
-use log::{debug, info};
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tokio::{stream::StreamExt, sync::broadcast};

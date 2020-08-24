@@ -4,7 +4,6 @@ use crate::prelude::*;
 use crate::state::tab::TabsState;
 use anyhow::Context;
 use lifeline::subscription::Subscription;
-use log::debug;
 use std::collections::HashMap;
 use tab_api::{
     chunk::OutputChunk,

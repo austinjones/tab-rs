@@ -1,7 +1,6 @@
 use clap::{App, Arg, ArgMatches};
 
 use crate::prelude::*;
-use log::{debug, info, LevelFilter};
 use service::main::*;
 
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};

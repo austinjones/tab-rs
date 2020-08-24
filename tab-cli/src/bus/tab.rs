@@ -12,7 +12,6 @@ use crate::{
     },
 };
 use anyhow::Context;
-use log::debug;
 use std::collections::HashMap;
 use tab_api::{
     request::Request,

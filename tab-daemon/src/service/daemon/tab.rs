@@ -6,7 +6,6 @@ use crate::{
 use anyhow::Context;
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
-use log::{debug, error, info};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,

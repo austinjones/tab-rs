@@ -1,10 +1,6 @@
-use crate::bus::TerminalBus;
 use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use lifeline::Task;
-use lifeline::{Bus, Lifeline, Service};
-use log::trace;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     sync::{broadcast, mpsc},

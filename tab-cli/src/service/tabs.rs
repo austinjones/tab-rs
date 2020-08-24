@@ -2,7 +2,6 @@ use crate::prelude::*;
 use crate::{message::tabs::TabsRecv, state::tabs::TabsState};
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
-use log::info;
 use std::collections::HashMap;
 use tab_api::tab::TabMetadata;
 pub struct TabsStateService {

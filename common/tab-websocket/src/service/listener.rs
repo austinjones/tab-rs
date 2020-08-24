@@ -155,6 +155,7 @@ mod tests {
 
         let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
         let conn = rx_conn.try_recv()?;
+        let _serve = WebsocketService::spawn(&conn.bus)?;
 
         let mut tx_request = bus.tx::<WebsocketSend>()?;
         let mut rx_request = conn.bus.rx::<WebsocketRecv>()?;
@@ -181,6 +182,7 @@ mod tests {
 
         let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
         let conn = rx_conn.try_recv()?;
+        let _serve = WebsocketService::spawn(&conn.bus)?;
 
         let mut rx_response = bus.rx::<WebsocketRecv>()?;
 
