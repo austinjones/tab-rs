@@ -2,18 +2,12 @@ use crate::state::terminal::TerminalMode;
 
 use crate::bus::MainBus;
 use crate::prelude::*;
-use crate::prelude::*;
-use crate::{
-    bus::TerminalBus,
-    message::{
-        main::MainShutdown,
-        terminal::{TerminalRecv, TerminalSend},
-    },
-};
+
+use crate::bus::TerminalBus;
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
 use lifeline::Task;
-use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use lifeline::{Bus, Lifeline, Service};
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;

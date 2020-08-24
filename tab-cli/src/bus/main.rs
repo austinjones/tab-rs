@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use crate::{
     message::{
         main::{MainRecv, MainShutdown},
@@ -8,7 +7,7 @@ use crate::{
     state::{tab::TabState, tabs::TabsState, terminal::TerminalMode},
 };
 use lifeline::{lifeline_bus, Message, Resource};
-use log::*;
+
 use tab_api::{request::Request, response::Response};
 use tab_websocket::{
     bus::{WebsocketConnectionBus, WebsocketMessageBus},

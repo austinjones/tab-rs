@@ -4,7 +4,6 @@ use crate::prelude::*;
 use listener::ListenerService;
 
 use lifeline::Service;
-use tabs::TabsService;
 
 mod listener;
 mod tab;

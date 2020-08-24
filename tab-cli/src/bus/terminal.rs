@@ -5,7 +5,7 @@ use crate::{
         terminal::{TerminalRecv, TerminalSend, TerminalShutdown},
     },
     state::{
-        tab::{TabState, TabStateSelect},
+        tab::TabState,
         terminal::{TerminalMode, TerminalSizeState},
     },
 };
@@ -125,7 +125,7 @@ impl FromCarrier<MainBus> for TerminalBus {
                         TerminalSend::Stdin(data) => {
                             let tab = rx_tab_state.borrow().clone();
 
-                            if let TabState::Selected(id, name) = tab {
+                            if let TabState::Selected(id, _name) = tab {
                                 let chunk = InputChunk { data };
                                 tx_request
                                     .send(Request::Input(id, chunk))

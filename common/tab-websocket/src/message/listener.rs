@@ -1,5 +1,4 @@
 use crate::bus::WebsocketConnectionBus;
-use crate::service::WebsocketService;
 
 #[derive(Debug)]
 pub struct WebsocketConnectionMessage {

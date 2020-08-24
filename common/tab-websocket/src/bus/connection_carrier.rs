@@ -1,7 +1,6 @@
 use super::connection::WebsocketConnectionBus;
 use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
-    resource::connection::WebsocketResource,
     service::WebsocketService,
 };
 use dyn_bus::DynBus;

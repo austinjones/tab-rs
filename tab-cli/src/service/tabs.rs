@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{bus::MainBus, message::tabs::TabsRecv, state::tabs::TabsState};
+use crate::{message::tabs::TabsRecv, state::tabs::TabsState};
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
 use log::info;

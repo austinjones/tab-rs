@@ -1,7 +1,6 @@
 use super::tab::TabService;
 use crate::prelude::*;
 use crate::{
-    bus::DaemonBus,
     message::{
         daemon::{CloseTab, CreateTab},
         tab::{TabRecv, TabSend},
@@ -9,7 +8,7 @@ use crate::{
     state::tab::TabsState,
 };
 use lifeline::Task;
-use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use lifeline::{Bus, Lifeline, Service};
 use log::{debug, info};
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};

@@ -10,10 +10,8 @@ use crate::{
 };
 use anyhow::Context;
 use dyn_bus::DynBus;
-use log::{debug, error};
-use std::sync::Arc;
-use subscription::Subscription;
-use tab_api::{chunk::OutputChunk, tab::TabId};
+use log::debug;
+
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus, WebsocketListenerBus},
     message::{
@@ -23,7 +21,6 @@ use tab_websocket::{
     resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
     service::{WebsocketListenerService, WebsocketService},
 };
-use tokio::sync::{broadcast, mpsc, oneshot};
 
 struct ConnectionLifeline {
     _websocket_carrier: WebsocketCarrier,

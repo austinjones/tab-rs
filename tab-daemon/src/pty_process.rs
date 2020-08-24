@@ -7,7 +7,7 @@ use std::{
 use tab_api::chunk::{InputChunk, OutputChunk};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
-    AsyncPtyFd, AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
+    AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
 use tokio::sync::broadcast::RecvError;
 use tokio::{

@@ -77,7 +77,6 @@ impl Service for TabStateService {
                         }
                     },
                     Event::Metadata(metadata) => {
-                        debug!("got tab metadata: {:?}", &metadata);
                         if state.is_awaiting(metadata.name.as_str()) {
                             info!("tab active {}", metadata.name.as_str());
 

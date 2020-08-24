@@ -9,16 +9,12 @@ use crate::{
     state::{tab::TabStateSelect, tabs::TabsState, terminal::TerminalMode},
 };
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
-use log::{debug, error};
-use tab_api::{
-    request::Request,
-    response::Response,
-    tab::{TabId, TabMetadata},
-};
+use log::debug;
+use tab_api::request::Request;
 
 use crate::prelude::*;
 use lifeline::Task;
-use std::collections::HashMap;
+
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     message::connection::{WebsocketRecv, WebsocketSend},
@@ -26,7 +22,6 @@ use tab_websocket::{
     service::WebsocketService,
 };
 use tokio::stream::StreamExt;
-use tungstenite::Message as TungsteniteMessage;
 
 pub struct MainService {
     _main: Lifeline,
@@ -91,7 +86,7 @@ impl Service for CloseTabService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx_main = bus.rx::<MainRecv>()?;
 
-        let mut tx_request = bus.tx::<Request>()?;
+        let tx_request = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 
         let _on_close = Self::try_task("on_close", async move {

@@ -12,10 +12,7 @@ use tab_api::{
     response::{InitResponse, Response},
     tab::TabId,
 };
-use tab_websocket::{
-    bus::{WebsocketCarrier, WebsocketConnectionBus},
-    message::connection::{WebsocketRecv, WebsocketSend},
-};
+use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
 use time::Duration;
 use tokio::{
     stream::StreamExt,

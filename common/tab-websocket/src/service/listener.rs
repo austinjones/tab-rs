@@ -1,4 +1,3 @@
-use super::WebsocketService;
 use crate::bus::WebsocketConnectionBus;
 use crate::{
     bind,

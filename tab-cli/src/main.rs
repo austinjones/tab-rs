@@ -96,7 +96,7 @@ async fn main_async() -> anyhow::Result<()> {
     let matches = init();
     let select_tab = matches.value_of("TAB");
     let dev = matches.is_present("DEV");
-    let (mut tx, shutdown, _service) = spawn(dev).await?;
+    let (tx, shutdown, _service) = spawn(dev).await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");
 

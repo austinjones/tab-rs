@@ -1,9 +1,6 @@
 use crate::prelude::*;
 use crate::{
-    message::{
-        daemon::CloseTab,
-        tab::{TabOutput, TabRecv, TabScrollback, TabSend},
-    },
+    message::tab::{TabOutput, TabRecv, TabScrollback, TabSend},
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest, PtySender},
 };
 use anyhow::Context;

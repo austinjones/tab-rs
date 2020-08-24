@@ -121,7 +121,6 @@ impl ConnectionBus {
     ) -> anyhow::Result<()> {
         loop {
             let msg = rx.recv().await;
-            debug!("got run_output: {:?}", &msg);
             match msg {
                 Ok(msg) => Self::handle_tabsend(msg, &mut tx, &id_subscription).await?,
                 Err(broadcast::RecvError::Closed) => {
@@ -141,7 +140,7 @@ impl ConnectionBus {
         tx: broadcast::Sender<TabRecv>,
         mut tx_create: mpsc::Sender<CreateTab>,
         mut tx_close: mpsc::Sender<CloseTab>,
-        mut rx_tabs_state: watch::Receiver<TabsState>,
+        rx_tabs_state: watch::Receiver<TabsState>,
         tx_shutdown: oneshot::Sender<ConnectionShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
@@ -161,7 +160,7 @@ impl ConnectionBus {
                     tx.send(message)
                         .map_err(|_| anyhow::Error::msg("tx TabRecv closed"))?;
                 }
-                ConnectionSend::CloseTab(id) => {}
+                ConnectionSend::CloseTab(_id) => {}
                 ConnectionSend::CloseNamedTab(name) => {
                     let mut close_ids = Vec::new();
 
@@ -190,7 +189,6 @@ impl ConnectionBus {
         tx: &mut mpsc::Sender<ConnectionRecv>,
         id_subscription: &subscription::Receiver<TabId>,
     ) -> anyhow::Result<()> {
-        debug!("got tabsend: {:?}", &msg);
         match msg {
             TabSend::Started(tab) => tx.send(ConnectionRecv::TabStarted(tab)).await?,
             TabSend::Output(stdout) => {
