@@ -11,6 +11,7 @@ pub enum ConnectionSend {
     CreateTab(CreateTabMetadata),
     RequestScrollback(TabId),
     CloseTab(TabId),
+    CloseNamedTab(String),
 }
 
 #[derive(Debug, Clone)]

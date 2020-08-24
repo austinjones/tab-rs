@@ -1,5 +1,6 @@
 use super::tab::TabService;
 use crate::bus::TabBus;
+use crate::prelude::*;
 use crate::{
     bus::DaemonBus,
     message::{
@@ -8,10 +9,11 @@ use crate::{
     },
     state::tab::TabsState,
 };
+use lifeline::Task;
+use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use log::{debug, info};
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
-use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{stream::StreamExt, sync::broadcast};
 
 pub struct TabsService {

@@ -1,16 +1,17 @@
-use crate::bus::ClientBus;
+use crate::prelude::*;
 use crate::{
     message::client::TabTerminated,
     state::tab::{TabState, TabStateSelect},
 };
 
+use lifeline::Task;
+use lifeline::{Bus, Lifeline, Service};
 use log::{debug, info};
 use std::collections::HashMap;
 use tab_api::{
     request::Request,
     tab::{TabId, TabMetadata},
 };
-use tab_service::{Bus, Lifeline, Service};
 use tokio::stream::StreamExt;
 pub struct TabStateService {
     _lifeline: Lifeline,
@@ -23,10 +24,10 @@ enum Event {
 }
 
 impl Service for TabStateService {
-    type Bus = ClientBus;
+    type Bus = TabBus;
     type Lifeline = anyhow::Result<Self>;
 
-    fn spawn(bus: &ClientBus) -> Self::Lifeline {
+    fn spawn(bus: &TabBus) -> Self::Lifeline {
         let rx_tab = bus.rx::<TabStateSelect>()?;
         let rx_tab_metadata = bus.rx::<TabMetadata>()?;
         let tx = bus.tx::<TabState>()?;

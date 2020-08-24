@@ -1,6 +1,4 @@
-use crate::bus::ConnectionBus;
-use crate::bus::DaemonBus;
-use crate::bus::ListenerBus;
+use crate::prelude::*;
 use crate::{
     message::{
         connection::{ConnectionRecv, ConnectionSend, ConnectionShutdown},
@@ -8,14 +6,13 @@ use crate::{
         tab::{TabInput, TabRecv, TabSend},
     },
     service::connection::ConnectionService,
-    state::tab::TabsState,
 };
 use anyhow::Context;
+use dyn_bus::DynBus;
 use log::{debug, error};
 use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, tab::TabId};
-use tab_service::{channels::subscription, dyn_bus::DynBus, Bus, Lifeline, Service};
 use tab_websocket::{
     bus::{WebsocketConnectionBus, WebsocketListenerBus},
     message::{
@@ -44,18 +41,21 @@ impl Service for ListenerService {
 
     fn spawn(bus: &Self::Bus) -> anyhow::Result<Self> {
         let websocket_bus = WebsocketListenerBus::default();
-        websocket_bus.take_resource::<WebsocketListenerResource, DaemonBus>(bus)?;
-        websocket_bus.take_resource::<WebsocketAuthToken, DaemonBus>(bus)?;
+        let listener_resource = bus.resource::<WebsocketListenerResource>()?;
+        let authtoken_resource = bus.resource::<WebsocketAuthToken>()?;
+
+        websocket_bus.store_resource(listener_resource);
+        websocket_bus.store_resource(authtoken_resource);
 
         let _listener = WebsocketListenerService::spawn(&websocket_bus)?;
 
         let listener_bus = ListenerBus::default();
-        listener_bus.take_rx::<WebsocketConnectionMessage, WebsocketListenerBus>(&websocket_bus)?;
-        listener_bus.take_channel::<TabSend, DaemonBus>(bus)?;
-        listener_bus.take_channel::<TabRecv, DaemonBus>(bus)?;
-        listener_bus.take_tx::<CreateTab, DaemonBus>(bus)?;
-        listener_bus.take_tx::<CloseTab, DaemonBus>(bus)?;
-        listener_bus.take_rx::<TabsState, DaemonBus>(bus)?;
+        // listener_bus.take_rx::<WebsocketConnectionMessage, WebsocketListenerBus>(&websocket_bus)?;
+        // listener_bus.take_channel::<TabSend, DaemonBus>(bus)?;
+        // listener_bus.take_channel::<TabRecv, DaemonBus>(bus)?;
+        // listener_bus.take_tx::<CreateTab, DaemonBus>(bus)?;
+        // listener_bus.take_tx::<CloseTab, DaemonBus>(bus)?;
+        // listener_bus.take_rx::<TabsState, DaemonBus>(bus)?;
 
         debug!("ListenerBus: {:#?}", &listener_bus);
 
@@ -76,8 +76,8 @@ impl ListenerService {
 
         let mut rx_conn = bus.rx::<WebsocketConnectionMessage>()?;
 
-        let tx_create_tab = bus.tx::<CreateTab>()?;
-        let tx_close_tab = bus.tx::<CloseTab>()?;
+        // let tx_create_tab = bus.tx::<CreateTab>()?;
+        // let tx_close_tab = bus.tx::<CloseTab>()?;
 
         while let Some(msg) = rx_conn.recv().await {
             let name = format!("connection_{}", index);
@@ -88,12 +88,14 @@ impl ListenerService {
             let conn_bus = ConnectionBus::default();
             // conn_bus.take_tx::<ConnectionSend, ListenerBus>(&bus)?;
             // conn_bus.take_channel::<ConnectionRecv, _>(&bus)?;
-            conn_bus.take_tx::<WebsocketSend, WebsocketConnectionBus>(&msg.bus)?;
-            conn_bus.take_rx::<WebsocketRecv, WebsocketConnectionBus>(&msg.bus)?;
-            conn_bus.take_rx::<TabsState, ListenerBus>(&bus)?;
+            // conn_bus.take_tx::<WebsocketSend, WebsocketConnectionBus>(&msg.bus)?;
+            // conn_bus.take_rx::<WebsocketRecv, WebsocketConnectionBus>(&msg.bus)?;
+            // conn_bus.take_rx::<TabsState, ListenerBus>(&bus)?;
 
             let tx_conn = conn_bus.tx::<ConnectionRecv>()?;
             let rx_conn = conn_bus.rx::<ConnectionSend>()?;
+            let tx_create_tab = conn_bus.rx::<CreateTab>()?;
+            let tx_close_tab = conn_bus.rx::<CloseTab>()?;
             let id_subscription = conn_bus.rx::<Subscription<TabId>>()?;
             let tx_shutdown = conn_bus.tx::<ConnectionShutdown>()?;
 
@@ -220,6 +222,9 @@ impl ListenerService {
                 ConnectionSend::CloseTab(id) => {
                     tx_close.send(CloseTab(id)).await?;
                 }
+                ConnectionSend::CloseNamedTab(name) => {
+                    let message = TabRecv::Input(input);
+                }
             }
         }
 
@@ -237,9 +242,9 @@ mod tests {
 
     use async_tungstenite::tokio::connect_async;
     use http::StatusCode;
+    use lifeline::{dyn_bus::DynBus, Bus, Service};
     use std::fmt::Debug;
     use tab_api::config::DaemonConfig;
-    use tab_service::{dyn_bus::DynBus, Bus, Service};
     use tab_websocket::bus::WebsocketConnectionBus;
     use tab_websocket::{resource::connection::WebsocketResource, service::WebsocketService};
     use tungstenite::{handshake::client::Request, http};

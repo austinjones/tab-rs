@@ -8,3 +8,9 @@ pub enum TabsRecv {
     Update(TabMetadata),
     Terminated(TabId),
 }
+
+#[derive(Debug, Clone)]
+pub struct TabShutdown {}
+
+#[derive(Debug, Clone)]
+pub struct RequestTabClose(pub TabId);

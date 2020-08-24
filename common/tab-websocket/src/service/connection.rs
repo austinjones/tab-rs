@@ -3,8 +3,11 @@ use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
     resource::connection::WebsocketResource,
 };
+use lifeline::{
+    error::{ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError},
+    Bus, Lifeline, Service,
+};
 use log::debug;
-use tab_service::{Bus, Lifeline, Service};
 use tokio::{select, sync::mpsc};
 
 use crate::common::{self, should_terminate};
@@ -14,9 +17,8 @@ use log::{error, trace};
 
 use anyhow::Context;
 use std::fmt::Debug;
-use tab_service::{
-    ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError,
-};
+
+use lifeline::Task;
 use thiserror::Error;
 use tungstenite::Error;
 
@@ -146,8 +148,8 @@ mod test {
         resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
         service::listener,
     };
-    use tab_service::{dyn_bus::DynBus, Bus, Service};
-    use tab_service_test::assert_completes;
+    use lifeline::assert_completes;
+    use lifeline::{dyn_bus::DynBus, Bus, Service};
     use tungstenite::Message;
 
     #[tokio::test]

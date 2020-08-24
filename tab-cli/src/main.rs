@@ -6,19 +6,20 @@ use service::main::*;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
+use lifeline::{dyn_bus::DynBus, Bus, Service};
 use message::main::{MainRecv, MainShutdown};
 use std::{
     process::Stdio,
     time::{Duration, Instant},
 };
 use tab_api::config::{is_running, load_daemon_file, DaemonConfig};
-use tab_service::{dyn_bus::DynBus, Bus, Service};
 
 use tab_websocket::resource::connection::WebsocketResource;
 use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
 
 mod bus;
 mod message;
+mod prelude;
 mod service;
 mod state;
 

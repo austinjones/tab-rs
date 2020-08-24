@@ -1,6 +1,7 @@
 use crate::state::terminal::TerminalMode;
 
 use crate::bus::MainBus;
+use crate::prelude::*;
 use crate::{
     bus::TerminalBus,
     message::{
@@ -10,14 +11,16 @@ use crate::{
 };
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
-use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use lifeline::Task;
+use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;
 
 pub struct TerminalService {
-    _events: Lifeline,
+    _main_terminal: MainTerminalCarrier,
+    _terminal_mode: Lifeline,
 }
 
 enum ServiceLifeline {
@@ -25,19 +28,22 @@ enum ServiceLifeline {
     Crossterm(TerminalCrosstermService),
     None,
 }
+
 impl Service for TerminalService {
     type Bus = MainBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &MainBus) -> Self::Lifeline {
-        let mut rx_terminal_mode = bus.rx::<TerminalMode>()?;
-
         let terminal_bus = TerminalBus::default();
-        terminal_bus.take_tx::<TerminalSend, MainBus>(bus)?;
-        terminal_bus.take_channel::<TerminalRecv, MainBus>(bus)?;
-        terminal_bus.take_tx::<MainShutdown, MainBus>(bus)?;
 
-        let _events = Self::try_task("dispatch_mode", async move {
+        let _main_terminal = terminal_bus.carry_from(bus)?;
+
+        let mut rx_terminal_mode = terminal_bus.rx::<TerminalMode>()?;
+        // terminal_bus.take_tx::<TerminalSend, MainBus>(bus)?;
+        // terminal_bus.take_channel::<TerminalRecv, MainBus>(bus)?;
+        // terminal_bus.take_tx::<MainShutdown, MainBus>(bus)?;
+
+        let _terminal_mode = Self::try_task("dispatch_mode", async move {
             let mut service = ServiceLifeline::None;
 
             while let Some(mode) = rx_terminal_mode.recv().await {
@@ -64,6 +70,9 @@ impl Service for TerminalService {
             Ok(())
         });
 
-        Ok(Self { _events })
+        Ok(Self {
+            _main_terminal,
+            _terminal_mode,
+        })
     }
 }

@@ -1,3 +1,8 @@
+use tab_api::{
+    chunk::{InputChunk, OutputChunk},
+    tab::TabId,
+};
+
 #[derive(Debug)]
 pub struct MainShutdown {}
 
@@ -9,3 +14,9 @@ pub enum MainRecv {
     CloseTab(String),
     AutocompleteTab(String),
 }
+
+#[derive(Debug)]
+pub struct SendStdout(pub TabId, pub OutputChunk);
+
+#[derive(Debug)]
+pub struct SendStdin(pub TabId, pub InputChunk);

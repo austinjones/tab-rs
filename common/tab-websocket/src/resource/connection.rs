@@ -1,7 +1,7 @@
 use crate::WebsocketConnection;
 use futures::executor::block_on;
 use log::error;
-use tab_service::impl_storage_take;
+use lifeline::impl_storage_take;
 
 #[derive(Debug)]
 pub struct WebsocketResource(pub WebsocketConnection);

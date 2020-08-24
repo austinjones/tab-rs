@@ -1,9 +1,8 @@
-use crate::bus::TerminalBus;
+use crate::prelude::*;
 use crate::state::terminal::TerminalSizeState;
 use anyhow::Context;
 use crossterm::event::Event;
 use std::time::Duration;
-use tab_service::{Bus, Lifeline, Service};
 
 pub struct TerminalEventService {
     _update: Lifeline,

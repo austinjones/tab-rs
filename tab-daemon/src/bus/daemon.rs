@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::{
     message::{
         daemon::{CloseTab, CreateTab, DaemonShutdown},
@@ -6,11 +7,10 @@ use crate::{
     state::tab::TabsState,
 };
 use tab_api::config::DaemonConfig;
-use tab_service::{service_bus, Message, Resource};
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
 
-service_bus!(pub DaemonBus);
+lifeline_bus!(pub struct DaemonBus);
 
 impl Resource<DaemonBus> for DaemonConfig {}
 impl Resource<DaemonBus> for WebsocketListenerResource {}

@@ -11,9 +11,11 @@ use crate::{
 };
 use log::{debug, error};
 
+use lifeline::Task;
+use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use std::net::SocketAddr;
-use tab_service::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use tokio::{net::TcpListener, sync::mpsc};
+
 pub struct WebsocketListenerService {
     _accept: Lifeline,
 }
@@ -97,9 +99,9 @@ mod tests {
         },
         service::WebsocketService,
     };
+    use lifeline::assert_completes;
+    use lifeline::{dyn_bus::DynBus, Bus, Service};
     use std::net::SocketAddr;
-    use tab_service::{dyn_bus::DynBus, Bus, Service};
-    use tab_service_test::assert_completes;
     use tokio::net::TcpListener;
 
     async fn connect(

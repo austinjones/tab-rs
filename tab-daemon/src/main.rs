@@ -3,20 +3,20 @@ use daemonfile::DaemonFile;
 use crate::bus::DaemonBus;
 use log::{info, LevelFilter};
 
+use lifeline::{dyn_bus::DynBus, Bus, Service};
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::config::{daemon_log, DaemonConfig};
-use tab_service::{dyn_bus::DynBus, Bus, Service};
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::{net::TcpListener, select, signal::ctrl_c};
 
 mod auth;
 mod bus;
-mod channels;
 mod daemonfile;
 mod message;
+mod prelude;
 mod pty_process;
 mod service;
 mod state;

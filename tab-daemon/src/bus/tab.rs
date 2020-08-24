@@ -2,11 +2,12 @@ use crate::message::{
     daemon::CloseTab,
     tab::{TabRecv, TabSend},
 };
+use crate::prelude::*;
 
-use tab_service::{service_bus, Message};
+use lifeline::{lifeline_bus, Message};
 use tokio::sync::broadcast;
 
-service_bus!(pub TabBus);
+lifeline_bus!(pub struct TabBus);
 
 impl Message<TabBus> for CloseTab {
     type Channel = broadcast::Sender<Self>;

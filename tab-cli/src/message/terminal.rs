@@ -7,3 +7,6 @@ pub enum TerminalSend {
 pub enum TerminalRecv {
     Stdout(Vec<u8>),
 }
+
+#[derive(Debug, Clone)]
+pub struct TerminalShutdown {}

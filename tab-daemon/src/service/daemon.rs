@@ -1,9 +1,9 @@
 // mod runtime;
 
-use crate::bus::DaemonBus;
+use crate::prelude::*;
 use listener::ListenerService;
 
-use tab_service::Service;
+use lifeline::Service;
 use tabs::TabsService;
 
 mod listener;

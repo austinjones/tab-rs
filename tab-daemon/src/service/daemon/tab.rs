@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crate::{
     bus::TabBus,
     message::{
@@ -7,13 +8,14 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest, PtySender},
 };
 use anyhow::Context;
+use lifeline::Task;
+use lifeline::{Bus, Lifeline, Service};
 use log::{debug, error, info};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
 use tab_api::{chunk::InputChunk, tab::TabId};
-use tab_service::{Bus, Lifeline, Service};
 use tokio::sync::broadcast;
 
 pub struct TabService {
