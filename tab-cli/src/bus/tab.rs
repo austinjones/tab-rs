@@ -78,11 +78,6 @@ impl FromCarrier<MainBus> for TabBus {
     type Lifeline = anyhow::Result<MainTabCarrier>;
 
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
-        // REFACTOR: carrier for MainBus -> WebsocketConnectionBus
-        // websocket_bus.take_resource::<WebsocketResource, _>(bus)?;
-
-        // let mut tx_shutdown = bus.tx::<MainShutdown>()?;
-
         let _forward_request = {
             let mut rx_request = self.rx::<Request>()?;
             let tx_request = from.tx::<Request>()?;
