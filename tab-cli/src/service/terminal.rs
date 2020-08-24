@@ -2,6 +2,7 @@ use crate::state::terminal::TerminalMode;
 
 use crate::bus::MainBus;
 use crate::prelude::*;
+use crate::prelude::*;
 use crate::{
     bus::TerminalBus,
     message::{
@@ -13,7 +14,6 @@ use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
 use lifeline::Task;
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
-
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;
@@ -53,6 +53,8 @@ impl Service for TerminalService {
                             continue;
                         }
 
+                        debug!("TerminalService switching to echo mode");
+
                         let service = TerminalEchoService::spawn(&terminal_bus)?;
                         ServiceLifeline::Echo(service)
                     }
@@ -60,6 +62,8 @@ impl Service for TerminalService {
                         if let ServiceLifeline::Crossterm(ref _crossterm) = service {
                             continue;
                         }
+
+                        debug!("TerminalService switching to crossterm mode");
 
                         let service = TerminalCrosstermService::spawn(&terminal_bus)?;
                         ServiceLifeline::Crossterm(service)

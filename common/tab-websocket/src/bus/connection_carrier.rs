@@ -35,21 +35,14 @@ pub trait WebsocketMessageBus: Sized {
 }
 
 // TODO: why is dynbus required here?? super confusing
-/// If you get a weird error here, make sure your bus carries the WebsocketResource.
-/// Rust is bad at resolving this apparently
 impl<B: DynBus> FromCarrier<B> for WebsocketConnectionBus
 where
     B: WebsocketMessageBus,
-    B: Stores<WebsocketResource>,
-    WebsocketResource: Resource<B>,
 {
     type Lifeline = anyhow::Result<WebsocketCarrier>;
 
     fn carry_from(&self, bus: &B) -> Self::Lifeline {
         use tungstenite::Message as TungsteniteMessage;
-
-        let websocket = bus.resource::<WebsocketResource>()?;
-        self.store_resource(websocket);
 
         let _websocket = WebsocketService::spawn(&self)?;
 
@@ -57,9 +50,10 @@ where
             let mut rx = bus.rx::<B::Send>()?;
             let mut tx = self.tx::<WebsocketSend>()?;
 
-            Self::try_task("forward_request", async move {
+            Self::try_task("forward_send", async move {
                 while let Some(result) = rx.next().await {
                     if let Ok(msg) = result {
+                        trace!("send message: {:?}", &msg);
                         match bincode::serialize(&msg) {
                             Ok(vec) => {
                                 tx.send(WebsocketSend(TungsteniteMessage::Binary(vec)))
@@ -79,13 +73,14 @@ where
 
         let _websocket_recv = {
             let mut rx = self.rx::<WebsocketRecv>()?;
-            let mut tx = bus.tx::<B::Recv>()?;
+            let tx = bus.tx::<B::Recv>()?;
 
-            Self::try_task("forward_request", async move {
+            Self::try_task("forward_recv", async move {
                 while let Some(msg) = rx.next().await {
                     let data = msg.0.into_data();
                     match bincode::deserialize(data.as_slice()) {
                         Ok(message) => {
+                            trace!("recv message: {:?}", &message);
                             tx.send(message).map_err(into_msg)?;
                         }
                         Err(e) => error!("failed to recv websocket msg: {}", e),

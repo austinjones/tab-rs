@@ -11,6 +11,7 @@ use crate::{
         terminal::TerminalSizeState,
     },
 };
+use anyhow::Context;
 use log::debug;
 use std::collections::HashMap;
 use tab_api::{
@@ -68,6 +69,7 @@ impl Message<TabBus> for TabsState {
 pub struct MainTabCarrier {
     pub(super) _main: Lifeline,
     pub(super) _tx_selected: Lifeline,
+    pub(super) _forward_request: Lifeline,
 
     pub(super) _create_tab: Lifeline,
     pub(super) _rx_response: Lifeline,
@@ -82,10 +84,26 @@ impl FromCarrier<MainBus> for TabBus {
 
         // let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 
+        let _forward_request = {
+            let mut rx_request = self.rx::<Request>()?;
+            let tx_request = from.tx::<Request>()?;
+
+            Self::try_task("forward_request", async move {
+                while let Some(request) = rx_request.recv().await {
+                    tx_request
+                        .send(request)
+                        .map_err(into_msg)
+                        .context("tx Request")?;
+                }
+
+                Ok(())
+            })
+        };
+
         let _create_tab = {
             let mut rx_tab_state = self.rx::<TabState>()?;
             let rx_terminal_size = self.rx::<TerminalSizeState>()?;
-            let mut tx_request = self.tx::<Request>()?;
+            let tx_request = from.tx::<Request>()?;
 
             Self::try_task("request_tab", async move {
                 while let Some(update) = rx_tab_state.recv().await {
@@ -94,7 +112,8 @@ impl FromCarrier<MainBus> for TabBus {
                         let dimensions = terminal_size.0;
                         tx_request
                             .send(Request::CreateTab(CreateTabMetadata { name, dimensions }))
-                            .await?;
+                            .map_err(into_msg)
+                            .context("tx Request::CreateTab")?;
                     }
                 }
 
@@ -118,34 +137,45 @@ impl FromCarrier<MainBus> for TabBus {
                     if let Ok(resp) = result {
                         match resp {
                             Response::Init(init) => {
-                                tx_tabs.send(TabsRecv::Init(init.tabs.clone())).await?;
+                                tx_tabs
+                                    .send(TabsRecv::Init(init.tabs.clone()))
+                                    .await
+                                    .context("tx TabsRecv::Init")?;
                             }
                             Response::TabUpdate(tab) => {
                                 tx_tab_metadata
                                     .send(tab.clone())
                                     .map_err(|_| anyhow::Error::msg("send TabMetadata"))?;
 
-                                tx_tabs.send(TabsRecv::Update(tab)).await?;
+                                tx_tabs
+                                    .send(TabsRecv::Update(tab))
+                                    .await
+                                    .context("tx TabsRecv::Update")?;
                             }
-                            Response::TabList(tabs) => {
-                                tx_available_tabs.broadcast(TabStateAvailable(tabs))?
-                            }
+                            Response::TabList(tabs) => tx_available_tabs
+                                .broadcast(TabStateAvailable(tabs))
+                                .context("tx TabStateAvailable")?,
                             Response::TabTerminated(id) => {
+                                debug!("got tab terminated");
                                 tx_tabs.send(TabsRecv::Terminated(id)).await?;
 
                                 tx_tab_terminated.send(TabTerminated(id)).await?;
-
+                                debug!("got tab terminated msg on id {}", id);
                                 if rx_tab_state.borrow().is_selected(&id) {
+                                    debug!("sending main shutdown message");
                                     tx_shutdown
                                         .send(MainShutdown {})
                                         .await
-                                        .map_err(|_| anyhow::Error::msg("send MainShutdown"))?;
+                                        .map_err(into_msg)
+                                        .context("tx MainShutdown")?;
                                 }
                             }
                             _ => {}
                         }
                     }
                 }
+
+                tx_shutdown.send(MainShutdown {}).await?;
 
                 Ok(())
             })
@@ -171,7 +201,12 @@ impl FromCarrier<MainBus> for TabBus {
             let tx_select_tab = self.tx::<TabStateSelect>()?;
 
             Self::try_task("main_recv", async move {
-                while let Some(msg) = rx_main.recv().await {
+                while let Some(msg) = rx_main.next().await {
+                    if msg.is_err() {
+                        continue;
+                    }
+
+                    let msg = msg.unwrap();
                     match msg {
                         MainRecv::SelectTab(name) => {
                             tx_select_tab
@@ -211,6 +246,7 @@ impl FromCarrier<MainBus> for TabBus {
         Ok(MainTabCarrier {
             _main,
             _tx_selected,
+            _forward_request,
             _create_tab,
             _rx_response,
         })

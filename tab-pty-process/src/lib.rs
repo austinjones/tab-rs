@@ -491,7 +491,7 @@ impl<T: AsAsyncPtyFd> PollPtyMaster for T {
         cols: c_ushort,
     ) -> Poll<Result<(), io::Error>> {
         let fd = futures::ready!(self.as_async_pty_fd(cx));
-        println!("got fd");
+
         let winsz = libc::winsize {
             ws_row: rows,
             ws_col: cols,

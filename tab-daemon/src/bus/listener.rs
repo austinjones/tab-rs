@@ -6,7 +6,12 @@ use crate::{
     },
     state::tab::TabsState,
 };
-use tab_websocket::message::listener::WebsocketConnectionMessage;
+use dyn_bus::DynBus;
+use tab_websocket::{
+    bus::WebsocketListenerBus,
+    message::listener::WebsocketConnectionMessage,
+    resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
+};
 use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct ListenerBus);
@@ -23,8 +28,16 @@ impl Message<ListenerBus> for TabRecv {
     type Channel = broadcast::Sender<Self>;
 }
 
-impl Message<ListenerBus> for TabsState {
+impl Message<ListenerBus> for CreateTab {
     type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<ListenerBus> for CloseTab {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<ListenerBus> for TabsState {
+    type Channel = watch::Sender<Self>;
 }
 
 // impl Message<ListenerBus> for CreateTab {
@@ -39,12 +52,27 @@ impl Message<ListenerBus> for TabsState {
 //     type Channel = watch::Sender<Self>;
 // }
 
-pub struct DaemonListenerCarrier {}
+pub struct ConnectionMessageCarrier {
+    _forward_connection: Lifeline,
+}
 
-impl FromCarrier<DaemonBus> for ListenerBus {
-    type Lifeline = anyhow::Result<DaemonListenerCarrier>;
+impl FromCarrier<WebsocketListenerBus> for ListenerBus {
+    type Lifeline = anyhow::Result<ConnectionMessageCarrier>;
+    fn carry_from(&self, from: &WebsocketListenerBus) -> Self::Lifeline {
+        let _forward_connection = {
+            let mut rx = from.rx::<WebsocketConnectionMessage>()?;
+            let mut tx = self.tx::<WebsocketConnectionMessage>()?;
+            Self::try_task("forward_connection", async move {
+                while let Some(msg) = rx.recv().await {
+                    tx.send(msg).await.map_err(into_msg)?;
+                }
 
-    fn carry_from(&self, from: &DaemonBus) -> Self::Lifeline {
-        todo!()
+                Ok(())
+            })
+        };
+
+        Ok(ConnectionMessageCarrier {
+            _forward_connection,
+        })
     }
 }

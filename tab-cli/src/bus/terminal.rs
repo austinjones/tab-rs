@@ -53,18 +53,22 @@ impl FromCarrier<MainBus> for TerminalBus {
     type Lifeline = anyhow::Result<MainTerminalCarrier>;
 
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
-        // REFACTOR: carrier for MainBus -> WebsocketConnectionBus
-        // websocket_bus.take_resource::<WebsocketResource, _>(bus)?;
-
         let _main = {
             let mut rx_main = from.rx::<MainRecv>()?;
             let tx_terminal_mode = self.tx::<TerminalMode>()?;
 
             Self::try_task("main_recv", async move {
-                while let Some(msg) = rx_main.recv().await {
+                while let Some(msg) = rx_main.next().await {
+                    if msg.is_err() {
+                        continue;
+                    }
+                    let msg = msg.unwrap();
                     match msg {
                         MainRecv::SelectInteractive => {
                             tx_terminal_mode.broadcast(TerminalMode::Crossterm)?;
+                        }
+                        MainRecv::SelectTab(_) => {
+                            tx_terminal_mode.broadcast(TerminalMode::Echo)?;
                         }
                         _ => {}
                     }
@@ -78,9 +82,10 @@ impl FromCarrier<MainBus> for TerminalBus {
             let mut rx_shutdown = self.rx::<TerminalShutdown>()?;
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
 
-            Self::task("forward_shutdown", async move {
+            Self::try_task("forward_shutdown", async move {
                 while let None = rx_shutdown.recv().await {}
-                tx_shutdown.send(MainShutdown {}).await;
+                tx_shutdown.send(MainShutdown {}).await.map_err(into_msg)?;
+                Ok(())
             })
         };
 

@@ -25,14 +25,14 @@ impl Service for TabsStateService {
                 match recv {
                     TabsRecv::Init(tabs) => {
                         for metadata in tabs.values() {
-                            tx_metadata.send(metadata.clone());
+                            tx_metadata.send(metadata.clone()).map_err(into_msg)?;
                         }
 
                         state.extend(tabs.into_iter());
                     }
                     TabsRecv::Update(metadata) => {
                         state.insert(metadata.id, metadata.clone());
-                        tx_metadata.send(metadata.clone());
+                        tx_metadata.send(metadata.clone()).map_err(into_msg)?;
                     }
                     TabsRecv::Terminated(id) => {
                         state.remove(&id);

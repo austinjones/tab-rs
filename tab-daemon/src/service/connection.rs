@@ -25,7 +25,6 @@ use tokio::{
 use tungstenite::Message as TungsteniteMessage;
 pub struct ConnectionService {
     _run: Lifeline,
-    _websocket_carrier: WebsocketCarrier,
 }
 
 enum Event {
@@ -49,9 +48,6 @@ impl Service for ConnectionService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         // let _tx = bus.tx::<ConnectionSend>()?;
-        let websocket_bus = WebsocketConnectionBus::default();
-        let _websocket_carrier = websocket_bus.carry_from(bus)?;
-
         let rx_websocket = bus
             .rx::<Request>()?
             .filter(|r| r.is_ok())
@@ -106,10 +102,7 @@ impl Service for ConnectionService {
             Ok(())
         });
 
-        Ok(ConnectionService {
-            _run,
-            _websocket_carrier,
-        })
+        Ok(ConnectionService { _run })
     }
 }
 
@@ -181,6 +174,7 @@ impl ConnectionService {
         tx_websocket: &mut broadcast::Sender<Response>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
+        debug!("message from daemon: {:?}", &msg);
         match msg {
             ConnectionRecv::TabStarted(metadata) => {
                 tx_websocket

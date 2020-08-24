@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use crate::{
-    bus::TabBus,
     message::{
         daemon::CloseTab,
         tab::{TabOutput, TabRecv, TabScrollback, TabSend},
@@ -16,7 +15,10 @@ use std::sync::{
     Arc,
 };
 use tab_api::{chunk::InputChunk, tab::TabId};
-use tokio::sync::broadcast;
+use tokio::{
+    stream::StreamExt,
+    sync::{broadcast, mpsc},
+};
 
 pub struct TabService {
     pub id: TabId,
@@ -32,7 +34,6 @@ impl Service for TabService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let id = TAB_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
         let id = TabId(id as u16);
-        let _shutdown = bus.rx::<CloseTab>()?;
 
         let rx = bus.rx::<TabRecv>()?;
         let tx = bus.tx::<TabSend>()?;
@@ -50,12 +51,18 @@ impl TabService {
     async fn run(
         id: TabId,
         mut rx: broadcast::Receiver<TabRecv>,
-        mut tx: broadcast::Sender<TabSend>,
+        mut tx: mpsc::Sender<TabSend>,
     ) -> anyhow::Result<()> {
         let mut sender = None;
         let mut echoes = vec![];
-        loop {
-            match rx.recv().await? {
+        while let Some(msg) = rx.next().await {
+            if msg.is_err() {
+                continue;
+            }
+
+            let msg = msg.unwrap();
+
+            match msg {
                 TabRecv::Init(create) => {
                     if id != create.id {
                         continue;
@@ -74,8 +81,7 @@ impl TabService {
 
                     info!("tab {} initialized, name {}", id, create.name.as_str());
 
-                    tx.send(TabSend::Started(create))
-                        .map_err(|_| anyhow::Error::msg("tx TabSend::Started closed"))?;
+                    tx.send(TabSend::Started(create)).await?;
 
                     Self::send_scrollback(id, sender.as_ref(), &mut tx).await?;
                 }
@@ -104,7 +110,7 @@ impl TabService {
     async fn send_scrollback(
         id: TabId,
         pty: Option<&PtySender>,
-        tx: &mut broadcast::Sender<TabSend>,
+        tx: &mut mpsc::Sender<TabSend>,
     ) -> anyhow::Result<()> {
         if let Some(sender) = pty {
             let scrollback = TabScrollback {
@@ -114,8 +120,7 @@ impl TabService {
 
             let message = TabSend::Scrollback(scrollback);
 
-            tx.send(message)
-                .map_err(|_err| anyhow::Error::msg("tx TabSend::Scrollback failed"))?;
+            tx.send(message).await?;
 
             debug!("sent scrollback");
         } else {
@@ -128,7 +133,7 @@ impl TabService {
     async fn stdout(
         id: TabId,
         mut rx: PtyReceiver,
-        tx: broadcast::Sender<TabSend>,
+        mut tx: mpsc::Sender<TabSend>,
     ) -> anyhow::Result<()> {
         loop {
             let msg = rx.recv().await?;
@@ -137,12 +142,10 @@ impl TabService {
                     let stdout = Arc::new(out);
                     let output = TabOutput { id, stdout };
 
-                    tx.send(TabSend::Output(output))
-                        .map_err(|_e| anyhow::Error::msg("send TabSend::Output"))?;
+                    tx.send(TabSend::Output(output)).await?;
                 }
                 crate::pty_process::PtyResponse::Terminated(_term) => {
-                    tx.send(TabSend::Stopped(id))
-                        .map_err(|_e| anyhow::Error::msg("send TabSend::Exit"))?;
+                    tx.send(TabSend::Stopped(id)).await?;
                 }
             }
         }

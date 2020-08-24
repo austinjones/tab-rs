@@ -56,12 +56,9 @@ async fn accept_connections(
         };
 
         conn_bus.store_resource(WebsocketResource(bound));
-        let service = WebsocketService::spawn(&conn_bus)?;
+        // let service = WebsocketService::spawn(&conn_bus)?;
 
-        let message = WebsocketConnectionMessage {
-            bus: conn_bus,
-            lifeline: service,
-        };
+        let message = WebsocketConnectionMessage { bus: conn_bus };
 
         tx.send(message)
             .await

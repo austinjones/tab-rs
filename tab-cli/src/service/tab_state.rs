@@ -1,9 +1,10 @@
 use crate::prelude::*;
 use crate::{
-    message::client::TabTerminated,
+    message::{client::TabTerminated, tabs::TabShutdown},
     state::tab::{TabState, TabStateSelect},
 };
 
+use anyhow::Context;
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
 use log::{debug, info};
@@ -30,10 +31,11 @@ impl Service for TabStateService {
     fn spawn(bus: &TabBus) -> Self::Lifeline {
         let rx_tab = bus.rx::<TabStateSelect>()?;
         let rx_tab_metadata = bus.rx::<TabMetadata>()?;
-        let tx = bus.tx::<TabState>()?;
-
-        let mut tx_websocket = bus.tx::<Request>()?;
         let rx_tab_terminated = bus.rx::<TabTerminated>()?;
+
+        let tx = bus.tx::<TabState>()?;
+        let mut tx_websocket = bus.tx::<Request>()?;
+        let mut tx_shutdown = bus.tx::<TabShutdown>()?;
 
         let _lifeline = Self::try_task("run", async move {
             let mut state = TabState::None;
@@ -94,6 +96,10 @@ impl Service for TabStateService {
                             if terminated_id == selected_id {
                                 state = TabState::None;
                                 tx.broadcast(state.clone())?;
+                                tx_shutdown
+                                    .send(TabShutdown {})
+                                    .await
+                                    .context("tx TabShutdown")?;
                             }
                         }
 

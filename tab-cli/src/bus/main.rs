@@ -27,7 +27,7 @@ impl Message<MainBus> for MainShutdown {
 }
 
 impl Message<MainBus> for MainRecv {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<MainBus> for TabState {

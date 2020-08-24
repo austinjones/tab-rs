@@ -6,7 +6,7 @@ use tab_api::{
 #[derive(Debug)]
 pub struct MainShutdown {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MainRecv {
     SelectTab(String),
     ListTabs,

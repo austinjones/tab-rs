@@ -12,7 +12,6 @@ mod tabs;
 
 pub struct DaemonService {
     _listener: ListenerService,
-    _tabs: TabsService,
 }
 
 impl Service for DaemonService {
@@ -21,7 +20,6 @@ impl Service for DaemonService {
 
     fn spawn(bus: &Self::Bus) -> anyhow::Result<Self> {
         let _listener = ListenerService::spawn(bus)?;
-        let _tabs = TabsService::spawn(bus)?;
-        Ok(DaemonService { _listener, _tabs })
+        Ok(DaemonService { _listener })
     }
 }

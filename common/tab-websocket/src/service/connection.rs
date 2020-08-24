@@ -112,7 +112,7 @@ async fn runloop(
 }
 #[derive(Error, Debug)]
 pub enum WebsocketSpawnError {
-    #[error("socket taken: {0}")]
+    #[error("resource taken: {0}")]
     SocketTaken(ResourceTakenError),
 
     #[error("socket uninitialized: {0}")]
