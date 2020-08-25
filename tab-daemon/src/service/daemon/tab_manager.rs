@@ -9,6 +9,7 @@ use crate::{
         tab::TabsState,
     },
 };
+use anyhow::Context;
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
 use mpsc::error::TryRecvError;
@@ -20,21 +21,28 @@ use std::{
     },
     time::Duration,
 };
-use tab_api::tab::{TabId, TabMetadata};
-use tokio::sync::{broadcast, mpsc, watch, Mutex};
+use tab_api::{
+    launch::launch_pty,
+    tab::{TabId, TabMetadata},
+};
+use tokio::{
+    sync::{broadcast, mpsc, watch},
+    time,
+};
 
 pub struct TabManagerService {
     _recv: Lifeline,
+    _retractions: Lifeline,
 }
 
 static TAB_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
+// working on a bug here where all the ptys disconnect, and TabRecv goes dead.
 impl Service for TabManagerService {
     type Bus = ListenerBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut tx_tabs = bus.tx::<TabRecv>()?;
+        let tx_tabs = bus.tx::<TabRecv>()?;
         let mut rx_retractions = bus.rx::<Retraction<TabMetadata>>()?;
         let _retractions = {
             Self::try_task("retractions", async move {
@@ -67,7 +75,7 @@ impl Service for TabManagerService {
 
                             let (ret, assign) = assignment(metadata);
                             let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).map_err(into_msg)?;
+                            tx_tabs.send(message).ok();
                             new_retractions.push_back(ret);
                         } else {
                             new_retractions.push_back(retraction);
@@ -77,6 +85,13 @@ impl Service for TabManagerService {
                     if terminate && retractions.is_empty() {
                         break 'monitor;
                     }
+
+                    for _ in 0..retractions.len() {
+                        // launches a new PTY process, using the current executible.
+                        launch_pty()?;
+                    }
+
+                    time::delay_for(Duration::from_millis(100)).await;
                 }
 
                 Ok(())
@@ -94,17 +109,28 @@ impl Service for TabManagerService {
             let mut tabs: HashMap<TabId, TabMetadata> = HashMap::new();
 
             Self::try_task("recv", async move {
-                while let Some(msg) = rx.recv().await {
+                'msg: while let Some(msg) = rx.recv().await {
                     match msg {
                         TabManagerRecv::CreateTab(create) => {
+                            for tab in tabs.values() {
+                                if tab.name == create.name {
+                                    debug!("got already created tab: {}", tab.name);
+                                    continue 'msg;
+                                }
+                            }
+
+                            debug!("recieved request to create tab {}", &create.name);
                             let id = TAB_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16;
                             let tab_id = TabId(id);
                             let tab_metadata = TabMetadata::create(tab_id, create);
 
                             let (ret, assign) = assignment(tab_metadata.clone());
                             let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).map_err(into_msg)?;
-                            tx_tab_retraction.send(ret).await?;
+                            tx_tabs.send(message).ok();
+                            tx_tab_retraction
+                                .send(ret)
+                                .await
+                                .context("tx_tab_retraction send message")?;
 
                             tabs.insert(tab_id, tab_metadata);
                             tx_tabs_state.broadcast(TabsState::new(&tabs))?;
@@ -138,7 +164,10 @@ impl Service for TabManagerService {
             })
         };
 
-        Ok(Self { _recv })
+        Ok(Self {
+            _retractions,
+            _recv,
+        })
     }
 }
 
@@ -152,9 +181,15 @@ impl TabManagerService {
     ) -> anyhow::Result<()> {
         tabs.remove(&id);
 
-        tx.send(TabManagerSend::TabTerminated(id)).await?;
-        tx_close.send(TabRecv::Terminate(id)).map_err(into_msg)?;
-        tx_tabs_state.broadcast(TabsState::new(&tabs))?;
+        tx.send(TabManagerSend::TabTerminated(id))
+            .await
+            .context("tx TabTerminated")?;
+        tx_close.send(TabRecv::Terminate(id)).ok();
+        tx_tabs_state
+            .broadcast(TabsState::new(&tabs))
+            .context("tx_tabs_state TabsState")?;
+
+        debug!("got tabs: {:?}", tabs);
 
         Ok(())
     }

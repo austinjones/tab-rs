@@ -3,18 +3,16 @@ use crate::{
     message::{
         pty::{PtyRecv, PtySend, PtyShutdown},
         tab::{TabOutput, TabRecv, TabScrollback, TabSend},
+        tab_manager::TabManagerRecv,
     },
-    state::{
-        pty::{PtyScrollback, PtyState},
-        tab::TabsState,
-    },
+    state::pty::{PtyScrollback, PtyState},
 };
 
 use std::sync::Arc;
 
 use tab_api::{
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
-    tab::{TabId, TabMetadata},
+    tab::TabMetadata,
 };
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use tokio::{
@@ -77,6 +75,8 @@ impl FromCarrier<ListenerBus> for PtyBus {
 
         let _to_pty = {
             let rx_id = self.rx::<PtyState>()?;
+            // FIXME I think the bug is here.
+            // the channel is being taken from the
             let mut rx_tab = from.rx::<TabRecv>()?;
 
             let tx_pty = self.tx::<PtyRecv>()?;
@@ -136,6 +136,7 @@ impl FromCarrier<ListenerBus> for PtyBus {
             let mut rx_pty = self.rx::<PtySend>()?;
 
             let tx_tab = from.tx::<TabSend>()?;
+            let mut tx_tab_manager = from.tx::<TabManagerRecv>()?;
 
             Self::try_task("to_listener", async move {
                 while let Some(msg) = rx_pty.next().await {
@@ -167,6 +168,9 @@ impl FromCarrier<ListenerBus> for PtyBus {
                         }
                         PtySend::Stopped => {
                             let id = rx_id.borrow().unwrap();
+                            // todo - this should be a notification, not an action
+                            // serious bugs were going on because this was missing, though.
+                            tx_tab_manager.send(TabManagerRecv::CloseTab(id)).await?;
                             tx_tab.send(TabSend::Stopped(id)).map_err(into_msg)?;
                         }
                     }

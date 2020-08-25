@@ -87,7 +87,7 @@ pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
     let path = daemon_file()?;
 
     if !path.is_file() {
-        log::debug!("File {:?} does not exist", path.as_path());
+        log::trace!("File {:?} does not exist", path.as_path());
         return Ok(None);
     }
 

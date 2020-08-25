@@ -66,7 +66,7 @@ impl PtyService {
 
                     _echo = Some(Self::try_task(
                         "echo",
-                        Self::output(create.id, recv, tx.clone()),
+                        Self::output(create.id, recv, tx.clone(), tx_shutdown.clone()),
                     ));
                     sender = Some(send);
 
@@ -84,7 +84,7 @@ impl PtyService {
                     }
                 }
                 PtyWebsocketRequest::Terminate => {
-                    tx_shutdown.send(PtyShutdown {}).await;
+                    tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }
         }
@@ -96,6 +96,7 @@ impl PtyService {
         _id: TabId,
         mut rx: PtyReceiver,
         tx: broadcast::Sender<PtyWebsocketResponse>,
+        mut tx_shutdown: mpsc::Sender<PtyShutdown>,
     ) -> anyhow::Result<()> {
         loop {
             let msg = rx.recv().await?;
@@ -106,6 +107,7 @@ impl PtyService {
                 }
                 crate::pty_process::PtyResponse::Terminated(_term) => {
                     tx.send(PtyWebsocketResponse::Stopped).map_err(into_msg)?;
+                    tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }
         }

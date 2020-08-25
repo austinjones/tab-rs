@@ -44,6 +44,8 @@ where
         use tungstenite::Message as TungsteniteMessage;
 
         let _websocket = WebsocketService::spawn(&self)?;
+        self.capacity::<WebsocketSend>(512)?;
+        self.capacity::<WebsocketRecv>(512)?;
 
         let _websocket_send = {
             let mut rx = bus.rx::<B::Send>()?;
@@ -55,8 +57,14 @@ where
                         trace!("send message: {:?}", &msg);
                         match bincode::serialize(&msg) {
                             Ok(vec) => {
-                                tx.send(WebsocketSend(TungsteniteMessage::Binary(vec)))
-                                    .await?
+                                let send = tx
+                                    .send(WebsocketSend(TungsteniteMessage::Binary(vec)))
+                                    .await;
+
+                                if let Err(e) = send {
+                                    debug!("sender disconnected - aborting carry.");
+                                    break;
+                                }
                             }
                             Err(e) => error!("failed to send websocket msg: {}", e),
                         };

@@ -8,6 +8,7 @@ use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
+use time::Duration;
 use tokio::sync::broadcast::RecvError;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -15,6 +16,7 @@ use tokio::{
         broadcast::{Receiver, Sender},
         mpsc::error::SendError,
     },
+    time,
 };
 
 // ! TODO: move into tab-pty-process
@@ -186,6 +188,10 @@ impl PtyProcess {
             // TODO: deal with error handling
             tx.send(response).expect("Failed to send chunk");
             index += 1;
+
+            // a very short delay allows things to batch up
+            // without any buffering, the message rate can get very high
+            time::delay_for(Duration::from_millis(5)).await;
         }
     }
 

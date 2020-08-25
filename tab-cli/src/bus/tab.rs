@@ -65,6 +65,7 @@ pub struct MainTabCarrier {
     pub(super) _main: Lifeline,
     pub(super) _tx_selected: Lifeline,
     pub(super) _forward_request: Lifeline,
+    pub(super) _forward_shutdown: Lifeline,
 
     pub(super) _create_tab: Lifeline,
     pub(super) _rx_response: Lifeline,
@@ -86,6 +87,16 @@ impl FromCarrier<MainBus> for TabBus {
                         .context("tx Request")?;
                 }
 
+                Ok(())
+            })
+        };
+
+        let _forward_shutdown = {
+            let mut rx = self.rx::<TabShutdown>()?;
+            let mut tx = from.tx::<MainShutdown>()?;
+            Self::try_task("forward_shutdown", async move {
+                rx.recv().await;
+                tx.send(MainShutdown {}).await?;
                 Ok(())
             })
         };
@@ -234,6 +245,7 @@ impl FromCarrier<MainBus> for TabBus {
             _main,
             _tx_selected,
             _forward_request,
+            _forward_shutdown,
             _create_tab,
             _rx_response,
         })

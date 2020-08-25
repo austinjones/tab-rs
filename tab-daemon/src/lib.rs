@@ -20,7 +20,7 @@ mod prelude;
 mod service;
 mod state;
 
-pub fn main() -> anyhow::Result<()> {
+pub fn daemon_main() -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
@@ -68,7 +68,7 @@ async fn main_async() -> anyhow::Result<()> {
             TerminalMode::Stderr,
         ),
         WriteLogger::new(
-            LevelFilter::Info,
+            LevelFilter::Debug,
             simplelog::Config::default(),
             std::fs::File::create(log_file)?,
         ),
