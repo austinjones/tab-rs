@@ -10,6 +10,7 @@ use crate::{
 };
 use log::{debug, error};
 
+use lifeline::request::Request as LifelineRequest;
 use lifeline::Task;
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 use std::net::SocketAddr;
@@ -46,7 +47,8 @@ async fn accept_connections(
         debug!("connection opened from {:?}", addr);
 
         let conn_bus = WebsocketConnectionBus::default();
-        let bound = match bind(stream, auth_token.clone()).await {
+        let (request, recv_metadata) = LifelineRequest::send(());
+        let bound = match bind(stream, auth_token.clone(), request).await {
             Ok(res) => res,
             Err(e) => {
                 error!("error binding websocket: {}", e);
@@ -57,7 +59,10 @@ async fn accept_connections(
         conn_bus.store_resource(WebsocketResource(bound));
         // let service = WebsocketService::spawn(&conn_bus)?;
 
-        let message = WebsocketConnectionMessage { bus: conn_bus };
+        let message = WebsocketConnectionMessage {
+            bus: conn_bus,
+            request: recv_metadata.await?,
+        };
 
         tx.send(message)
             .await

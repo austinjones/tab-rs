@@ -2,6 +2,7 @@
 members = [
     "tab-cli",
     "tab-daemon",
+    "tab-pty",
     "common/tab-api",
     "common/tab-websocket",
 ]

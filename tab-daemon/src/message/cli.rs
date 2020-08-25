@@ -6,7 +6,7 @@ use tab_api::{
 };
 
 #[derive(Debug, Clone)]
-pub enum ConnectionSend {
+pub enum CliSend {
     Input(TabId, InputChunk),
     CreateTab(CreateTabMetadata),
     RequestScrollback(TabId),
@@ -15,7 +15,7 @@ pub enum ConnectionSend {
 }
 
 #[derive(Debug, Clone)]
-pub enum ConnectionRecv {
+pub enum CliRecv {
     TabStarted(TabMetadata),
     Scrollback(TabScrollback),
     TabStopped(TabId),
@@ -23,4 +23,4 @@ pub enum ConnectionRecv {
 }
 
 #[derive(Debug, Clone)]
-pub struct ConnectionShutdown {}
+pub struct CliShutdown {}
