@@ -8,6 +8,8 @@ use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
 use tokio::{stream::StreamExt, sync::Mutex};
 
+static MAX_CHUNK_LEN: usize = 4096;
+
 pub struct PtyScrollbackService {
     _serve: Lifeline,
     _update: Lifeline,
@@ -55,8 +57,6 @@ impl Service for PtyScrollbackService {
         Ok(Self { _serve, _update })
     }
 }
-
-static MAX_CHUNK_LEN: usize = 4096;
 
 #[derive(Debug, Clone)]
 struct ScrollbackManager {

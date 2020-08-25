@@ -6,7 +6,8 @@ use std::{
 };
 use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
 
-pub async fn launch_daemon(dev: bool) -> anyhow::Result<DaemonConfig> {
+pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
+    let exec = std::env::current_exe()?;
     let daemon_file = load_daemon_file()?;
 
     let running = daemon_file
@@ -16,32 +17,18 @@ pub async fn launch_daemon(dev: bool) -> anyhow::Result<DaemonConfig> {
 
     let start_wait = Instant::now();
     if !running {
-        if dev {
-            info!("launching daemon using `cargo`");
-            let _child = Command::new("cargo")
-                .args(&["run", "--bin", "tab-daemon"])
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .kill_on_drop(false)
-                .spawn()?;
-        } else {
-            debug!("launching daemon using `env`");
-            let _child = Command::new("/usr/bin/env")
-                .arg("tab-daemon")
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .kill_on_drop(false)
-                .spawn()?;
-        };
+        debug!("launching `tab-daemon` at {}", &exec.to_string_lossy());
+        let _child = Command::new(exec)
+            .args(&["--_launch", "daemon"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .kill_on_drop(false)
+            .spawn()?;
     }
 
-    let timeout_duration = if dev {
-        Duration::from_secs(30)
-    } else {
-        Duration::from_secs(2)
-    };
+    let timeout_duration = Duration::from_secs(2);
+
     let mut index = 0usize;
     let daemon_file = loop {
         if let Some(daemon_file) = load_daemon_file()? {
@@ -63,6 +50,21 @@ pub async fn launch_daemon(dev: bool) -> anyhow::Result<DaemonConfig> {
     };
 
     Ok(daemon_file)
+}
+
+pub fn launch_pty() -> anyhow::Result<()> {
+    let exec = std::env::current_exe()?;
+    debug!("launching `tab-pty` at {}", &exec.to_string_lossy());
+
+    let _child = Command::new(exec)
+        .args(&["--_launch", "pty"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .kill_on_drop(false)
+        .spawn()?;
+
+    Ok(())
 }
 
 pub async fn wait_for_shutdown<T>(mut receiver: mpsc::Receiver<T>) {

@@ -21,6 +21,19 @@ mod service;
 mod state;
 
 pub fn main() -> anyhow::Result<()> {
+    let args = init();
+    if let Some(launch) = args.value_of("LAUNCH") {
+        match launch {
+            "daemon" => tab_daemon::daemon_main(),
+            "pty" => tab_pty::pty_main(),
+            _ => panic!("unsupported --_launch value"),
+        }
+    } else {
+        cli_main(args)
+    }
+}
+
+pub fn cli_main(args: ArgMatches) -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
@@ -28,7 +41,7 @@ pub fn main() -> anyhow::Result<()> {
         .build()
         .unwrap();
 
-    let result = runtime.block_on(async { main_async().await });
+    let result = runtime.block_on(async { main_async(args).await });
 
     runtime.shutdown_timeout(Duration::from_millis(25));
 
@@ -38,27 +51,28 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 fn init() -> ArgMatches<'static> {
-    CombinedLogger::init(vec![TermLogger::new(
-        LevelFilter::Debug,
-        simplelog::Config::default(),
-        TerminalMode::Stderr,
-    )])
-    .unwrap();
-
     App::new("Terminal Multiplexer")
         .version("0.1")
         .author("Austin Jones <implAustin@gmail.com>")
         .about("Provides persistent terminal sessions with multiplexing.")
         .arg(
-            Arg::with_name("DEV")
-                .long("dev")
+            Arg::with_name("DEBUG")
+                .long("debug")
                 .required(false)
                 .takes_value(false)
-                .help("runs the daemon using `cargo run`"),
+                .help("enables debug logging"),
+        )
+        .arg(
+            Arg::with_name("LAUNCH")
+                .long("_launch")
+                .required(false)
+                .takes_value(true)
+                .hidden(true),
         )
         .arg(
             Arg::with_name("COMPLETION")
                 .long("_completion")
+                .hidden(true)
                 .takes_value(true)
                 .help("runs the daemon using `cargo run`"),
         )
@@ -82,11 +96,16 @@ fn init() -> ArgMatches<'static> {
         .get_matches()
 }
 
-async fn main_async() -> anyhow::Result<()> {
-    let matches = init();
+async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
+    CombinedLogger::init(vec![TermLogger::new(
+        LevelFilter::Warn,
+        simplelog::Config::default(),
+        TerminalMode::Stderr,
+    )])
+    .unwrap();
+
     let select_tab = matches.value_of("TAB");
-    let dev = matches.is_present("DEV");
-    let (tx, shutdown, _service) = spawn(dev).await?;
+    let (tx, shutdown, _service) = spawn().await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");
 
@@ -112,14 +131,12 @@ async fn main_async() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn spawn(
-    dev: bool,
-) -> anyhow::Result<(
+async fn spawn() -> anyhow::Result<(
     broadcast::Sender<MainRecv>,
     mpsc::Receiver<MainShutdown>,
     MainService,
 )> {
-    let daemon_file = launch_daemon(dev).await?;
+    let daemon_file = launch_daemon().await?;
     let ws_url = format!("ws://127.0.0.1:{}/cli", daemon_file.port);
 
     let bus = MainBus::default();

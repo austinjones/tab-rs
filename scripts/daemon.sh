@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-killall tab-daemon
-cargo run --bin tab-daemon
+killall tab
+cargo run --bin tab -- --_launch daemon

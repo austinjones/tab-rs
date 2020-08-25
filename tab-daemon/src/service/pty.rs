@@ -5,12 +5,8 @@ pub mod scrollback;
 use crate::message::pty::{PtyRecv, PtySend, PtyShutdown};
 use crate::prelude::*;
 
+use tab_api::chunk::InputChunk;
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
-use tab_api::{
-    chunk::{InputChunk, OutputChunk},
-    client::InitResponse,
-    tab::{TabId, TabMetadata},
-};
 
 use tokio::stream::StreamExt;
 
@@ -20,11 +16,6 @@ pub struct PtyService {
     _websocket: Lifeline,
     _daemon: Lifeline,
     _scrollback: PtyScrollbackService,
-}
-
-enum Event {
-    Websocket(PtyWebsocketResponse),
-    Daemon(PtyRecv),
 }
 
 impl Service for PtyService {
