@@ -22,7 +22,6 @@ use tokio::{
 // ! TODO: move into tab-pty-process
 
 static CHUNK_LEN: usize = 2048;
-static MAX_CHUNK_LEN: usize = 2048;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
 static STDIN_CHANNEL_SIZE: usize = 32;
 
@@ -68,23 +67,8 @@ impl PtySender {
         self.tx_request.send(request).await
     }
 
-    pub async fn scrollback(&self) -> PtyScrollback {
-        PtyScrollback::new(self.pty.clone())
-    }
-
     pub async fn subscribe(&self) -> PtyReceiver {
         PtyReceiver::new(self.pty.clone(), self.tx_response.subscribe()).await
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PtyScrollback {
-    pty: Arc<PtyProcess>,
-}
-
-impl PtyScrollback {
-    pub(super) fn new(pty: Arc<PtyProcess>) -> Self {
-        Self { pty }
     }
 }
 

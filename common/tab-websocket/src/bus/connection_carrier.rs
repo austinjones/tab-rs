@@ -61,7 +61,7 @@ where
                                     .send(WebsocketSend(TungsteniteMessage::Binary(vec)))
                                     .await;
 
-                                if let Err(e) = send {
+                                if let Err(_e) = send {
                                     debug!("sender disconnected - aborting carry.");
                                     break;
                                 }

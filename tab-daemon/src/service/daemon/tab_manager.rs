@@ -15,10 +15,7 @@ use lifeline::{Bus, Lifeline, Service};
 use mpsc::error::TryRecvError;
 use std::{
     collections::{HashMap, VecDeque},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
 use tab_api::{

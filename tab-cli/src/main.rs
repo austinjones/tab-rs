@@ -105,7 +105,6 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     .unwrap();
 
     let select_tab = matches.value_of("TAB");
-    let dev = matches.is_present("DEV");
     let (tx, shutdown, _service) = spawn().await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");

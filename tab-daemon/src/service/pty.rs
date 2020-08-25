@@ -18,11 +18,6 @@ pub struct PtyService {
     _scrollback: PtyScrollbackService,
 }
 
-enum Event {
-    Websocket(PtyWebsocketResponse),
-    Daemon(PtyRecv),
-}
-
 impl Service for PtyService {
     type Bus = PtyBus;
     type Lifeline = anyhow::Result<Self>;
