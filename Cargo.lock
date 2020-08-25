@@ -643,7 +643,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "lifeline"
 version = "0.1.0"
-source = "git+https://github.com/austinjones/lifeline-rs.git#066e1685dd01a46f3ac83e66c234037ae3f425a3"
+source = "git+https://github.com/austinjones/lifeline-rs.git#776bfd406f49db4b0b76f2631e425ead3b108d93"
 dependencies = [
  "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-trait 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",

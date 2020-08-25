@@ -4,8 +4,9 @@ use crate::{
         tab::{TabRecv, TabSend},
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
-    state::tab::TabsState,
+    state::{assignment::Retraction, tab::TabsState},
 };
+use tab_api::tab::TabMetadata;
 use tab_websocket::{bus::WebsocketListenerBus, message::listener::WebsocketConnectionMessage};
 use tokio::sync::{broadcast, mpsc, watch};
 
@@ -28,6 +29,10 @@ impl Message<ListenerBus> for TabManagerSend {
 }
 
 impl Message<ListenerBus> for TabManagerRecv {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<ListenerBus> for Retraction<TabMetadata> {
     type Channel = mpsc::Sender<Self>;
 }
 

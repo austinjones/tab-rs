@@ -94,7 +94,9 @@ impl FromCarrier<ListenerBus> for PtyBus {
                                 continue;
                             }
 
-                            if let Some(assignment) = offer.take() {
+                            if let Some(assignment) = offer.accept() {
+                                debug!("accepting offer for service on tab {}", assignment.id);
+
                                 tx_pty_state
                                     .broadcast(PtyState::Assigned(assignment.id))
                                     .map_err(into_msg)?;

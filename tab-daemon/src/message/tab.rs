@@ -1,4 +1,4 @@
-use crate::state::{pty::PtyScrollback, tab::TabAssignment};
+use crate::state::{assignment::Assignment, pty::PtyScrollback};
 use std::sync::Arc;
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
@@ -19,7 +19,7 @@ pub struct TabOutput {
 
 #[derive(Debug, Clone)]
 pub enum TabRecv {
-    Assign(TabAssignment),
+    Assign(Assignment<TabMetadata>),
     Scrollback(TabId),
     Input(TabInput),
     Terminate(TabId),

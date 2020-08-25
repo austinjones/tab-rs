@@ -54,6 +54,7 @@ impl PtyService {
 
             match msg {
                 PtyWebsocketRequest::Init(create) => {
+                    debug!("initializing on tab {}", create.id);
                     let name = create.name.clone();
 
                     let options = PtyOptions {
