@@ -3,7 +3,10 @@ use crate::state::terminal::TerminalMode;
 use crate::bus::MainBus;
 use crate::prelude::*;
 
-use crate::bus::TerminalBus;
+use crate::{
+    bus::TerminalBus,
+    message::terminal::{TerminalRecv, TerminalSend},
+};
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
 use lifeline::Task;
@@ -29,6 +32,8 @@ impl Service for TerminalService {
 
     fn spawn(bus: &MainBus) -> Self::Lifeline {
         let terminal_bus = TerminalBus::default();
+        terminal_bus.capacity::<TerminalSend>(2048)?;
+        terminal_bus.capacity::<TerminalRecv>(2048)?;
 
         let _main_terminal = terminal_bus.carry_from(bus)?;
 

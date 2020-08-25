@@ -8,6 +8,7 @@ use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
+use time::Duration;
 use tokio::sync::broadcast::RecvError;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -15,12 +16,12 @@ use tokio::{
         broadcast::{Receiver, Sender},
         mpsc::error::SendError,
     },
+    time,
 };
 
 // ! TODO: move into tab-pty-process
 
 static CHUNK_LEN: usize = 2048;
-static MAX_CHUNK_LEN: usize = 2048;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
 static STDIN_CHANNEL_SIZE: usize = 32;
 
@@ -66,23 +67,8 @@ impl PtySender {
         self.tx_request.send(request).await
     }
 
-    pub async fn scrollback(&self) -> PtyScrollback {
-        PtyScrollback::new(self.pty.clone())
-    }
-
     pub async fn subscribe(&self) -> PtyReceiver {
         PtyReceiver::new(self.pty.clone(), self.tx_response.subscribe()).await
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct PtyScrollback {
-    pty: Arc<PtyProcess>,
-}
-
-impl PtyScrollback {
-    pub(super) fn new(pty: Arc<PtyProcess>) -> Self {
-        Self { pty }
     }
 }
 
@@ -186,6 +172,10 @@ impl PtyProcess {
             // TODO: deal with error handling
             tx.send(response).expect("Failed to send chunk");
             index += 1;
+
+            // a very short delay allows things to batch up
+            // without any buffering, the message rate can get very high
+            time::delay_for(Duration::from_millis(5)).await;
         }
     }
 

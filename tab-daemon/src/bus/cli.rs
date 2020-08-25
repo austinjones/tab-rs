@@ -12,7 +12,7 @@ use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc, oneshot, watch};
+use tokio::sync::{broadcast, mpsc, oneshot};
 
 lifeline_bus!(pub struct CliBus);
 
@@ -68,12 +68,11 @@ impl FromCarrier<ListenerBus> for CliBus {
         let tx_manager = from.tx::<TabManagerRecv>()?;
         let id_subscription = self.rx::<Subscription<TabId>>()?;
         let tx_shutdown = self.tx::<CliShutdown>()?;
-        let rx_tabs_state = from.rx::<TabsState>()?;
 
         let _forward = Self::try_task("output", Self::run_output(rx_tab, tx_conn, id_subscription));
         let _reverse = Self::try_task(
             "input",
-            Self::run_input(rx_conn, tx_tab, tx_manager, rx_tabs_state, tx_shutdown),
+            Self::run_input(rx_conn, tx_tab, tx_manager, tx_shutdown),
         );
 
         let _forward_tabs_state = {
@@ -122,7 +121,6 @@ impl CliBus {
         mut rx: mpsc::Receiver<CliSend>,
         tx: broadcast::Sender<TabRecv>,
         mut tx_manager: mpsc::Sender<TabManagerRecv>,
-        _rx_tabs_state: watch::Receiver<TabsState>,
         tx_shutdown: oneshot::Sender<CliShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {

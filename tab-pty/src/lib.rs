@@ -25,7 +25,7 @@ mod prelude;
 mod pty_process;
 mod service;
 
-pub fn main() -> anyhow::Result<()> {
+pub fn pty_main() -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
@@ -54,20 +54,18 @@ fn init() {
 async fn main_async() -> anyhow::Result<()> {
     let _matches = init();
 
-    let (_tx, rx, _lifeline) = spawn(false).await?;
+    let (_tx, rx, _lifeline) = spawn().await?;
     wait_for_shutdown(rx).await;
 
     Ok(())
 }
 
-async fn spawn(
-    dev: bool,
-) -> anyhow::Result<(
+async fn spawn() -> anyhow::Result<(
     broadcast::Sender<PtyWebsocketRequest>,
     mpsc::Receiver<PtyShutdown>,
     MainService,
 )> {
-    let config = launch_daemon(dev).await?;
+    let config = launch_daemon().await?;
 
     let bus = PtyBus::default();
 

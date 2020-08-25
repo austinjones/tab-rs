@@ -106,6 +106,7 @@ impl CliService {
 
         match request {
             Request::Subscribe(id) => {
+                debug!("client subscribing to tab {}", id);
                 tx_subscription
                     .send(Subscription::Subscribe(id))
                     .await
@@ -148,7 +149,7 @@ impl CliService {
         tx_websocket: &mut broadcast::Sender<Response>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
-        debug!("message from daemon: {:?}", &msg);
+        trace!("message from daemon: {:?}", &msg);
         match msg {
             CliRecv::TabStarted(metadata) => {
                 tx_websocket
