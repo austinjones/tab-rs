@@ -1,8 +1,89 @@
+use crate::prelude::*;
+
+use message::pty::PtyShutdown;
+use simplelog::{CombinedLogger, TermLogger, TerminalMode};
+use std::{
+    process::Stdio,
+    time::{Duration, Instant},
+};
+use tab_api::{
+    config::{is_running, load_daemon_file, DaemonConfig},
+    launch::*,
+    pty::PtyWebsocketRequest,
+};
+
+use dyn_bus::DynBus;
+use service::{main::MainService, pty::PtyService};
+use tab_websocket::{bus::WebsocketConnectionBus, resource::connection::WebsocketResource};
+use tokio::{
+    process::Command,
+    select,
+    signal::ctrl_c,
+    sync::{broadcast, mpsc},
+    time,
+};
+
 mod bus;
 mod message;
+mod prelude;
 mod pty_process;
 mod service;
 
-fn main() {
-    println!("Hello, world!");
+pub fn main() -> anyhow::Result<()> {
+    let mut runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_io()
+        .enable_time()
+        .build()
+        .unwrap();
+
+    let result = runtime.block_on(async { main_async().await });
+
+    runtime.shutdown_timeout(Duration::from_millis(25));
+
+    result?;
+
+    Ok(())
+}
+
+fn init() {
+    CombinedLogger::init(vec![TermLogger::new(
+        LevelFilter::Debug,
+        simplelog::Config::default(),
+        TerminalMode::Stderr,
+    )])
+    .unwrap();
+}
+
+async fn main_async() -> anyhow::Result<()> {
+    let matches = init();
+
+    let (tx, rx, _lifeline) = spawn(false).await?;
+    wait_for_shutdown(rx).await;
+
+    Ok(())
+}
+
+async fn spawn(
+    dev: bool,
+) -> anyhow::Result<(
+    broadcast::Sender<PtyWebsocketRequest>,
+    mpsc::Receiver<PtyShutdown>,
+    MainService,
+)> {
+    let config = launch_daemon(dev).await?;
+
+    let bus = PtyBus::default();
+
+    let ws_url = format!("ws://127.0.0.1:{}/pty", config.port);
+    let websocket = tab_websocket::connect_authorized(ws_url, config.auth_token.clone()).await?;
+    bus.store_resource(WebsocketResource(websocket));
+    bus.store_resource(config);
+
+    let main = MainService::spawn(&bus)?;
+
+    let tx = bus.tx::<PtyWebsocketRequest>()?;
+    let main_shutdown = bus.rx::<PtyShutdown>()?;
+
+    Ok((tx, main_shutdown, main))
 }

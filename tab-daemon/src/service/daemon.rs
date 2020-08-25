@@ -4,8 +4,7 @@ use listener::ListenerService;
 use lifeline::Service;
 
 mod listener;
-mod tab;
-mod tabs;
+mod tab_manager;
 
 pub struct DaemonService {
     _listener: ListenerService,

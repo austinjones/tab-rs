@@ -8,10 +8,7 @@ use anyhow::Context;
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
 use std::collections::HashMap;
-use tab_api::{
-    request::Request,
-    tab::{TabId, TabMetadata},
-};
+use tab_api::tab::{TabId, TabMetadata};
 use tokio::stream::StreamExt;
 pub struct TabStateService {
     _lifeline: Lifeline,

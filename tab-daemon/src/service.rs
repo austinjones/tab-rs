@@ -1,2 +1,3 @@
-pub mod connection;
+pub mod cli;
 pub mod daemon;
+pub mod pty;

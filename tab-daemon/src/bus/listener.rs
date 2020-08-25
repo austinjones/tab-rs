@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::{
     message::{
-        daemon::{CloseTab, CreateTab},
         tab::{TabRecv, TabSend},
+        tab_manager::{TabManagerRecv, TabManagerSend},
     },
     state::tab::TabsState,
 };
@@ -24,11 +24,11 @@ impl Message<ListenerBus> for TabRecv {
     type Channel = broadcast::Sender<Self>;
 }
 
-impl Message<ListenerBus> for CreateTab {
+impl Message<ListenerBus> for TabManagerSend {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<ListenerBus> for CloseTab {
+impl Message<ListenerBus> for TabManagerRecv {
     type Channel = mpsc::Sender<Self>;
 }
 

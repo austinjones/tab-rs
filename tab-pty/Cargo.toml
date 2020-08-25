@@ -1,5 +1,5 @@
 [package]
-name = "tab-shell"
+name = "tab-pty"
 version = "0.1.0"
 authors = ["Austin Jones <austin.jones@threatx.com>"]
 edition = "2018"
@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 tab-api = { path = "../common/tab-api" }
 tab-websocket = { path = "../common/tab-websocket" }
-tab-service = { path = "../common/tab-service" }
+lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
 
 dirs = "3.0"
 serde_yaml = "0.8"
@@ -22,7 +22,6 @@ tokio = { version = "0.2", features = ["macros", "stream", "sync", "time", "io-u
 tokio-io = "0.1"
 tab-pty-process = { path = "../tab-pty-process"}
 futures = "0.3"
-async-trait = "0.1"
 async-stream = "0.3"
 
 # authentication / tokens

@@ -14,8 +14,6 @@ use crate::{
 use anyhow::Context;
 use std::collections::HashMap;
 use tab_api::{
-    request::Request,
-    response::Response,
     tab::{CreateTabMetadata, TabId, TabMetadata},
 };
 use tokio::{
@@ -79,22 +77,6 @@ impl FromCarrier<MainBus> for TabBus {
 
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _forward_request = {
-            let mut rx_request = self.rx::<Request>()?;
-            let tx_request = from.tx::<Request>()?;
-
-            Self::try_task("forward_request", async move {
-                while let Some(request) = rx_request.recv().await {
-                    tx_request
-                        .send(request)
-                        .map_err(into_msg)
-                        .context("tx Request")?;
-                }
-
-                Ok(())
-            })
-        };
-
-        let _forward_recv = {
             let mut rx_request = self.rx::<Request>()?;
             let tx_request = from.tx::<Request>()?;
 

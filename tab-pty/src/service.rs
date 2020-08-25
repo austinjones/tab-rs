@@ -1,1 +1,2 @@
-mod tab;
+pub mod pty;
+pub mod main;

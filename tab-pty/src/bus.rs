@@ -1,2 +1,2 @@
-mod tab;
-pub use tab::*;
+mod pty;
+pub use pty::*;

@@ -1,6 +1,6 @@
 use crate::message::{
-    connection::{ConnectionRecv, ConnectionSend},
-    daemon::{CloseTab, CreateTab, DaemonShutdown},
+    cli::{CliRecv, CliSend},
+    daemon::DaemonShutdown,
     tab::{TabRecv, TabSend},
 };
 use crate::prelude::*;

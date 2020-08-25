@@ -1,12 +1,12 @@
-use super::tabs::TabsService;
+use super::tab_manager::TabManagerService;
 use crate::prelude::*;
 use crate::{
     message::{
-        connection::{ConnectionRecv, ConnectionSend, ConnectionShutdown},
-        daemon::{CloseTab, CreateTab},
+        cli::{CliRecv, CliSend, CliShutdown},
+        pty::PtyShutdown,
         tab::{TabInput, TabRecv, TabSend},
     },
-    service::connection::ConnectionService,
+    service::{cli::CliService, pty::PtyService},
 };
 use anyhow::Context;
 use dyn_bus::DynBus;
@@ -21,15 +21,20 @@ use tab_websocket::{
     service::{WebsocketListenerService, WebsocketService},
 };
 
-struct ConnectionLifeline {
+struct CliLifeline {
     _websocket_carrier: WebsocketCarrier,
     _listener_carrier: ListenerConnectionCarrier,
+}
+
+struct PtyLifeline {
+    _websocket_carrier: WebsocketCarrier,
+    _listener_carrier: ListenerPtyCarrier,
 }
 
 pub struct ListenerService {
     _listener: WebsocketListenerService,
     _new_session: Lifeline,
-    _tabs: TabsService,
+    _tabs: TabManagerService,
     _connection_carrier: ConnectionMessageCarrier,
 }
 
@@ -51,7 +56,7 @@ impl Service for ListenerService {
         let listener_bus = ListenerBus::default();
         let _connection_carrier = listener_bus.carry_from(&websocket_bus)?;
 
-        let _tabs = TabsService::spawn(&listener_bus)?;
+        let _tabs = TabManagerService::spawn(&listener_bus)?;
 
         debug!("ListenerBus: {:#?}", &listener_bus);
 
@@ -79,38 +84,78 @@ impl ListenerService {
 
         while let Some(msg) = rx_conn.recv().await {
             let name = format!("connection_{}", index);
-            debug!("Starting {}", name);
+            debug!(
+                "opening connection {}, from HTTP {} {}",
+                name, msg.request.method, msg.request.uri
+            );
 
-            let conn_bus = ConnectionBus::default();
-            let _listener_carrier = conn_bus.carry_from(&bus)?;
-            let _websocket_carrier = msg.bus.carry_from(&conn_bus)?;
+            let lifeline = match msg.request.uri.to_string().as_str() {
+                "/cli" => {
+                    let cli_bus = CliBus::default();
 
-            let _connection = ConnectionLifeline {
-                _listener_carrier,
-                _websocket_carrier,
+                    let _listener_carrier = cli_bus.carry_from(&bus)?;
+                    let _websocket_carrier = cli_bus.carry_into(&msg.bus)?;
+
+                    let _connection = CliLifeline {
+                        _listener_carrier,
+                        _websocket_carrier,
+                    };
+
+                    Self::try_task(
+                        (name + "/cli").as_str(),
+                        Self::run_cli(cli_bus, _connection),
+                    )
+                }
+                "/pty" => {
+                    let pty_bus = PtyBus::default();
+                    let _listener_carrier = pty_bus.carry_from(&bus)?;
+                    let _websocket_carrier = pty_bus.carry_into(&msg.bus)?;
+
+                    let _pty_lifeline = PtyLifeline {
+                        _listener_carrier,
+                        _websocket_carrier,
+                    };
+                    Self::try_task(
+                        (name + "/pty").as_str(),
+                        Self::run_pty(pty_bus, _pty_lifeline),
+                    )
+                }
+                _ => {
+                    error!("unknown endpoint: {}", msg.request.uri);
+                    continue;
+                }
             };
 
-            let run_service =
-                Self::try_task(name.as_str(), Self::run_service(conn_bus, _connection));
-
-            sessions.push(run_service);
+            sessions.push(lifeline);
             index += 1;
         }
 
         Ok(())
     }
 
-    async fn run_service(
-        bus: ConnectionBus,
-        _connection: ConnectionLifeline,
-    ) -> anyhow::Result<()> {
-        let shutdown = bus.rx::<ConnectionShutdown>()?;
+    async fn run_cli(bus: CliBus, _connection: CliLifeline) -> anyhow::Result<()> {
+        let shutdown = bus.rx::<CliShutdown>()?;
 
         // keep service alive until we get a shutdown signal
-        let _service = ConnectionService::spawn(&bus)?;
+        let _service = CliService::spawn(&bus)?;
         drop(bus);
 
         shutdown.await.context("rx ConnectionShutdown closed")?;
+
+        Ok(())
+    }
+
+    async fn run_pty(bus: PtyBus, _connection: PtyLifeline) -> anyhow::Result<()> {
+        let mut shutdown = bus.rx::<PtyShutdown>()?;
+
+        // keep service alive until we get a shutdown signal
+        let _service = PtyService::spawn(&bus)?;
+        drop(bus);
+
+        shutdown
+            .recv()
+            .await
+            .context("rx ConnectionShutdown closed")?;
 
         Ok(())
     }

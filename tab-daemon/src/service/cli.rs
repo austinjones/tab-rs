@@ -1,16 +1,11 @@
 // mod session;
-use crate::message::connection::{ConnectionRecv, ConnectionSend};
+use crate::message::cli::{CliRecv, CliSend};
 use crate::prelude::*;
 use crate::state::tab::TabsState;
 use anyhow::Context;
 use lifeline::subscription::Subscription;
 use std::collections::HashMap;
-use tab_api::{
-    chunk::OutputChunk,
-    request::Request,
-    response::{InitResponse, Response},
-    tab::TabId,
-};
+use tab_api::{chunk::OutputChunk, client::InitResponse, tab::TabId};
 use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
 use time::Duration;
 use tokio::{
@@ -19,13 +14,13 @@ use tokio::{
     time,
 };
 use tungstenite::Message as TungsteniteMessage;
-pub struct ConnectionService {
+pub struct CliService {
     _run: Lifeline,
 }
 
 enum Event {
     Websocket(Request),
-    Daemon(ConnectionRecv),
+    Daemon(CliRecv),
 }
 
 impl Event {
@@ -33,13 +28,13 @@ impl Event {
         Self::Websocket(recv)
     }
 
-    pub fn daemon(recv: ConnectionRecv) -> Self {
+    pub fn daemon(recv: CliRecv) -> Self {
         Self::Daemon(recv)
     }
 }
 
-impl Service for ConnectionService {
-    type Bus = ConnectionBus;
+impl Service for CliService {
+    type Bus = CliBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
@@ -48,11 +43,11 @@ impl Service for ConnectionService {
             .filter(|r| r.is_ok())
             .map(|r| r.unwrap())
             .map(Event::websocket);
-        let rx_daemon = bus.rx::<ConnectionRecv>()?.map(Event::daemon);
+        let rx_daemon = bus.rx::<CliRecv>()?.map(Event::daemon);
         let mut rx = rx_websocket.merge(rx_daemon);
 
         let mut tx_websocket = bus.tx::<Response>()?;
-        let mut tx_daemon = bus.tx::<ConnectionSend>()?;
+        let mut tx_daemon = bus.tx::<CliSend>()?;
         let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
         let rx_subscription = bus.rx::<Subscription<TabId>>()?;
         let mut rx_tabs_state = bus.rx::<TabsState>()?;
@@ -97,29 +92,15 @@ impl Service for ConnectionService {
             Ok(())
         });
 
-        Ok(ConnectionService { _run })
+        Ok(CliService { _run })
     }
 }
 
-impl ConnectionService {
-    fn deserialize(recv: WebsocketRecv) -> anyhow::Result<Request> {
-        let bytes = recv.0.into_data();
-        let request = bincode::deserialize(bytes.as_slice())?;
-        Ok(request)
-    }
-
-    fn serialize(send: Response) -> anyhow::Result<WebsocketSend> {
-        debug!("sending response: {:?}", &send);
-
-        let encoded = bincode::serialize(&send)?;
-        let send = WebsocketSend(TungsteniteMessage::Binary(encoded));
-        Ok(send)
-    }
-
+impl CliService {
     async fn recv_websocket(
         request: Request,
         tx_subscription: &mut subscription::Sender<TabId>,
-        tx_daemon: &mut mpsc::Sender<ConnectionSend>,
+        tx_daemon: &mut mpsc::Sender<CliSend>,
     ) -> anyhow::Result<()> {
         debug!("received Request: {:?}", &request);
 
@@ -132,9 +113,7 @@ impl ConnectionService {
 
                 time::delay_for(Duration::from_millis(10)).await;
 
-                tx_daemon
-                    .send(ConnectionSend::RequestScrollback(id))
-                    .await?;
+                tx_daemon.send(CliSend::RequestScrollback(id)).await?;
             }
             Request::Unsubscribe(id) => {
                 tx_subscription
@@ -143,19 +122,19 @@ impl ConnectionService {
                     .context("tx_subscription closed")?;
             }
             Request::Input(id, stdin) => {
-                let message = ConnectionSend::Input(id, stdin);
+                let message = CliSend::Input(id, stdin);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
             Request::CreateTab(create) => {
-                let message = ConnectionSend::CreateTab(create);
+                let message = CliSend::CreateTab(create);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
             Request::CloseTab(id) => {
-                let message = ConnectionSend::CloseTab(id);
+                let message = CliSend::CloseTab(id);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
             Request::CloseNamedTab(name) => {
-                let message = ConnectionSend::CloseNamedTab(name);
+                let message = CliSend::CloseNamedTab(name);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
         }
@@ -164,20 +143,20 @@ impl ConnectionService {
     }
 
     async fn recv_daemon(
-        msg: ConnectionRecv,
+        msg: CliRecv,
         rx_subscription: &subscription::Receiver<TabId>,
         tx_websocket: &mut broadcast::Sender<Response>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         debug!("message from daemon: {:?}", &msg);
         match msg {
-            ConnectionRecv::TabStarted(metadata) => {
+            CliRecv::TabStarted(metadata) => {
                 tx_websocket
                     .send(Response::TabUpdate(metadata))
                     .map_err(into_msg)
                     .context("tx_websocket closed")?;
             }
-            ConnectionRecv::Scrollback(message) => {
+            CliRecv::Scrollback(message) => {
                 if let Some(_identifier) = rx_subscription.get_identifier(&message.id) {
                     debug!("processing scrollback for tab {}", message.id);
 
@@ -200,13 +179,13 @@ impl ConnectionService {
             // TODO: this way of handling scrollback isn't perfect
             // if the terminal is generating output, the scrollback may arrive too late.
             // the historical channel would fix this, but it'd also destory some of the tokio::broadcast goodness w/ TabId
-            ConnectionRecv::Output(id, chunk) => {
+            CliRecv::Output(id, chunk) => {
                 if let Some(identifier) = rx_subscription.get_identifier(&id) {
                     Self::send_output(id, identifier, chunk, tx_websocket, subscription_index)
                         .await?;
                 }
             }
-            ConnectionRecv::TabStopped(id) => {
+            CliRecv::TabStopped(id) => {
                 tx_websocket
                     .send(Response::TabTerminated(id))
                     .map_err(into_msg)

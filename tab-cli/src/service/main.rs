@@ -10,7 +10,6 @@ use crate::{
     state::{tab::TabStateSelect, tabs::TabsState, terminal::TerminalMode},
 };
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
-use tab_api::request::Request;
 
 use crate::prelude::*;
 use lifeline::Task;

@@ -1,9 +1,9 @@
-mod connection;
+mod cli;
 mod daemon;
 mod listener;
-mod tab;
+mod pty;
 
-pub use connection::*;
+pub use cli::*;
 pub use daemon::*;
 pub use listener::*;
-pub use tab::*;
+pub use pty::*;
