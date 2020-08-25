@@ -1,20 +1,8 @@
-use crate::{
-    message::{
-        main::{MainRecv, MainShutdown},
-        tabs::TabsRecv,
-        terminal::{TerminalRecv, TerminalSend},
-    },
-    state::{tab::TabState, tabs::TabsState, terminal::TerminalMode},
-};
+use crate::message::main::{MainRecv, MainShutdown};
+use crate::{prelude::*, state::tab::TabState};
 use lifeline::{lifeline_bus, Message, Resource};
 
-use tab_api::{request::Request, response::Response};
-use tab_websocket::{
-    bus::{WebsocketConnectionBus, WebsocketMessageBus},
-    message::connection::{WebsocketRecv, WebsocketSend},
-    resource::connection::WebsocketResource,
-    service::WebsocketService,
-};
+use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(

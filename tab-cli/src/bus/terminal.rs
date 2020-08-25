@@ -10,7 +10,7 @@ use crate::{
     },
 };
 use lifeline::{lifeline_bus, Message};
-use tab_api::{chunk::InputChunk, request::Request, response::Response};
+use tab_api::chunk::InputChunk;
 use tokio::{
     stream::StreamExt,
     sync::{broadcast, mpsc, watch},

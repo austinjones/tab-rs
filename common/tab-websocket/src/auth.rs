@@ -1,8 +1,11 @@
-use crate::resource::listener::WebsocketAuthToken;
+use crate::{message::listener::RequestMetadata, resource::listener::WebsocketAuthToken};
 use tungstenite::handshake::server::{Callback, ErrorResponse, Request, Response};
+
+use lifeline::request::Request as LifelineRequest;
 
 pub struct AuthHandler {
     token: WebsocketAuthToken,
+    send_metadata: Option<LifelineRequest<(), RequestMetadata>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,7 +17,20 @@ pub enum AuthState {
 
 impl AuthHandler {
     pub fn new(token: WebsocketAuthToken) -> Self {
-        AuthHandler { token }
+        AuthHandler {
+            token,
+            send_metadata: None,
+        }
+    }
+
+    pub fn with_metadata(
+        token: WebsocketAuthToken,
+        send_metadata: Option<LifelineRequest<(), RequestMetadata>>,
+    ) -> Self {
+        AuthHandler {
+            token,
+            send_metadata,
+        }
     }
 
     fn response_forbidden() -> ErrorResponse {
@@ -62,11 +78,20 @@ impl AuthHandler {
 
 impl Callback for AuthHandler {
     fn on_request(self, request: &Request, response: Response) -> Result<Response, ErrorResponse> {
-        match self.validate_token(request) {
+        let result = match self.validate_token(request) {
             AuthState::Ok => Ok(response),
             AuthState::RejectOrigin => Err(Self::response_forbidden()),
             AuthState::RejectAuth => Err(Self::response_unauthorized()),
+        };
+
+        if let Some(send_metadata) = self.send_metadata {
+            let uri = request.uri().clone();
+            let method = request.method().clone();
+            let metadata = RequestMetadata { uri, method };
+            tokio::spawn(send_metadata.reply(|_r| async { metadata }));
         }
+
+        result
     }
 }
 

@@ -8,9 +8,10 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::net::TcpStream;
 
 use auth::AuthHandler;
+
+use message::listener::RequestMetadata;
 use resource::listener::WebsocketAuthToken;
 use tungstenite::{handshake::client::Request, Message};
-
 mod auth;
 pub mod bus;
 mod common;
@@ -42,8 +43,9 @@ pub async fn connect_authorized(
 pub async fn bind(
     tcp: TcpStream,
     auth_token: WebsocketAuthToken,
+    request_metadata: lifeline::request::Request<(), RequestMetadata>,
 ) -> Result<WebsocketConnection, tungstenite::Error> {
-    let auth = AuthHandler::new(auth_token);
+    let auth = AuthHandler::with_metadata(auth_token, Some(request_metadata));
     async_tungstenite::tokio::accept_hdr_async(tcp, auth).await
 }
 

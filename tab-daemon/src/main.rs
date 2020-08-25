@@ -17,7 +17,6 @@ mod bus;
 mod daemonfile;
 mod message;
 mod prelude;
-mod pty_process;
 mod service;
 mod state;
 

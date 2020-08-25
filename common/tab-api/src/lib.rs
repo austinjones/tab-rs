@@ -1,5 +1,6 @@
 pub mod chunk;
+pub mod client;
 pub mod config;
-pub mod request;
-pub mod response;
+pub mod launch;
+pub mod pty;
 pub mod tab;
