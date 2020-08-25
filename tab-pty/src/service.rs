@@ -1,2 +1,2 @@
-pub mod pty;
 pub mod main;
+pub mod pty;

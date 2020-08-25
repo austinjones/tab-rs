@@ -6,14 +6,14 @@ use anyhow::Context;
 use lifeline::subscription::Subscription;
 use std::collections::HashMap;
 use tab_api::{chunk::OutputChunk, client::InitResponse, tab::TabId};
-use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
+
 use time::Duration;
 use tokio::{
     stream::StreamExt,
     sync::{broadcast, mpsc},
     time,
 };
-use tungstenite::Message as TungsteniteMessage;
+
 pub struct CliService {
     _run: Lifeline,
 }

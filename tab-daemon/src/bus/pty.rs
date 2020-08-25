@@ -12,7 +12,7 @@ use crate::{
 };
 
 use std::sync::Arc;
-use subscription::Subscription;
+
 use tab_api::{
     chunk::OutputChunk,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
@@ -26,7 +26,7 @@ use tab_websocket::{
 };
 use tokio::{
     stream::StreamExt,
-    sync::{broadcast, mpsc, oneshot, watch},
+    sync::{broadcast, mpsc, watch},
 };
 
 lifeline_bus!(pub struct PtyBus);
@@ -91,7 +91,7 @@ impl FromCarrier<ListenerBus> for PtyBus {
 
             Self::try_task("to_pty", async move {
                 while let Some(msg) = rx_tab.next().await {
-                    if let Err(e) = msg {
+                    if let Err(_e) = msg {
                         continue;
                     }
 
@@ -140,7 +140,7 @@ impl FromCarrier<ListenerBus> for PtyBus {
 
             Self::try_task("to_listener", async move {
                 while let Some(msg) = rx_pty.next().await {
-                    if let Err(e) = msg {
+                    if let Err(_e) = msg {
                         continue;
                     }
 

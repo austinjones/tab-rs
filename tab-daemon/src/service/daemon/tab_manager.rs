@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
     message::{
-        tab::{TabRecv, TabSend},
+        tab::TabRecv,
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
     state::tab::{TabAssignment, TabsState},
@@ -13,10 +13,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 use tab_api::tab::{TabId, TabMetadata};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc, watch},
-};
+use tokio::sync::{broadcast, mpsc, watch};
 
 pub struct TabManagerService {
     _recv: Lifeline,

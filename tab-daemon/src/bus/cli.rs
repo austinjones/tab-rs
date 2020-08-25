@@ -127,7 +127,7 @@ impl CliBus {
         mut rx: mpsc::Receiver<CliSend>,
         tx: broadcast::Sender<TabRecv>,
         mut tx_manager: mpsc::Sender<TabManagerRecv>,
-        rx_tabs_state: watch::Receiver<TabsState>,
+        _rx_tabs_state: watch::Receiver<TabsState>,
         tx_shutdown: oneshot::Sender<CliShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {

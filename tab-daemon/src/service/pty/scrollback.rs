@@ -6,14 +6,11 @@ use crate::{
 use lifeline::Service;
 use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
-use tokio::{
-    stream::StreamExt,
-    sync::{Mutex, RwLock},
-};
+use tokio::{stream::StreamExt, sync::Mutex};
 
 pub struct PtyScrollbackService {
     _serve: Lifeline,
-    _update: Lifeline
+    _update: Lifeline,
 }
 
 impl Service for PtyScrollbackService {
@@ -54,7 +51,6 @@ impl Service for PtyScrollbackService {
                 Ok(())
             })
         };
-
 
         Ok(Self { _serve, _update })
     }

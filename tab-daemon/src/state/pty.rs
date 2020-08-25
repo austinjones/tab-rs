@@ -2,7 +2,7 @@ use crate::service::pty::scrollback::ScrollbackBuffer;
 
 use std::sync::Arc;
 use tab_api::{chunk::OutputChunk, tab::TabId};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum PtyState {

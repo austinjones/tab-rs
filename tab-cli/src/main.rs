@@ -11,7 +11,6 @@ use std::{
     process::Stdio,
     time::{Duration, Instant},
 };
-use tab_api::config::{is_running, load_daemon_file, DaemonConfig};
 
 use dyn_bus::DynBus;
 use tab_api::launch::*;

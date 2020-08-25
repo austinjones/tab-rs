@@ -1,11 +1,7 @@
 use super::tab::TabInput;
-use crate::{service::pty::scrollback::ScrollbackBuffer, state::pty::PtyScrollback};
-use std::sync::Arc;
-use tab_api::{
-    chunk::OutputChunk,
-    tab::{TabId, TabMetadata},
-};
-use tokio::sync::RwLock;
+use crate::state::pty::PtyScrollback;
+
+use tab_api::{chunk::OutputChunk, tab::TabMetadata};
 
 #[derive(Debug, Clone)]
 pub struct PtyShutdown {}

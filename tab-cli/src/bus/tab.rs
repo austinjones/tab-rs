@@ -13,9 +13,7 @@ use crate::{
 };
 use anyhow::Context;
 use std::collections::HashMap;
-use tab_api::{
-    tab::{CreateTabMetadata, TabId, TabMetadata},
-};
+use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
 use tokio::{
     stream::StreamExt,
     sync::{broadcast, mpsc, watch},

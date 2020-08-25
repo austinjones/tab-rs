@@ -1,6 +1,5 @@
 use log::info;
 use std::{
-    collections::VecDeque,
     process::{Command, ExitStatus},
     sync::Arc,
 };
@@ -15,7 +14,6 @@ use tokio::{
     sync::{
         broadcast::{Receiver, Sender},
         mpsc::error::SendError,
-        RwLock,
     },
 };
 
@@ -126,7 +124,7 @@ impl PtyProcess {
         let (child, read, write) = Self::create_pty(options).await?;
         let process = Arc::new(PtyProcess::new());
 
-        let (tx_response, rx_response) =
+        let (tx_response, _rx_response) =
             tokio::sync::broadcast::channel::<PtyResponse>(OUTPUT_CHANNEL_SIZE);
         let (tx_request, rx_request) = tokio::sync::mpsc::channel::<PtyRequest>(STDIN_CHANNEL_SIZE);
 

@@ -1,32 +1,21 @@
 pub mod scrollback;
 
 // mod session;
-use crate::message::cli::{CliRecv, CliSend};
-use crate::message::{
-    pty::{PtyRecv, PtySend, PtyShutdown},
-    tab::TabRecv,
-};
+
+use crate::message::pty::{PtyRecv, PtySend, PtyShutdown};
 use crate::prelude::*;
-use crate::state::{pty::PtyState, tab::TabsState};
-use anyhow::Context;
-use lifeline::subscription::Subscription;
-use std::collections::HashMap;
+
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
     client::InitResponse,
     tab::{TabId, TabMetadata},
 };
-use tab_websocket::message::connection::{WebsocketRecv, WebsocketSend};
-use time::Duration;
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc},
-    time,
-};
+
+use tokio::stream::StreamExt;
 
 use scrollback::PtyScrollbackService;
-use tungstenite::Message as TungsteniteMessage;
+
 pub struct PtyService {
     _websocket: Lifeline,
     _daemon: Lifeline,

@@ -1,18 +1,14 @@
 use crate::prelude::*;
 use crate::{
     message::pty::PtyShutdown,
-    pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest, PtySender},
+    pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest},
 };
-use anyhow::Context;
+
 use error::into_msg;
 use lifeline::Task;
 use lifeline::{Bus, Lifeline, Service};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+
 use tab_api::{
-    chunk::InputChunk,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabId,
 };
@@ -44,13 +40,13 @@ impl Service for PtyService {
 impl PtyService {
     async fn run(
         mut rx: broadcast::Receiver<PtyWebsocketRequest>,
-        mut tx: broadcast::Sender<PtyWebsocketResponse>,
+        tx: broadcast::Sender<PtyWebsocketResponse>,
         mut tx_shutdown: mpsc::Sender<PtyShutdown>,
     ) -> anyhow::Result<()> {
         let mut sender = None;
         let mut _echo = None;
         while let Some(msg) = rx.next().await {
-            if let Err(e) = msg {
+            if let Err(_e) = msg {
                 continue;
             }
 
@@ -96,9 +92,9 @@ impl PtyService {
     }
 
     async fn output(
-        id: TabId,
+        _id: TabId,
         mut rx: PtyReceiver,
-        mut tx: broadcast::Sender<PtyWebsocketResponse>,
+        tx: broadcast::Sender<PtyWebsocketResponse>,
     ) -> anyhow::Result<()> {
         loop {
             let msg = rx.recv().await?;

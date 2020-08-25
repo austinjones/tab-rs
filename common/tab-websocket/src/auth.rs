@@ -1,7 +1,6 @@
 use crate::{message::listener::RequestMetadata, resource::listener::WebsocketAuthToken};
 use tungstenite::handshake::server::{Callback, ErrorResponse, Request, Response};
 
-use futures::executor::block_on;
 use lifeline::request::Request as LifelineRequest;
 
 pub struct AuthHandler {
@@ -78,11 +77,7 @@ impl AuthHandler {
 }
 
 impl Callback for AuthHandler {
-    fn on_request(
-        mut self,
-        request: &Request,
-        response: Response,
-    ) -> Result<Response, ErrorResponse> {
+    fn on_request(self, request: &Request, response: Response) -> Result<Response, ErrorResponse> {
         let result = match self.validate_token(request) {
             AuthState::Ok => Ok(response),
             AuthState::RejectOrigin => Err(Self::response_forbidden()),

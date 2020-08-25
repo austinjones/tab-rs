@@ -6,15 +6,11 @@ use std::{
     process::Stdio,
     time::{Duration, Instant},
 };
-use tab_api::{
-    config::{is_running, load_daemon_file, DaemonConfig},
-    launch::*,
-    pty::PtyWebsocketRequest,
-};
+use tab_api::{launch::*, pty::PtyWebsocketRequest};
 
 use dyn_bus::DynBus;
-use service::{main::MainService, pty::PtyService};
-use tab_websocket::{bus::WebsocketConnectionBus, resource::connection::WebsocketResource};
+use service::main::MainService;
+use tab_websocket::resource::connection::WebsocketResource;
 use tokio::{
     process::Command,
     select,
@@ -56,9 +52,9 @@ fn init() {
 }
 
 async fn main_async() -> anyhow::Result<()> {
-    let matches = init();
+    let _matches = init();
 
-    let (tx, rx, _lifeline) = spawn(false).await?;
+    let (_tx, rx, _lifeline) = spawn(false).await?;
     wait_for_shutdown(rx).await;
 
     Ok(())

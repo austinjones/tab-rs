@@ -1,28 +1,10 @@
 use crate::prelude::*;
-use simplelog::{CombinedLogger, TermLogger, TerminalMode};
-
-use std::{
-    process::Stdio,
-    time::{Duration, Instant},
-};
-use tab_api::{
-    config::{is_running, load_daemon_file, DaemonConfig},
-    launch::*,
-    pty::PtyWebsocketRequest,
-};
 
 use super::pty::PtyService;
 use dyn_bus::DynBus;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
-};
-use tokio::{
-    process::Command,
-    select,
-    signal::ctrl_c,
-    sync::{broadcast, mpsc},
-    time,
 };
 
 pub struct MainService {

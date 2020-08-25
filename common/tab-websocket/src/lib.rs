@@ -8,7 +8,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::net::TcpStream;
 
 use auth::AuthHandler;
-use lifeline::request::Request as LifelineRequest;
+
 use message::listener::RequestMetadata;
 use resource::listener::WebsocketAuthToken;
 use tungstenite::{handshake::client::Request, Message};

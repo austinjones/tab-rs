@@ -1,6 +1,6 @@
 use crate::{
     chunk::{InputChunk, OutputChunk},
-    tab::{TabId, TabMetadata},
+    tab::TabMetadata,
 };
 use serde::{Deserialize, Serialize};
 

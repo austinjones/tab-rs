@@ -1,8 +1,5 @@
 use crate::state::{pty::PtyScrollback, tab::TabAssignment};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
     tab::{TabId, TabMetadata},
