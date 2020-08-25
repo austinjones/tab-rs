@@ -30,7 +30,7 @@ impl Service for PtyScrollbackService {
                     if let Ok(PtyRecv::Scrollback) = msg {
                         let scrollback = serve_scrollback.handle();
                         let response = PtySend::Scrollback(scrollback);
-                        tx.send(response);
+                        tx.send(response).map_err(into_msg)?;
                     }
                 }
 

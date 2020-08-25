@@ -6,7 +6,6 @@ use crate::{
     },
     state::tab::TabsState,
 };
-use dyn_bus::DynBus;
 use tab_websocket::{bus::WebsocketListenerBus, message::listener::WebsocketConnectionMessage};
 use tokio::sync::{broadcast, mpsc, watch};
 

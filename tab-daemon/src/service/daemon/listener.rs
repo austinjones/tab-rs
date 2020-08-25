@@ -1,24 +1,17 @@
 use super::tab_manager::TabManagerService;
 use crate::prelude::*;
 use crate::{
-    message::{
-        cli::{CliRecv, CliSend, CliShutdown},
-        pty::PtyShutdown,
-        tab::{TabInput, TabRecv, TabSend},
-    },
+    message::{cli::CliShutdown, pty::PtyShutdown},
     service::{cli::CliService, pty::PtyService},
 };
 use anyhow::Context;
 use dyn_bus::DynBus;
 
 use tab_websocket::{
-    bus::{WebsocketCarrier, WebsocketConnectionBus, WebsocketListenerBus},
-    message::{
-        connection::{WebsocketRecv, WebsocketSend},
-        listener::WebsocketConnectionMessage,
-    },
+    bus::{WebsocketCarrier, WebsocketListenerBus},
+    message::listener::WebsocketConnectionMessage,
     resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
-    service::{WebsocketListenerService, WebsocketService},
+    service::WebsocketListenerService,
 };
 
 struct CliLifeline {

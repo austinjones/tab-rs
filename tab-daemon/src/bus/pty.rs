@@ -1,9 +1,8 @@
 use crate::prelude::*;
 use crate::{
     message::{
-        cli::{CliRecv, CliSend, CliShutdown},
         pty::{PtyRecv, PtySend, PtyShutdown},
-        tab::{TabInput, TabOutput, TabRecv, TabScrollback, TabSend},
+        tab::{TabOutput, TabRecv, TabScrollback, TabSend},
     },
     state::{
         pty::{PtyScrollback, PtyState},
@@ -14,16 +13,10 @@ use crate::{
 use std::sync::Arc;
 
 use tab_api::{
-    chunk::OutputChunk,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::{TabId, TabMetadata},
 };
-use tab_websocket::{
-    bus::{WebsocketConnectionBus, WebsocketMessageBus},
-    message::connection::{WebsocketRecv, WebsocketSend},
-    resource::connection::WebsocketResource,
-    service::WebsocketService,
-};
+use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use tokio::{
     stream::StreamExt,
     sync::{broadcast, mpsc, watch},
@@ -97,6 +90,10 @@ impl FromCarrier<ListenerBus> for PtyBus {
 
                     match msg.unwrap() {
                         TabRecv::Assign(offer) => {
+                            if rx_id.borrow().is_assigned() {
+                                continue;
+                            }
+
                             if let Some(assignment) = offer.take() {
                                 tx_pty_state
                                     .broadcast(PtyState::Assigned(assignment.id))

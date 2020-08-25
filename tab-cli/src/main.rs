@@ -7,21 +7,12 @@ use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
-use std::{
-    process::Stdio,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 
 use dyn_bus::DynBus;
 use tab_api::launch::*;
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::{
-    process::Command,
-    select,
-    signal::ctrl_c,
-    sync::{broadcast, mpsc},
-    time,
-};
+use tokio::sync::{broadcast, mpsc};
 
 mod bus;
 mod message;

@@ -2,12 +2,7 @@ use super::{tab_state::TabStateService, tabs::TabsStateService, terminal::Termin
 use crate::prelude::*;
 use crate::{
     bus::MainBus,
-    message::{
-        main::{MainRecv, MainShutdown},
-        tabs::TabsRecv,
-        terminal::{TerminalRecv, TerminalSend},
-    },
-    state::{tab::TabStateSelect, tabs::TabsState, terminal::TerminalMode},
+    message::main::{MainRecv, MainShutdown},
 };
 use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 
@@ -15,9 +10,7 @@ use lifeline::Task;
 
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
-    message::connection::{WebsocketRecv, WebsocketSend},
     resource::connection::WebsocketResource,
-    service::WebsocketService,
 };
 use tokio::stream::StreamExt;
 

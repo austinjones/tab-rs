@@ -11,12 +11,7 @@ use crate::{
 use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId};
-use tab_websocket::{
-    bus::{WebsocketConnectionBus, WebsocketMessageBus},
-    message::connection::{WebsocketRecv, WebsocketSend},
-    resource::connection::WebsocketResource,
-    service::WebsocketService,
-};
+use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
 
 lifeline_bus!(pub struct CliBus);
@@ -137,10 +132,10 @@ impl CliBus {
                     tx_manager.send(TabManagerRecv::CreateTab(create)).await?;
                 }
                 CliSend::CloseTab(id) => {
-                    tx_manager.send(TabManagerRecv::CloseTab(id));
+                    tx_manager.send(TabManagerRecv::CloseTab(id)).await?;
                 }
                 CliSend::CloseNamedTab(name) => {
-                    tx_manager.send(TabManagerRecv::CloseNamedTab(name));
+                    tx_manager.send(TabManagerRecv::CloseNamedTab(name)).await?;
                 }
                 CliSend::RequestScrollback(id) => {
                     tx.send(TabRecv::Scrollback(id))

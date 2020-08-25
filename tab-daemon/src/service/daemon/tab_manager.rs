@@ -57,7 +57,8 @@ impl Service for TabManagerService {
                                 &mut tx,
                                 &mut tx_tabs,
                                 &mut tx_tabs_state,
-                            )?;
+                            )
+                            .await?;
                         }
                     }
                     TabManagerRecv::CloseTab(close) => {
@@ -67,7 +68,8 @@ impl Service for TabManagerService {
                             &mut tx,
                             &mut tx_tabs,
                             &mut tx_tabs_state,
-                        )?;
+                        )
+                        .await?;
                     }
                 }
             }
@@ -79,7 +81,7 @@ impl Service for TabManagerService {
 }
 
 impl TabManagerService {
-    fn close_tab(
+    async fn close_tab(
         id: TabId,
         tabs: &mut HashMap<TabId, TabMetadata>,
         tx: &mut mpsc::Sender<TabManagerSend>,
@@ -88,8 +90,8 @@ impl TabManagerService {
     ) -> anyhow::Result<()> {
         tabs.remove(&id);
 
-        tx.send(TabManagerSend::TabTerminated(id));
-        tx_close.send(TabRecv::Terminate(id));
+        tx.send(TabManagerSend::TabTerminated(id)).await?;
+        tx_close.send(TabRecv::Terminate(id)).map_err(into_msg)?;
         tx_tabs_state.broadcast(TabsState::new(&tabs))?;
 
         Ok(())

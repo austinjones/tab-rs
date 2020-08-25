@@ -17,6 +17,13 @@ impl Default for PtyState {
 }
 
 impl PtyState {
+    pub fn is_assigned(&self) -> bool {
+        match self {
+            PtyState::Assigned(_) => true,
+            PtyState::None => false,
+        }
+    }
+
     pub fn has_assigned(&self, match_id: TabId) -> bool {
         if let PtyState::Assigned(id) = self {
             *id == match_id
