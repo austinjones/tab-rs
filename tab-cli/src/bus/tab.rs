@@ -245,9 +245,11 @@ impl CarryFrom<MainBus> for TabBus {
                                         tx_websocket.send(request).await?;
                                     }
 
+                                    error!("retask - waiting for creation on tab {}", id);
                                     let metadata =
                                         Self::await_created(name, &mut rx_tabs_state).await;
 
+                                    error!("retask - sending retask to tab {}", id);
                                     let request = Request::Retask(id, metadata.id);
                                     tx_websocket.send(request).await?;
                                     tx_shutdown.send(MainShutdown {}).await?;
@@ -364,7 +366,15 @@ impl TabBus {
         }
     }
 
-    async fn await_created(name: String, rx: &mut impl Receiver<TabsState>) -> TabMetadata {
+    async fn await_created(name: String, rx: &mut watch::Receiver<TabsState>) -> TabMetadata {
+        {
+            let borrow = rx.borrow();
+            let existing = borrow.tabs.values().find(|tab| tab.name == name);
+            if let Some(metadata) = existing {
+                return metadata.clone();
+            }
+        }
+
         // TODO: 2 second timeout?
         loop {
             let state = rx.recv().await;
