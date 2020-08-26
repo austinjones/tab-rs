@@ -21,10 +21,7 @@ use tab_api::{
     launch::launch_pty,
     tab::{TabId, TabMetadata},
 };
-use tokio::{
-    sync::{broadcast, mpsc, watch},
-    time,
-};
+use tokio::{sync::mpsc, time};
 
 pub struct TabManagerService {
     _recv: Lifeline,

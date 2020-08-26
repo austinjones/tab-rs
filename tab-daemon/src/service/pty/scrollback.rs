@@ -6,7 +6,7 @@ use crate::{
 
 use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
-use tokio::{stream::StreamExt, sync::Mutex};
+use tokio::sync::Mutex;
 
 static MAX_CHUNK_LEN: usize = 4096;
 
