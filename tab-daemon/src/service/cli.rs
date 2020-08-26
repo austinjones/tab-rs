@@ -175,7 +175,6 @@ impl CliService {
                             subscription_index,
                         )
                         .await?;
-                        subscription_index.insert(subscription_id, index);
                     }
                 }
             }
@@ -212,6 +211,13 @@ impl CliService {
                 return Ok(());
             }
         }
+
+        debug!(
+            "tx subscription {}, chunk {}, len {}",
+            subscription_id,
+            chunk.index,
+            chunk.data.len()
+        );
 
         let response = Response::Output(id, chunk);
         tx_websocket
