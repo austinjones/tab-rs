@@ -79,7 +79,9 @@ impl Service for CliService {
                         Self::recv_daemon(
                             msg,
                             &rx_subscription,
+                            &mut tx_subscription,
                             &mut tx_websocket,
+                            &mut tx_daemon,
                             &mut subscription_index,
                         )
                         .await?
@@ -140,6 +142,11 @@ impl CliService {
                 let message = CliSend::CloseNamedTab(name);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
+            Request::Retask(id, name) => {
+                // we need to send this along so other attached tabs get retasked
+                let message = CliSend::Retask(id, name);
+                tx_daemon.send(message).await?;
+            }
         }
 
         Ok(())
@@ -148,7 +155,9 @@ impl CliService {
     async fn recv_daemon(
         msg: CliRecv,
         rx_subscription: &subscription::Receiver<TabId>,
+        tx_subscription: &mut impl Sender<Subscription<TabId>>,
         tx_websocket: &mut impl Sender<Response>,
+        tx_daemon: &mut impl Sender<CliSend>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         trace!("message from daemon: {:?}", &msg);
@@ -192,6 +201,15 @@ impl CliService {
                     .send(Response::TabTerminated(id))
                     .await
                     .context("tx_websocket closed")?;
+            }
+            CliRecv::Retask(from, to) => {
+                debug!("acknowledging retask from {:?} to {:?}, updating subscriptions & requesting scrollback", from, to);
+                tx_websocket.send(Response::Retask(to)).await?;
+                tx_subscription
+                    .send(Subscription::Unsubscribe(from))
+                    .await?;
+                tx_subscription.send(Subscription::Subscribe(to)).await?;
+                tx_daemon.send(CliSend::RequestScrollback(to)).await?;
             }
         }
         Ok(())

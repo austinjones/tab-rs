@@ -123,6 +123,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
 
                             tx_pty.send(PtyRecv::Resize(dimensions)).await?;
                         }
+                        TabRecv::Retask(_, _) => {}
                     }
                 }
 

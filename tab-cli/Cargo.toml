@@ -11,9 +11,6 @@ name = "tab"
 path = "src/main.rs"
 
 [dependencies]
-error-chain = "0.12"
-
-
 tab-api = { path = "../common/tab-api" }
 tab-websocket = { path = "../common/tab-websocket" }
 tab-daemon = { path = "../tab-daemon" }

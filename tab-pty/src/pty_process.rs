@@ -1,4 +1,4 @@
-use log::{debug, error, info};
+use log::{error, info};
 use std::{
     collections::HashMap,
     process::{Command, ExitStatus},

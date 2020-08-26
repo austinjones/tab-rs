@@ -25,6 +25,9 @@ pub enum Request {
     /// Resizes the given tab, to the provided (cols, rows)
     ResizeTab(TabId, (u16, u16)),
 
+    /// Re-tasks clients with the tabid selected to the given tab
+    Retask(TabId, TabId),
+
     /// Terminates the shell on the given tab
     CloseTab(TabId),
 
@@ -37,6 +40,7 @@ pub enum Response {
     Init(InitResponse),
     Output(TabId, OutputChunk),
     TabUpdate(TabMetadata),
+    Retask(TabId),
     TabList(Vec<TabMetadata>),
     TabTerminated(TabId),
 }
