@@ -14,7 +14,7 @@ use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc};
 
 lifeline_bus!(pub struct CliBus);
 

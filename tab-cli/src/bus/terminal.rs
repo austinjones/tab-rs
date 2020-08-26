@@ -104,7 +104,7 @@ impl CarryFrom<MainBus> for TerminalBus {
         };
 
         let _read_input = {
-            let mut rx_tab_state = from.rx::<TabState>()?.into_inner();
+            let rx_tab_state = from.rx::<TabState>()?.into_inner();
             let mut rx_terminal_input = self.rx::<TerminalSend>()?;
             let mut tx_request = from.tx::<Request>()?;
 

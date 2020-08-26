@@ -3,7 +3,7 @@ use crate::{
     prelude::*,
     state::pty::PtyScrollback,
 };
-use lifeline::prelude::*;
+
 use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
 use tokio::{stream::StreamExt, sync::Mutex};

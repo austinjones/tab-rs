@@ -11,13 +11,6 @@ use tab_api::{launch::*, pty::PtyWebsocketRequest};
 use lifeline::dyn_bus::DynBus;
 use service::main::MainService;
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::{
-    process::Command,
-    select,
-    signal::ctrl_c,
-    sync::{broadcast, mpsc},
-    time,
-};
 
 mod bus;
 mod message;

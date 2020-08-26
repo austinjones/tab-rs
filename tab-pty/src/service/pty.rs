@@ -4,16 +4,9 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest},
 };
 
-use lifeline::prelude::*;
-use lifeline::prelude::*;
-
 use tab_api::{
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabId,
-};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc},
 };
 
 pub struct PtyService {

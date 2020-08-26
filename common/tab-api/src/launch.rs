@@ -5,7 +5,7 @@ use std::{
     process::Stdio,
     time::{Duration, Instant},
 };
-use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
+use tokio::{process::Command, select, signal::ctrl_c, time};
 
 pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     let exec = std::env::current_exe()?;

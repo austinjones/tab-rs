@@ -3,17 +3,13 @@ use crate::message::cli::{CliRecv, CliSend};
 use crate::prelude::*;
 use crate::state::tab::TabsState;
 use anyhow::Context;
-use lifeline::{prelude::*, subscription};
+use lifeline::subscription;
 use std::collections::HashMap;
 use tab_api::{chunk::OutputChunk, client::InitResponse, tab::TabId};
 
 use subscription::Subscription;
 use time::Duration;
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc},
-    time,
-};
+use tokio::{stream::StreamExt, time};
 
 pub struct CliService {
     _run: Lifeline,
@@ -166,7 +162,7 @@ impl CliService {
                     let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();
 
                     for chunk in message.scrollback().await {
-                        let index = chunk.index;
+                        let _index = chunk.index;
                         Self::send_output(
                             message.id,
                             subscription_id,

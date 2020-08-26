@@ -5,8 +5,7 @@ use crate::{
 };
 
 use anyhow::Context;
-use lifeline::prelude::*;
-use lifeline::prelude::*;
+
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tokio::stream::StreamExt;
@@ -25,9 +24,9 @@ impl Service for TabStateService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
-        let mut rx_tab = bus.rx::<TabStateSelect>()?;
-        let mut rx_tab_metadata = bus.rx::<TabMetadata>()?.into_inner();
-        let mut rx_tab_terminated = bus.rx::<TabTerminated>()?;
+        let rx_tab = bus.rx::<TabStateSelect>()?;
+        let rx_tab_metadata = bus.rx::<TabMetadata>()?.into_inner();
+        let rx_tab_terminated = bus.rx::<TabTerminated>()?;
 
         let mut tx = bus.tx::<TabState>()?;
         let mut tx_websocket = bus.tx::<Request>()?;

@@ -2,10 +2,7 @@ use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    sync::{broadcast, mpsc},
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub struct TerminalEchoService {
     _input: Lifeline,

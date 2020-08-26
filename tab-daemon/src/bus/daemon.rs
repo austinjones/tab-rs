@@ -3,7 +3,7 @@ use crate::prelude::*;
 use lifeline::Resource;
 use tab_api::config::DaemonConfig;
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
 
 lifeline_bus!(pub struct DaemonBus);
 

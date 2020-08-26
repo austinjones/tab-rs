@@ -100,7 +100,7 @@ impl CarryFrom<MainBus> for TabBus {
 
         let _create_tab = {
             let mut rx_tab_state = self.rx::<TabState>()?;
-            let mut rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
+            let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
             let mut tx_request = from.tx::<Request>()?;
 
             Self::try_task("request_tab", async move {
@@ -120,7 +120,7 @@ impl CarryFrom<MainBus> for TabBus {
         };
 
         let _rx_response = {
-            let mut rx_tab_state = self.rx::<TabState>()?.into_inner();
+            let rx_tab_state = self.rx::<TabState>()?.into_inner();
             let mut rx_response = from.rx::<Response>()?;
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;

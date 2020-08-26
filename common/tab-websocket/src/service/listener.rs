@@ -13,7 +13,7 @@ use log::{debug, error};
 use lifeline::prelude::*;
 use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
 use std::net::SocketAddr;
-use tokio::{net::TcpListener, sync::mpsc};
+use tokio::net::TcpListener;
 
 pub struct WebsocketListenerService {
     _accept: Lifeline,

@@ -15,9 +15,8 @@ use log::{error, trace};
 use anyhow::Context;
 use std::fmt::Debug;
 
-use lifeline::{
-    error::{ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError},
-    prelude::*,
+use lifeline::error::{
+    ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError,
 };
 use thiserror::Error;
 use tungstenite::Error;
@@ -149,7 +148,7 @@ mod test {
         service::listener,
     };
     use lifeline::prelude::*;
-    use lifeline::{assert_completes, dyn_bus::DynBus, prelude::*};
+    use lifeline::{assert_completes, dyn_bus::DynBus};
     use tungstenite::Message;
 
     #[tokio::test]

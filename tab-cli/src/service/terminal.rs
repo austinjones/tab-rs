@@ -9,8 +9,7 @@ use crate::{
 };
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
-use lifeline::prelude::*;
-use lifeline::prelude::*;
+
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;
