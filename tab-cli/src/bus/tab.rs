@@ -93,7 +93,7 @@ impl CarryFrom<MainBus> for TabBus {
             let mut tx = from.tx::<MainShutdown>()?;
             Self::try_task("forward_shutdown", async move {
                 rx.recv().await;
-                tx.send(MainShutdown {}).await?;
+                tx.send(MainShutdown {}).await.ok();
                 Ok(())
             })
         };
