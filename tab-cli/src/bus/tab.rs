@@ -6,13 +6,14 @@ use crate::{
     },
     prelude::*,
     state::{
-        tab::{TabState, TabStateAvailable, TabStateSelect},
+        tab::{SelectTab, TabState, TabStateAvailable},
         tabs::TabsState,
         terminal::TerminalSizeState,
     },
 };
 use anyhow::Context;
 use std::collections::HashMap;
+
 use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
 use tokio::{
     stream::StreamExt,
@@ -22,6 +23,10 @@ use tokio::{
 lifeline_bus!(pub struct TabBus);
 
 impl Message<TabBus> for Request {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<TabBus> for SelectTab {
     type Channel = mpsc::Sender<Self>;
 }
 
@@ -35,10 +40,6 @@ impl Message<TabBus> for TabMetadata {
 
 impl Message<TabBus> for TabTerminated {
     type Channel = mpsc::Sender<Self>;
-}
-
-impl Message<TabBus> for TabStateSelect {
-    type Channel = watch::Sender<Self>;
 }
 
 impl Message<TabBus> for TabStateAvailable {
@@ -133,6 +134,7 @@ impl CarryFrom<MainBus> for TabBus {
             let mut tx_tab_metadata = self.tx::<TabMetadata>()?;
             let mut tx_available_tabs = self.tx::<TabStateAvailable>()?;
             let mut tx_tab_terminated = self.tx::<TabTerminated>()?;
+            let mut tx_select_tab = self.tx::<SelectTab>()?;
 
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
 
@@ -171,6 +173,10 @@ impl CarryFrom<MainBus> for TabBus {
                                     .context("tx MainShutdown")?;
                             }
                         }
+                        Response::Retask(to_id) => {
+                            let state = SelectTab::Tab(to_id);
+                            tx_select_tab.send(state).await?;
+                        }
                         _ => {}
                     }
                 }
@@ -195,17 +201,62 @@ impl CarryFrom<MainBus> for TabBus {
         };
 
         let _main = {
-            let mut rx_tabs_state = self.rx::<TabsState>()?;
+            let mut rx_tabs_state = self.rx::<TabsState>()?.into_inner();
+            let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
             let mut rx_main = from.rx::<MainRecv>()?;
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
-            let mut tx_select_tab = self.tx::<TabStateSelect>()?;
+            let mut tx_select = self.tx::<SelectTab>()?;
+            let mut tx_websocket = self.tx::<Request>()?;
 
             Self::try_task("main_recv", async move {
                 while let Some(msg) = rx_main.recv().await {
                     match msg {
                         MainRecv::SelectTab(name) => {
-                            tx_select_tab
-                                .send(TabStateSelect::Selected(name))
+                            if let Ok(id) = std::env::var("TAB_ID") {
+                                if let Ok(id) = id.parse() {
+                                    if let Ok(env_name) = std::env::var("TAB") {
+                                        // we don't need any change.  we can ignore it.
+                                        if name.trim() == env_name.trim() {
+                                            tx_shutdown.send(MainShutdown {}).await?;
+                                            continue;
+                                        }
+                                    }
+
+                                    info!("retasking tab {} with new selection {}.", id, &name);
+                                    let id = TabId(id);
+
+                                    Self::await_initialized(&mut rx_tabs_state).await;
+
+                                    let tab_exists = rx_tabs_state
+                                        .borrow()
+                                        .tabs
+                                        .values()
+                                        .find(|tab| tab.name == name)
+                                        .is_some();
+                                    if !tab_exists {
+                                        // TODO: move this to a helper and unify across all creation points
+                                        let metadata = CreateTabMetadata {
+                                            name: name.clone(),
+                                            dimensions: rx_terminal_size.borrow().0.clone(),
+                                            shell: std::env::var("SHELL")
+                                                .unwrap_or("/usr/bin/env bash".to_string()),
+                                        };
+                                        let request = Request::CreateTab(metadata);
+                                        tx_websocket.send(request).await?;
+                                    }
+
+                                    let metadata =
+                                        Self::await_created(name, &mut rx_tabs_state).await;
+
+                                    let request = Request::Retask(id, metadata.id);
+                                    tx_websocket.send(request).await?;
+                                    tx_shutdown.send(MainShutdown {}).await?;
+                                    continue;
+                                }
+                            }
+
+                            tx_select
+                                .send(SelectTab::NamedTab(name))
                                 .await
                                 .context("send TabStateSelect")?;
                         }
@@ -231,7 +282,9 @@ impl CarryFrom<MainBus> for TabBus {
                                 tx_shutdown.send(MainShutdown {}).await?;
                             }
                         }
-                        _ => {}
+
+                        MainRecv::SelectInteractive => {}
+                        MainRecv::CloseTab(_) => {}
                     }
                 }
 
@@ -300,5 +353,37 @@ impl TabBus {
         }
 
         return matches;
+    }
+
+    async fn await_initialized(rx: &mut impl Receiver<TabsState>) {
+        let mut state = rx.recv().await;
+        // TODO: 2 second timeout?
+
+        while state.is_some() && !state.unwrap().initialized {
+            state = rx.recv().await;
+        }
+    }
+
+    async fn await_created(name: String, rx: &mut impl Receiver<TabsState>) -> TabMetadata {
+        // TODO: 2 second timeout?
+        loop {
+            let state = rx.recv().await;
+
+            if !state.is_some() {
+                continue;
+            }
+
+            let state = state.unwrap();
+
+            if !state.initialized {
+                continue;
+            }
+
+            for (_id, metadata) in state.tabs {
+                if metadata.name == name {
+                    return metadata;
+                }
+            }
+        }
     }
 }

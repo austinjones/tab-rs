@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
     message::{client::TabTerminated, tabs::TabShutdown},
-    state::tab::{TabState, TabStateSelect},
+    state::tab::{SelectTab, TabState},
 };
 
 use anyhow::Context;
@@ -14,7 +14,7 @@ pub struct TabStateService {
 }
 
 enum Event {
-    Select(TabStateSelect),
+    Select(SelectTab),
     Metadata(TabMetadata),
     Terminated(TabId),
 }
@@ -24,7 +24,7 @@ impl Service for TabStateService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
-        let rx_tab = bus.rx::<TabStateSelect>()?;
+        let rx_select = bus.rx::<SelectTab>()?;
         let rx_tab_metadata = bus.rx::<TabMetadata>()?.into_inner();
         let rx_tab_terminated = bus.rx::<TabTerminated>()?;
 
@@ -36,7 +36,7 @@ impl Service for TabStateService {
             let mut state = TabState::None;
 
             let mut events = {
-                let tabs = rx_tab.map(|elem| Event::Select(elem));
+                let tabs = rx_select.map(|elem| Event::Select(elem));
                 let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem.unwrap()));
                 let tab_terminated = rx_tab_terminated.map(|elem| Event::Terminated(elem.0));
                 tabs.merge(tab_metadatas).merge(tab_terminated)
@@ -47,26 +47,38 @@ impl Service for TabStateService {
             while let Some(event) = events.next().await {
                 match event {
                     Event::Select(select) => match select {
-                        TabStateSelect::None => {}
-                        TabStateSelect::Selected(name) => {
-                            let name = name.as_str();
-
-                            if state.is_selected_name(name) || state.is_awaiting(name) {
+                        SelectTab::NamedTab(name) => {
+                            if state.is_awaiting(name.as_str()) {
                                 continue;
-                            }
-
-                            if let TabState::Selected(id, _meta) = state {
-                                tx_websocket.send(Request::Unsubscribe(id)).await?;
                             }
 
                             state = if let Some(id) = tabs.get(&name.to_string()) {
                                 info!("selected tab {}", name);
+
+                                if let TabState::Selected(id) = state {
+                                    tx_websocket.send(Request::Unsubscribe(id)).await?;
+                                }
+
                                 tx_websocket.send(Request::Subscribe(*id)).await?;
-                                TabState::Selected(*id, name.to_string())
+                                TabState::Selected(*id)
                             } else {
                                 info!("awaiting tab {}", name);
                                 TabState::Awaiting(name.to_string())
                             };
+
+                            tx.send(state.clone()).await?;
+                        }
+                        SelectTab::Tab(id) => {
+                            if state.is_selected(&id) {
+                                continue;
+                            }
+
+                            if let TabState::Selected(id) = state {
+                                tx_websocket.send(Request::Unsubscribe(id)).await?;
+                            }
+
+                            tx_websocket.send(Request::Subscribe(id));
+                            state = TabState::Selected(id);
 
                             tx.send(state.clone()).await?;
                         }
@@ -75,7 +87,7 @@ impl Service for TabStateService {
                         if state.is_awaiting(metadata.name.as_str()) {
                             info!("tab active {}", metadata.name.as_str());
 
-                            state = TabState::Selected(metadata.id, metadata.name.clone());
+                            state = TabState::Selected(metadata.id);
                             tx.send(state.clone()).await?;
 
                             tx_websocket.send(Request::Subscribe(metadata.id)).await?;
@@ -86,7 +98,7 @@ impl Service for TabStateService {
                         tabs.insert(name, id);
                     }
                     Event::Terminated(terminated_id) => {
-                        if let TabState::Selected(selected_id, ref _name) = state {
+                        if let TabState::Selected(selected_id) = state {
                             if terminated_id == selected_id {
                                 state = TabState::None;
                                 tx.send(state.clone()).await?;

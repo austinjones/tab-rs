@@ -2,6 +2,7 @@ use crate::prelude::*;
 use listener::ListenerService;
 
 mod listener;
+mod retask;
 mod tab_manager;
 
 pub struct DaemonService {
