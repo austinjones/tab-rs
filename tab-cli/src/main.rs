@@ -54,13 +54,13 @@ fn init() -> ArgMatches<'static> {
         .version("0.1")
         .author("Austin Jones <implAustin@gmail.com>")
         .about("Provides persistent terminal sessions with multiplexing.")
-        .arg(
-            Arg::with_name("DEBUG")
-                .long("debug")
-                .required(false)
-                .takes_value(false)
-                .help("enables debug logging"),
-        )
+        // .arg(
+        //     Arg::with_name("DEBUG")
+        //         .long("debug")
+        //         .required(false)
+        //         .takes_value(false)
+        //         .help("enables debug logging"),
+        // )
         .arg(
             Arg::with_name("LAUNCH")
                 .long("_launch")
@@ -79,16 +79,16 @@ fn init() -> ArgMatches<'static> {
             Arg::with_name("CLOSE")
                 .short("w")
                 .takes_value(false)
-                .help("print debug information verbosely"),
+                .help("closes the tab with the given name"),
         )
         .arg(
             Arg::with_name("LIST")
                 .short("l")
-                .help("lists all the active tabs"),
+                .help("lists the active tabs"),
         )
         .arg(
-            Arg::with_name("TAB")
-                .help("Switches to the provided tab")
+            Arg::with_name("TAB-NAME")
+                .help("switches to the provided tab")
                 .required(false)
                 .index(1),
         )
@@ -103,7 +103,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     )])
     .unwrap();
 
-    let select_tab = matches.value_of("TAB");
+    let select_tab = matches.value_of("TAB-NAME");
     let (mut tx, shutdown, _service) = spawn().await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");
