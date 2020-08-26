@@ -4,8 +4,12 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest},
 };
 
-use std::collections::HashMap;
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::{Hash, Hasher},
+};
 use tab_api::{
+    config::history_path,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabId,
 };
@@ -48,6 +52,28 @@ impl PtyService {
                     env.insert("SHELL".to_string(), create.shell.clone());
                     env.insert("TAB".to_string(), create.name.clone());
                     env.insert("TAB_ID".to_string(), create.id.0.to_string());
+
+                    // todo: better resolution of shells
+                    if create.shell.ends_with("fish") {
+                        let mut hasher = DefaultHasher::new();
+                        name.hash(&mut hasher);
+                        let id = hasher.finish();
+
+                        let history = format!("tab_{}", id);
+
+                        env.insert("fish_history".to_string(), history);
+                    } else if create.shell.ends_with("bash") {
+                        let home = history_path("fish", create.name.as_str())?;
+                        std::fs::create_dir_all(home.parent().unwrap())?;
+
+                        env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                    } else if create.shell.ends_with("zsh") {
+                        // this doesn't work on OSX.  /etc/zshrc overwrites it
+                        let home = history_path("zsh", create.name.as_str())?;
+                        std::fs::create_dir_all(home.parent().unwrap())?;
+
+                        env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                    }
 
                     let options = PtyOptions {
                         dimensions: create.dimensions,
