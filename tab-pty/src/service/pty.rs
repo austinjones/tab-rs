@@ -4,17 +4,9 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest},
 };
 
-use error::into_msg;
-use lifeline::Task;
-use lifeline::{Bus, Lifeline, Service};
-
 use tab_api::{
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabId,
-};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc},
 };
 
 pub struct PtyService {
@@ -39,19 +31,13 @@ impl Service for PtyService {
 
 impl PtyService {
     async fn run(
-        mut rx: broadcast::Receiver<PtyWebsocketRequest>,
-        tx: broadcast::Sender<PtyWebsocketResponse>,
-        mut tx_shutdown: mpsc::Sender<PtyShutdown>,
+        mut rx: impl Receiver<PtyWebsocketRequest>,
+        mut tx: impl Sender<PtyWebsocketResponse> + Clone + Send + 'static,
+        mut tx_shutdown: impl Sender<PtyShutdown> + Clone + Send + 'static,
     ) -> anyhow::Result<()> {
         let mut sender = None;
         let mut _echo = None;
-        while let Some(msg) = rx.next().await {
-            if let Err(_e) = msg {
-                continue;
-            }
-
-            let msg = msg.unwrap();
-
+        while let Some(msg) = rx.recv().await {
             match msg {
                 PtyWebsocketRequest::Init(create) => {
                     debug!("initializing on tab {}", create.id);
@@ -71,8 +57,7 @@ impl PtyService {
                     sender = Some(send);
 
                     info!("tab initialized, name {}", name);
-                    tx.send(PtyWebsocketResponse::Started(create))
-                        .map_err(into_msg)?;
+                    tx.send(PtyWebsocketResponse::Started(create)).await?;
                 }
                 PtyWebsocketRequest::Input(input) => {
                     if let Some(ref mut pty) = sender {
@@ -95,18 +80,17 @@ impl PtyService {
     async fn output(
         _id: TabId,
         mut rx: PtyReceiver,
-        tx: broadcast::Sender<PtyWebsocketResponse>,
-        mut tx_shutdown: mpsc::Sender<PtyShutdown>,
+        mut tx: impl Sender<PtyWebsocketResponse>,
+        mut tx_shutdown: impl Sender<PtyShutdown>,
     ) -> anyhow::Result<()> {
         loop {
             let msg = rx.recv().await?;
             match msg {
                 crate::pty_process::PtyResponse::Output(out) => {
-                    tx.send(PtyWebsocketResponse::Output(out))
-                        .map_err(into_msg)?;
+                    tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
                 crate::pty_process::PtyResponse::Terminated(_term) => {
-                    tx.send(PtyWebsocketResponse::Stopped).map_err(into_msg)?;
+                    tx.send(PtyWebsocketResponse::Stopped).await?;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }

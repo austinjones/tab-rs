@@ -5,8 +5,8 @@ use crate::{
     service::{cli::CliService, pty::PtyService},
 };
 use anyhow::Context;
-use dyn_bus::DynBus;
 
+use lifeline::dyn_bus::DynBus;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketListenerBus},
     message::listener::WebsocketConnectionMessage,
@@ -127,13 +127,16 @@ impl ListenerService {
     }
 
     async fn run_cli(bus: CliBus, _connection: CliLifeline) -> anyhow::Result<()> {
-        let shutdown = bus.rx::<CliShutdown>()?;
+        let mut shutdown = bus.rx::<CliShutdown>()?;
 
         // keep service alive until we get a shutdown signal
         let _service = CliService::spawn(&bus)?;
         drop(bus);
 
-        shutdown.await.context("rx ConnectionShutdown closed")?;
+        shutdown
+            .recv()
+            .await
+            .context("rx ConnectionShutdown closed")?;
 
         Ok(())
     }
@@ -160,7 +163,7 @@ mod tests {
 
     use async_tungstenite::tokio::connect_async;
     use http::StatusCode;
-    use lifeline::{dyn_bus::DynBus, Bus, Service};
+    use lifeline::{dyn_bus::DynBus, prelude::*};
     use std::fmt::Debug;
     use tab_api::config::DaemonConfig;
     use tab_websocket::bus::WebsocketConnectionBus;

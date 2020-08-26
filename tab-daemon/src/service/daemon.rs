@@ -1,8 +1,6 @@
 use crate::prelude::*;
 use listener::ListenerService;
 
-use lifeline::Service;
-
 mod listener;
 mod tab_manager;
 

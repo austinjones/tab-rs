@@ -2,7 +2,7 @@ use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
     resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
 };
-use lifeline::{lifeline_bus, Message, Resource};
+use lifeline::{prelude::*, Resource};
 use tokio::sync::mpsc;
 
 lifeline_bus!(pub struct WebsocketConnectionBus);

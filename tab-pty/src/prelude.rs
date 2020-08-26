@@ -1,3 +1,3 @@
 pub use crate::bus::PtyBus;
-pub use lifeline::*;
+pub use lifeline::prelude::*;
 pub use log::*;

@@ -1,10 +1,11 @@
 use crate::config::{is_running, load_daemon_file, DaemonConfig};
+use lifeline::prelude::*;
 use log::*;
 use std::{
     process::Stdio,
     time::{Duration, Instant},
 };
-use tokio::{process::Command, select, signal::ctrl_c, sync::mpsc, time};
+use tokio::{process::Command, select, signal::ctrl_c, time};
 
 pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     let exec = std::env::current_exe()?;
@@ -67,7 +68,7 @@ pub fn launch_pty() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn wait_for_shutdown<T>(mut receiver: mpsc::Receiver<T>) {
+pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
     info!("Waiting for termination");
 
     loop {
@@ -76,6 +77,11 @@ pub async fn wait_for_shutdown<T>(mut receiver: mpsc::Receiver<T>) {
                 break;
             },
             _ = receiver.recv() => {
+                // wait just a few moments for messages to settle.
+                // if we terminate immediately, there could be terminal I/O going on.
+                // example:
+                //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
+                time::delay_for(Duration::from_millis(20)).await;
                 break;
             }
         }

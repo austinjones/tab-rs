@@ -9,10 +9,9 @@ use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
 use std::time::Duration;
 
-use dyn_bus::DynBus;
+use lifeline::dyn_bus::DynBus;
 use tab_api::launch::*;
 use tab_websocket::resource::connection::WebsocketResource;
-use tokio::sync::{broadcast, mpsc};
 
 mod bus;
 mod message;
@@ -105,25 +104,22 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     .unwrap();
 
     let select_tab = matches.value_of("TAB");
-    let (tx, shutdown, _service) = spawn().await?;
+    let (mut tx, shutdown, _service) = spawn().await?;
     let completion = matches.value_of("COMPLETION");
     let close = matches.is_present("CLOSE");
 
     if let Some(comp) = completion {
-        tx.send(MainRecv::AutocompleteTab(comp.to_string()))
-            .map_err(into_msg)?;
+        tx.send(MainRecv::AutocompleteTab(comp.to_string())).await?;
     } else if matches.is_present("LIST") {
-        tx.send(MainRecv::ListTabs).map_err(into_msg)?;
+        tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
         if close {
-            tx.send(MainRecv::CloseTab(tab.to_string()))
-                .map_err(into_msg)?;
+            tx.send(MainRecv::CloseTab(tab.to_string())).await?;
         } else {
-            tx.send(MainRecv::SelectTab(tab.to_string()))
-                .map_err(into_msg)?;
+            tx.send(MainRecv::SelectTab(tab.to_string())).await?;
         }
     } else {
-        tx.send(MainRecv::SelectInteractive).map_err(into_msg)?;
+        tx.send(MainRecv::SelectInteractive).await?;
     }
 
     wait_for_shutdown(shutdown).await;
@@ -132,8 +128,8 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
 }
 
 async fn spawn() -> anyhow::Result<(
-    broadcast::Sender<MainRecv>,
-    mpsc::Receiver<MainShutdown>,
+    impl Sender<MainRecv>,
+    impl Receiver<MainShutdown>,
     MainService,
 )> {
     let daemon_file = launch_daemon().await?;

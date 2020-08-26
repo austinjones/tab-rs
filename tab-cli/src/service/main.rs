@@ -4,15 +4,13 @@ use crate::{
     bus::MainBus,
     message::main::{MainRecv, MainShutdown},
 };
-use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
 
-use lifeline::Task;
+use lifeline::dyn_bus::DynBus;
 
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
 };
-use tokio::stream::StreamExt;
 
 pub struct MainService {
     _main: Lifeline,
@@ -40,7 +38,7 @@ impl Service for MainService {
 
         let mut rx_main = main_bus.rx::<MainRecv>()?;
         let _main = Self::try_task("main_recv", async move {
-            while let Some(msg) = rx_main.next().await {
+            while let Some(msg) = rx_main.recv().await {
                 debug!("MainRecv: {:?}", &msg);
                 // all the event types are handled by carriers
             }
@@ -77,22 +75,14 @@ impl Service for CloseTabService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx_main = bus.rx::<MainRecv>()?;
 
-        let tx_request = bus.tx::<Request>()?;
+        let mut tx_request = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 
         let _on_close = Self::try_task("on_close", async move {
-            while let Some(msg) = rx_main.next().await {
-                if msg.is_err() {
-                    continue;
-                }
-
-                let msg = msg.unwrap();
-
+            while let Some(msg) = rx_main.recv().await {
                 match msg {
                     MainRecv::CloseTab(name) => {
-                        tx_request
-                            .send(Request::CloseNamedTab(name))
-                            .map_err(into_msg)?;
+                        tx_request.send(Request::CloseNamedTab(name)).await?;
                         tx_shutdown.send(MainShutdown {}).await?;
                     }
                     _ => {}

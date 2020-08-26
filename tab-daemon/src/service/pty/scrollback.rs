@@ -3,7 +3,7 @@ use crate::{
     prelude::*,
     state::pty::PtyScrollback,
 };
-use lifeline::Service;
+
 use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
 use tokio::{stream::StreamExt, sync::Mutex};
@@ -24,15 +24,15 @@ impl Service for PtyScrollbackService {
 
         let _serve = {
             let mut rx = bus.rx::<PtyRecv>()?;
-            let tx = bus.tx::<PtySend>()?;
+            let mut tx = bus.tx::<PtySend>()?;
             let serve_scrollback = buffer.clone();
 
             Self::try_task("serve", async move {
-                while let Some(msg) = rx.next().await {
-                    if let Ok(PtyRecv::Scrollback) = msg {
+                while let Some(msg) = rx.recv().await {
+                    if let PtyRecv::Scrollback = msg {
                         let scrollback = serve_scrollback.handle();
                         let response = PtySend::Scrollback(scrollback);
-                        tx.send(response).map_err(into_msg)?;
+                        tx.send(response).await?;
                     }
                 }
 
@@ -44,8 +44,8 @@ impl Service for PtyScrollbackService {
             let mut rx = bus.rx::<PtySend>()?;
 
             Self::try_task("serve", async move {
-                while let Some(msg) = rx.next().await {
-                    if let Ok(PtySend::Output(output)) = msg {
+                while let Some(msg) = rx.recv().await {
+                    if let PtySend::Output(output) = msg {
                         buffer.push(output).await;
                     }
                 }
