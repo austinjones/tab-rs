@@ -116,6 +116,13 @@ impl CarryFrom<ListenerBus> for PtyBus {
 
                             tx_pty.send(PtyRecv::Terminate).await?;
                         }
+                        TabRecv::Resize(id, dimensions) => {
+                            if !rx_id.borrow().has_assigned(id) {
+                                continue;
+                            }
+
+                            tx_pty.send(PtyRecv::Resize(dimensions)).await?;
+                        }
                     }
                 }
 

@@ -21,6 +21,8 @@ pub struct TabOutput {
 pub enum TabRecv {
     Assign(Assignment<TabMetadata>),
     Scrollback(TabId),
+    /// Resizes the tab to the given number of (cols, rows)
+    Resize(TabId, (u16, u16)),
     Input(TabInput),
     Terminate(TabId),
 }

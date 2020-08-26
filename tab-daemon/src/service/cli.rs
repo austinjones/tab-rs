@@ -128,6 +128,10 @@ impl CliService {
                 let message = CliSend::CreateTab(create);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
+            Request::ResizeTab(id, dimensions) => {
+                debug!("resizing tab {} to {:?}", id.0, dimensions);
+                tx_daemon.send(CliSend::ResizeTab(id, dimensions)).await?;
+            }
             Request::CloseTab(id) => {
                 let message = CliSend::CloseTab(id);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;

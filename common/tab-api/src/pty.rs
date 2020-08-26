@@ -15,6 +15,7 @@ pub enum PtyWebsocketResponse {
 pub enum PtyWebsocketRequest {
     Init(TabMetadata),
     Input(InputChunk),
+    Resize((u16, u16)),
     Terminate,
 }
 

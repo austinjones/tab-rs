@@ -74,6 +74,11 @@ impl Service for PtyService {
                             let message = PtyWebsocketRequest::Input(input);
                             tx_websocket.send(message).await?;
                         }
+                        PtyRecv::Resize(dimensions) => {
+                            debug!("resizing pty to {:?}", &dimensions);
+                            let message = PtyWebsocketRequest::Resize(dimensions);
+                            tx_websocket.send(message).await?;
+                        }
                         PtyRecv::Terminate => {
                             tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
 
