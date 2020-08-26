@@ -26,7 +26,7 @@ impl Message<ListenerBus> for TabRecv {
 }
 
 impl Message<ListenerBus> for TabManagerSend {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<ListenerBus> for TabManagerRecv {

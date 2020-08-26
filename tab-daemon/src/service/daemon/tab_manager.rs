@@ -107,7 +107,6 @@ impl Service for TabManagerService {
                         TabManagerRecv::CreateTab(create) => {
                             for tab in tabs.values() {
                                 if tab.name == create.name {
-                                    debug!("got already created tab: {}", tab.name);
                                     continue 'msg;
                                 }
                             }
@@ -182,8 +181,6 @@ impl TabManagerService {
             .send(TabsState::new(&tabs))
             .await
             .context("tx_tabs_state TabsState")?;
-
-        debug!("got tabs: {:?}", tabs);
 
         Ok(())
     }
