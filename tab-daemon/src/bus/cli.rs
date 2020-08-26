@@ -8,6 +8,8 @@ use crate::{
     state::tab::TabsState,
 };
 
+use anyhow::Context;
+use lifeline::{subscription, Resource};
 use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId};
@@ -17,7 +19,7 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 lifeline_bus!(pub struct CliBus);
 
 impl Message<CliBus> for CliShutdown {
-    type Channel = oneshot::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<CliBus> for Request {
@@ -56,7 +58,7 @@ pub struct ListenerConnectionCarrier {
     _forward_tabs_state: Lifeline,
 }
 
-impl FromCarrier<ListenerBus> for CliBus {
+impl CarryFrom<ListenerBus> for CliBus {
     type Lifeline = anyhow::Result<ListenerConnectionCarrier>;
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
@@ -66,7 +68,7 @@ impl FromCarrier<ListenerBus> for CliBus {
         let tx_conn = self.tx::<CliRecv>()?;
         let rx_conn = self.rx::<CliSend>()?;
         let tx_manager = from.tx::<TabManagerRecv>()?;
-        let id_subscription = self.rx::<Subscription<TabId>>()?;
+        let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
         let tx_shutdown = self.tx::<CliShutdown>()?;
 
         let _forward = Self::try_task("output", Self::run_output(rx_tab, tx_conn, id_subscription));
@@ -80,7 +82,7 @@ impl FromCarrier<ListenerBus> for CliBus {
             let mut tx_tabs_state = self.tx::<TabsState>()?;
             Self::try_task("forward_tabs_state", async move {
                 while let Some(msg) = rx_tabs_state.recv().await {
-                    tx_tabs_state.send(msg).await.map_err(into_msg)?;
+                    tx_tabs_state.send(msg).await?;
                 }
 
                 Ok(())
@@ -97,31 +99,22 @@ impl FromCarrier<ListenerBus> for CliBus {
 
 impl CliBus {
     async fn run_output(
-        mut rx: broadcast::Receiver<TabSend>,
-        mut tx: mpsc::Sender<CliRecv>,
+        mut rx: impl Receiver<TabSend>,
+        mut tx: impl Sender<CliRecv>,
         id_subscription: subscription::Receiver<TabId>,
     ) -> anyhow::Result<()> {
-        loop {
-            let msg = rx.recv().await;
-            match msg {
-                Ok(msg) => Self::handle_tabsend(msg, &mut tx, &id_subscription).await?,
-                Err(broadcast::RecvError::Closed) => {
-                    break;
-                }
-                Err(broadcast::RecvError::Lagged(n)) => {
-                    error!("recv TabSend skipped {} messages", n)
-                }
-            }
+        while let Some(msg) = rx.recv().await {
+            Self::handle_tabsend(msg, &mut tx, &id_subscription).await?
         }
 
         Ok(())
     }
 
     async fn run_input(
-        mut rx: mpsc::Receiver<CliSend>,
-        tx: broadcast::Sender<TabRecv>,
-        mut tx_manager: mpsc::Sender<TabManagerRecv>,
-        tx_shutdown: oneshot::Sender<CliShutdown>,
+        mut rx: impl Receiver<CliSend>,
+        mut tx: impl Sender<TabRecv>,
+        mut tx_manager: impl Sender<TabManagerRecv>,
+        mut tx_shutdown: impl Sender<CliShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {
@@ -137,28 +130,29 @@ impl CliBus {
                 }
                 CliSend::RequestScrollback(id) => {
                     tx.send(TabRecv::Scrollback(id))
-                        .map_err(|_| anyhow::Error::msg("tx TabRecv::Scrollback"))?;
+                        .await
+                        .context("tx TabRecv::Scrollback")?;
                 }
                 CliSend::Input(id, input) => {
                     let stdin = Arc::new(input);
                     let input = TabInput { id, stdin };
                     let message = TabRecv::Input(input);
-                    tx.send(message)
-                        .map_err(|_| anyhow::Error::msg("tx TabRecv closed"))?;
+                    tx.send(message).await.context("tx TabRecv closed")?;
                 }
             }
         }
 
         tx_shutdown
             .send(CliShutdown {})
-            .map_err(|_| anyhow::Error::msg("tx ConnectionShutdown closed"))?;
+            .await
+            .context("tx ConnectionShutdown closed")?;
 
         Ok(())
     }
 
     async fn handle_tabsend(
         msg: TabSend,
-        tx: &mut mpsc::Sender<CliRecv>,
+        tx: &mut impl Sender<CliRecv>,
         id_subscription: &subscription::Receiver<TabId>,
     ) -> anyhow::Result<()> {
         match msg {

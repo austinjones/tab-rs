@@ -1,5 +1,6 @@
 use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
+use anyhow::Context;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -37,8 +38,8 @@ impl Drop for TerminalEchoService {
 }
 
 async fn forward_stdin(
-    tx: broadcast::Sender<TerminalSend>,
-    mut tx_shutdown: mpsc::Sender<TerminalShutdown>,
+    mut tx: impl Sender<TerminalSend>,
+    mut tx_shutdown: impl Sender<TerminalShutdown>,
 ) -> anyhow::Result<()> {
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
@@ -61,18 +62,19 @@ async fn forward_stdin(
         // TODO: use selected tab
         // TODO: better error handling for broadcast
         tx.send(TerminalSend::Stdin(buf))
-            .map_err(|_| anyhow::Error::msg("tx TerminalSend::Stdin"))?;
+            .await
+            .context("tx TerminalSend::Stdin")?;
     }
 
     Ok(())
 }
 
-async fn print_stdout(mut rx: broadcast::Receiver<TerminalRecv>) -> anyhow::Result<()> {
+async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()> {
     trace!("Waiting on messages...");
 
     let mut stdout = tokio::io::stdout();
 
-    while let Ok(message) = rx.recv().await {
+    while let Some(message) = rx.recv().await {
         match message {
             TerminalRecv::Stdout(data) => {
                 if data.len() == 0 {

@@ -1,6 +1,7 @@
 use crate::{message::listener::RequestMetadata, resource::listener::WebsocketAuthToken};
 use tungstenite::handshake::server::{Callback, ErrorResponse, Request, Response};
 
+use lifeline::prelude::*;
 use lifeline::request::Request as LifelineRequest;
 
 pub struct AuthHandler {

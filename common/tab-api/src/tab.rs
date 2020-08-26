@@ -1,4 +1,4 @@
-use lifeline::impl_storage_clone;
+use lifeline::{impl_storage_clone, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, PartialEq, Eq)]

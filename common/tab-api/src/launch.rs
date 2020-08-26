@@ -1,4 +1,5 @@
 use crate::config::{is_running, load_daemon_file, DaemonConfig};
+use lifeline::prelude::*;
 use log::*;
 use std::{
     process::Stdio,
@@ -67,7 +68,7 @@ pub fn launch_pty() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn wait_for_shutdown<T>(mut receiver: mpsc::Receiver<T>) {
+pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
     info!("Waiting for termination");
 
     loop {

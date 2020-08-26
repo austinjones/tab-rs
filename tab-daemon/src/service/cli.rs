@@ -3,10 +3,11 @@ use crate::message::cli::{CliRecv, CliSend};
 use crate::prelude::*;
 use crate::state::tab::TabsState;
 use anyhow::Context;
-use lifeline::subscription::Subscription;
+use lifeline::{prelude::*, subscription};
 use std::collections::HashMap;
 use tab_api::{chunk::OutputChunk, client::InitResponse, tab::TabId};
 
+use subscription::Subscription;
 use time::Duration;
 use tokio::{
     stream::StreamExt,
@@ -40,6 +41,7 @@ impl Service for CliService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let rx_websocket = bus
             .rx::<Request>()?
+            .into_inner()
             .filter(|r| r.is_ok())
             .map(|r| r.unwrap())
             .map(Event::websocket);
@@ -49,7 +51,7 @@ impl Service for CliService {
         let mut tx_websocket = bus.tx::<Response>()?;
         let mut tx_daemon = bus.tx::<CliSend>()?;
         let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
-        let rx_subscription = bus.rx::<Subscription<TabId>>()?;
+        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
         let mut rx_tabs_state = bus.rx::<TabsState>()?;
 
         let _run = Self::try_task("run", async move {
@@ -64,12 +66,12 @@ impl Service for CliService {
                 tabs: tabs.tabs.clone(),
             };
             let init = Response::Init(init);
-            tx_websocket.send(init).map_err(into_msg)?;
+            tx_websocket.send(init).await?;
 
             for tab in tabs.tabs.values() {
                 debug!("notifying client of existing tab {}", &tab.name);
                 let message = Response::TabUpdate(tab.clone());
-                tx_websocket.send(message).map_err(into_msg)?;
+                tx_websocket.send(message).await?;
             }
 
             while let Some(event) = rx.next().await {
@@ -99,8 +101,8 @@ impl Service for CliService {
 impl CliService {
     async fn recv_websocket(
         request: Request,
-        tx_subscription: &mut subscription::Sender<TabId>,
-        tx_daemon: &mut mpsc::Sender<CliSend>,
+        tx_subscription: &mut impl Sender<Subscription<TabId>>,
+        tx_daemon: &mut impl Sender<CliSend>,
     ) -> anyhow::Result<()> {
         debug!("received Request: {:?}", &request);
 
@@ -146,7 +148,7 @@ impl CliService {
     async fn recv_daemon(
         msg: CliRecv,
         rx_subscription: &subscription::Receiver<TabId>,
-        tx_websocket: &mut broadcast::Sender<Response>,
+        tx_websocket: &mut impl Sender<Response>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         trace!("message from daemon: {:?}", &msg);
@@ -154,7 +156,7 @@ impl CliService {
             CliRecv::TabStarted(metadata) => {
                 tx_websocket
                     .send(Response::TabUpdate(metadata))
-                    .map_err(into_msg)
+                    .await
                     .context("tx_websocket closed")?;
             }
             CliRecv::Scrollback(message) => {
@@ -189,7 +191,7 @@ impl CliService {
             CliRecv::TabStopped(id) => {
                 tx_websocket
                     .send(Response::TabTerminated(id))
-                    .map_err(into_msg)
+                    .await
                     .context("tx_websocket closed")?;
             }
         }
@@ -200,7 +202,7 @@ impl CliService {
         id: TabId,
         subscription_id: usize,
         chunk: OutputChunk,
-        tx_websocket: &mut broadcast::Sender<Response>,
+        tx_websocket: &mut impl Sender<Response>,
         subscription_index: &mut HashMap<usize, usize>,
     ) -> anyhow::Result<()> {
         let index = chunk.index;
@@ -214,7 +216,7 @@ impl CliService {
         let response = Response::Output(id, chunk);
         tx_websocket
             .send(response)
-            .map_err(into_msg)
+            .await
             .context("tx_websocket closed")?;
 
         subscription_index.insert(subscription_id, index);

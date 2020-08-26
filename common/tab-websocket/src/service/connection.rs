@@ -3,12 +3,9 @@ use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
     resource::connection::WebsocketResource,
 };
-use lifeline::{
-    error::{ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError},
-    Bus, Lifeline, Service,
-};
+use lifeline::prelude::*;
 use log::debug;
-use tokio::{select, sync::mpsc};
+use tokio::select;
 
 use crate::common::{self, should_terminate};
 
@@ -18,7 +15,10 @@ use log::{error, trace};
 use anyhow::Context;
 use std::fmt::Debug;
 
-use lifeline::Task;
+use lifeline::{
+    error::{ResourceTakenError, ResourceUninitializedError, TakeChannelError, TakeResourceError},
+    prelude::*,
+};
 use thiserror::Error;
 use tungstenite::Error;
 
@@ -56,8 +56,8 @@ impl Service for WebsocketService {
 
 async fn runloop(
     mut websocket_drop: WebsocketResource,
-    mut rx: mpsc::Receiver<WebsocketSend>,
-    mut tx: mpsc::Sender<WebsocketRecv>,
+    mut rx: impl Receiver<WebsocketSend>,
+    mut tx: impl Sender<WebsocketRecv>,
 ) -> anyhow::Result<()> {
     let websocket = &mut websocket_drop.0;
     loop {
@@ -148,8 +148,8 @@ mod test {
         resource::{connection::WebsocketResource, listener::WebsocketAuthToken},
         service::listener,
     };
-    use lifeline::assert_completes;
-    use lifeline::{dyn_bus::DynBus, Bus, Service};
+    use lifeline::prelude::*;
+    use lifeline::{assert_completes, dyn_bus::DynBus, prelude::*};
     use tungstenite::Message;
 
     #[tokio::test]

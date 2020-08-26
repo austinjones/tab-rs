@@ -71,20 +71,17 @@ pub struct MainTabCarrier {
     pub(super) _rx_response: Lifeline,
 }
 
-impl FromCarrier<MainBus> for TabBus {
+impl CarryFrom<MainBus> for TabBus {
     type Lifeline = anyhow::Result<MainTabCarrier>;
 
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _forward_request = {
             let mut rx_request = self.rx::<Request>()?;
-            let tx_request = from.tx::<Request>()?;
+            let mut tx_request = from.tx::<Request>()?;
 
             Self::try_task("forward_request", async move {
                 while let Some(request) = rx_request.recv().await {
-                    tx_request
-                        .send(request)
-                        .map_err(into_msg)
-                        .context("tx Request")?;
+                    tx_request.send(request).await.context("tx Request")?;
                 }
 
                 Ok(())
@@ -103,8 +100,8 @@ impl FromCarrier<MainBus> for TabBus {
 
         let _create_tab = {
             let mut rx_tab_state = self.rx::<TabState>()?;
-            let rx_terminal_size = self.rx::<TerminalSizeState>()?;
-            let tx_request = from.tx::<Request>()?;
+            let mut rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
+            let mut tx_request = from.tx::<Request>()?;
 
             Self::try_task("request_tab", async move {
                 while let Some(update) = rx_tab_state.recv().await {
@@ -113,7 +110,7 @@ impl FromCarrier<MainBus> for TabBus {
                         let dimensions = terminal_size.0;
                         tx_request
                             .send(Request::CreateTab(CreateTabMetadata { name, dimensions }))
-                            .map_err(into_msg)
+                            .await
                             .context("tx Request::CreateTab")?;
                     }
                 }
@@ -123,53 +120,52 @@ impl FromCarrier<MainBus> for TabBus {
         };
 
         let _rx_response = {
-            let rx_tab_state = self.rx::<TabState>()?;
+            let mut rx_tab_state = self.rx::<TabState>()?.into_inner();
             let mut rx_response = from.rx::<Response>()?;
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;
-            let tx_tab_metadata = self.tx::<TabMetadata>()?;
-            let tx_available_tabs = self.tx::<TabStateAvailable>()?;
+            let mut tx_tab_metadata = self.tx::<TabMetadata>()?;
+            let mut tx_available_tabs = self.tx::<TabStateAvailable>()?;
             let mut tx_tab_terminated = self.tx::<TabTerminated>()?;
 
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
 
             Self::try_task("rx_response", async move {
-                while let Some(result) = rx_response.next().await {
-                    if let Ok(resp) = result {
-                        match resp {
-                            Response::Init(init) => {
-                                tx_tabs
-                                    .send(TabsRecv::Init(init.tabs.clone()))
-                                    .await
-                                    .context("tx TabsRecv::Init")?;
-                            }
-                            Response::TabUpdate(tab) => {
-                                tx_tab_metadata
-                                    .send(tab.clone())
-                                    .map_err(|_| anyhow::Error::msg("send TabMetadata"))?;
-
-                                tx_tabs
-                                    .send(TabsRecv::Update(tab))
-                                    .await
-                                    .context("tx TabsRecv::Update")?;
-                            }
-                            Response::TabList(tabs) => tx_available_tabs
-                                .broadcast(TabStateAvailable(tabs))
-                                .context("tx TabStateAvailable")?,
-                            Response::TabTerminated(id) => {
-                                tx_tabs.send(TabsRecv::Terminated(id)).await?;
-
-                                tx_tab_terminated.send(TabTerminated(id)).await?;
-                                if rx_tab_state.borrow().is_selected(&id) {
-                                    tx_shutdown
-                                        .send(MainShutdown {})
-                                        .await
-                                        .map_err(into_msg)
-                                        .context("tx MainShutdown")?;
-                                }
-                            }
-                            _ => {}
+                while let Some(response) = rx_response.recv().await {
+                    match response {
+                        Response::Init(init) => {
+                            tx_tabs
+                                .send(TabsRecv::Init(init.tabs.clone()))
+                                .await
+                                .context("tx TabsRecv::Init")?;
                         }
+                        Response::TabUpdate(tab) => {
+                            tx_tab_metadata
+                                .send(tab.clone())
+                                .await
+                                .context("send TabMetadata")?;
+
+                            tx_tabs
+                                .send(TabsRecv::Update(tab))
+                                .await
+                                .context("tx TabsRecv::Update")?;
+                        }
+                        Response::TabList(tabs) => tx_available_tabs
+                            .send(TabStateAvailable(tabs))
+                            .await
+                            .context("tx TabStateAvailable")?,
+                        Response::TabTerminated(id) => {
+                            tx_tabs.send(TabsRecv::Terminated(id)).await?;
+
+                            tx_tab_terminated.send(TabTerminated(id)).await?;
+                            if rx_tab_state.borrow().is_selected(&id) {
+                                tx_shutdown
+                                    .send(MainShutdown {})
+                                    .await
+                                    .context("tx MainShutdown")?;
+                            }
+                        }
+                        _ => {}
                     }
                 }
 
@@ -181,11 +177,11 @@ impl FromCarrier<MainBus> for TabBus {
 
         let _tx_selected = {
             let mut rx_tab_state = self.rx::<TabState>()?;
-            let tx_tab_state = from.tx::<TabState>()?;
+            let mut tx_tab_state = from.tx::<TabState>()?;
 
             Self::try_task("tx_selected", async move {
                 while let Some(tab) = rx_tab_state.recv().await {
-                    tx_tab_state.broadcast(tab)?;
+                    tx_tab_state.send(tab).await?;
                 }
 
                 Ok(())
@@ -196,20 +192,16 @@ impl FromCarrier<MainBus> for TabBus {
             let mut rx_tabs_state = self.rx::<TabsState>()?;
             let mut rx_main = from.rx::<MainRecv>()?;
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
-            let tx_select_tab = self.tx::<TabStateSelect>()?;
+            let mut tx_select_tab = self.tx::<TabStateSelect>()?;
 
             Self::try_task("main_recv", async move {
-                while let Some(msg) = rx_main.next().await {
-                    if msg.is_err() {
-                        continue;
-                    }
-
-                    let msg = msg.unwrap();
+                while let Some(msg) = rx_main.recv().await {
                     match msg {
                         MainRecv::SelectTab(name) => {
                             tx_select_tab
-                                .broadcast(TabStateSelect::Selected(name))
-                                .map_err(|_err| anyhow::Error::msg("send TabStateSelect"))?;
+                                .send(TabStateSelect::Selected(name))
+                                .await
+                                .context("send TabStateSelect")?;
                         }
                         MainRecv::ListTabs => {
                             while let Some(state) = rx_tabs_state.recv().await {

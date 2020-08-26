@@ -6,6 +6,7 @@ use crate::{
     },
     state::{assignment::Retraction, tab::TabsState},
 };
+use lifeline::error::into_msg;
 use tab_api::tab::TabMetadata;
 use tab_websocket::{bus::WebsocketListenerBus, message::listener::WebsocketConnectionMessage};
 use tokio::sync::{broadcast, mpsc, watch};
@@ -44,7 +45,7 @@ pub struct ConnectionMessageCarrier {
     _forward_connection: Lifeline,
 }
 
-impl FromCarrier<WebsocketListenerBus> for ListenerBus {
+impl CarryFrom<WebsocketListenerBus> for ListenerBus {
     type Lifeline = anyhow::Result<ConnectionMessageCarrier>;
     fn carry_from(&self, from: &WebsocketListenerBus) -> Self::Lifeline {
         let _forward_connection = {

@@ -10,15 +10,13 @@ use crate::{
 
 use std::sync::Arc;
 
+use lifeline::Resource;
 use tab_api::{
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabMetadata,
 };
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc, watch},
-};
+use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct PtyBus);
 
@@ -65,7 +63,7 @@ pub struct ListenerPtyCarrier {
     _to_listener: Lifeline,
 }
 
-impl FromCarrier<ListenerBus> for PtyBus {
+impl CarryFrom<ListenerBus> for PtyBus {
     type Lifeline = anyhow::Result<ListenerPtyCarrier>;
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
@@ -74,21 +72,17 @@ impl FromCarrier<ListenerBus> for PtyBus {
         // receives startup and shutdown signals
 
         let _to_pty = {
-            let rx_id = self.rx::<PtyState>()?;
+            let rx_id = self.rx::<PtyState>()?.into_inner();
             // FIXME I think the bug is here.
             // the channel is being taken from the
             let mut rx_tab = from.rx::<TabRecv>()?;
 
-            let tx_pty = self.tx::<PtyRecv>()?;
-            let tx_pty_state = self.tx::<PtyState>()?;
+            let mut tx_pty = self.tx::<PtyRecv>()?;
+            let mut tx_pty_state = self.tx::<PtyState>()?;
 
             Self::try_task("to_pty", async move {
-                while let Some(msg) = rx_tab.next().await {
-                    if let Err(_e) = msg {
-                        continue;
-                    }
-
-                    match msg.unwrap() {
+                while let Some(msg) = rx_tab.recv().await {
+                    match msg {
                         TabRecv::Assign(offer) => {
                             if rx_id.borrow().is_assigned() {
                                 continue;
@@ -97,10 +91,8 @@ impl FromCarrier<ListenerBus> for PtyBus {
                             if let Some(assignment) = offer.accept() {
                                 debug!("accepting offer for service on tab {}", assignment.id);
 
-                                tx_pty_state
-                                    .broadcast(PtyState::Assigned(assignment.id))
-                                    .map_err(into_msg)?;
-                                tx_pty.send(PtyRecv::Init(assignment)).map_err(into_msg)?;
+                                tx_pty_state.send(PtyState::Assigned(assignment.id)).await?;
+                                tx_pty.send(PtyRecv::Init(assignment)).await?;
                             }
                         }
                         TabRecv::Scrollback(id) => {
@@ -108,21 +100,21 @@ impl FromCarrier<ListenerBus> for PtyBus {
                                 continue;
                             }
 
-                            tx_pty.send(PtyRecv::Scrollback).map_err(into_msg)?;
+                            tx_pty.send(PtyRecv::Scrollback).await?;
                         }
                         TabRecv::Input(input) => {
                             if !rx_id.borrow().has_assigned(input.id) {
                                 continue;
                             }
 
-                            tx_pty.send(PtyRecv::Input(input)).map_err(into_msg)?;
+                            tx_pty.send(PtyRecv::Input(input)).await?;
                         }
                         TabRecv::Terminate(id) => {
                             if !rx_id.borrow().has_assigned(id) {
                                 continue;
                             }
 
-                            tx_pty.send(PtyRecv::Terminate).map_err(into_msg)?;
+                            tx_pty.send(PtyRecv::Terminate).await?;
                         }
                     }
                 }
@@ -132,22 +124,18 @@ impl FromCarrier<ListenerBus> for PtyBus {
         };
 
         let _to_listener = {
-            let rx_id = self.rx::<PtyState>()?;
+            let rx_id = self.rx::<PtyState>()?.into_inner();
             let mut rx_pty = self.rx::<PtySend>()?;
 
-            let tx_tab = from.tx::<TabSend>()?;
+            let mut tx_tab = from.tx::<TabSend>()?;
             let mut tx_tab_manager = from.tx::<TabManagerRecv>()?;
 
             Self::try_task("to_listener", async move {
-                while let Some(msg) = rx_pty.next().await {
-                    if let Err(_e) = msg {
-                        continue;
-                    }
-
-                    match msg.unwrap() {
+                while let Some(msg) = rx_pty.recv().await {
+                    match msg {
                         PtySend::Started(metadata) => {
                             let message = TabSend::Started(metadata);
-                            tx_tab.send(message).map_err(into_msg)?;
+                            tx_tab.send(message).await?;
                         }
                         PtySend::Output(chunk) => {
                             let id = rx_id.borrow().unwrap();
@@ -158,20 +146,20 @@ impl FromCarrier<ListenerBus> for PtyBus {
                             };
 
                             let send = TabSend::Output(output);
-                            tx_tab.send(send).map_err(into_msg)?;
+                            tx_tab.send(send).await?;
                         }
                         PtySend::Scrollback(scrollback) => {
                             let id = rx_id.borrow().unwrap();
                             let scrollback = TabScrollback { id, scrollback };
                             let message = TabSend::Scrollback(scrollback);
-                            tx_tab.send(message).map_err(into_msg)?;
+                            tx_tab.send(message).await?;
                         }
                         PtySend::Stopped => {
                             let id = rx_id.borrow().unwrap();
                             // todo - this should be a notification, not an action
                             // serious bugs were going on because this was missing, though.
                             tx_tab_manager.send(TabManagerRecv::CloseTab(id)).await?;
-                            tx_tab.send(TabSend::Stopped(id)).map_err(into_msg)?;
+                            tx_tab.send(TabSend::Stopped(id)).await?;
                         }
                     }
                 }

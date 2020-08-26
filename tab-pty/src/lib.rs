@@ -8,7 +8,7 @@ use std::{
 };
 use tab_api::{launch::*, pty::PtyWebsocketRequest};
 
-use dyn_bus::DynBus;
+use lifeline::dyn_bus::DynBus;
 use service::main::MainService;
 use tab_websocket::resource::connection::WebsocketResource;
 use tokio::{
@@ -61,8 +61,8 @@ async fn main_async() -> anyhow::Result<()> {
 }
 
 async fn spawn() -> anyhow::Result<(
-    broadcast::Sender<PtyWebsocketRequest>,
-    mpsc::Receiver<PtyShutdown>,
+    impl Sender<PtyWebsocketRequest>,
+    impl Receiver<PtyShutdown>,
     MainService,
 )> {
     let config = launch_daemon().await?;

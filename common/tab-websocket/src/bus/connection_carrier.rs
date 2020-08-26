@@ -3,9 +3,7 @@ use crate::{
     message::connection::{WebsocketRecv, WebsocketSend},
     service::WebsocketService,
 };
-use dyn_bus::DynBus;
-use lifeline::error::into_msg;
-use lifeline::*;
+use lifeline::{dyn_bus::DynBus, prelude::*};
 use log::*;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::stream::StreamExt;
@@ -34,7 +32,7 @@ pub trait WebsocketMessageBus: Sized {
 }
 
 // TODO: why is dynbus required here?? super confusing
-impl<B: DynBus> FromCarrier<B> for WebsocketConnectionBus
+impl<B: DynBus> CarryFrom<B> for WebsocketConnectionBus
 where
     B: WebsocketMessageBus,
 {
@@ -52,23 +50,21 @@ where
             let mut tx = self.tx::<WebsocketSend>()?;
 
             Self::try_task("forward_send", async move {
-                while let Some(result) = rx.next().await {
-                    if let Ok(msg) = result {
-                        trace!("send message: {:?}", &msg);
-                        match bincode::serialize(&msg) {
-                            Ok(vec) => {
-                                let send = tx
-                                    .send(WebsocketSend(TungsteniteMessage::Binary(vec)))
-                                    .await;
+                while let Some(msg) = rx.recv().await {
+                    trace!("send message: {:?}", &msg);
+                    match bincode::serialize(&msg) {
+                        Ok(vec) => {
+                            let send = tx
+                                .send(WebsocketSend(TungsteniteMessage::Binary(vec)))
+                                .await;
 
-                                if let Err(_e) = send {
-                                    debug!("sender disconnected - aborting carry.");
-                                    break;
-                                }
+                            if let Err(_e) = send {
+                                debug!("sender disconnected - aborting carry.");
+                                break;
                             }
-                            Err(e) => error!("failed to send websocket msg: {}", e),
-                        };
-                    }
+                        }
+                        Err(e) => error!("failed to send websocket msg: {}", e),
+                    };
                 }
 
                 tx.send(WebsocketSend(TungsteniteMessage::Close(None)))
@@ -80,7 +76,7 @@ where
 
         let _websocket_recv = {
             let mut rx = self.rx::<WebsocketRecv>()?;
-            let tx = bus.tx::<B::Recv>()?;
+            let mut tx = bus.tx::<B::Recv>()?;
 
             Self::try_task("forward_recv", async move {
                 while let Some(msg) = rx.next().await {
@@ -88,7 +84,7 @@ where
                     match bincode::deserialize(data.as_slice()) {
                         Ok(message) => {
                             trace!("recv message: {:?}", &message);
-                            tx.send(message).map_err(into_msg)?;
+                            tx.send(message).await?;
                         }
                         Err(e) => error!("failed to recv websocket msg: {}", e),
                     };

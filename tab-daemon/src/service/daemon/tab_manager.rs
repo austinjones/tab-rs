@@ -10,8 +10,8 @@ use crate::{
     },
 };
 use anyhow::Context;
-use lifeline::Task;
-use lifeline::{Bus, Lifeline, Service};
+use lifeline::prelude::*;
+use lifeline::prelude::*;
 use mpsc::error::TryRecvError;
 use std::{
     collections::{HashMap, VecDeque},
@@ -39,8 +39,8 @@ impl Service for TabManagerService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let tx_tabs = bus.tx::<TabRecv>()?;
-        let mut rx_retractions = bus.rx::<Retraction<TabMetadata>>()?;
+        let mut tx_tabs = bus.tx::<TabRecv>()?;
+        let mut rx_retractions = bus.rx::<Retraction<TabMetadata>>()?.into_inner();
         let _retractions = {
             Self::try_task("retractions", async move {
                 let mut retractions: VecDeque<Retraction<TabMetadata>> = VecDeque::new();
@@ -72,7 +72,7 @@ impl Service for TabManagerService {
 
                             let (ret, assign) = assignment(metadata);
                             let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).ok();
+                            tx_tabs.send(message).await.ok();
                             new_retractions.push_back(ret);
                         } else {
                             new_retractions.push_back(retraction);
@@ -123,14 +123,14 @@ impl Service for TabManagerService {
 
                             let (ret, assign) = assignment(tab_metadata.clone());
                             let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).ok();
+                            tx_tabs.send(message).await.ok();
                             tx_tab_retraction
                                 .send(ret)
                                 .await
                                 .context("tx_tab_retraction send message")?;
 
                             tabs.insert(tab_id, tab_metadata);
-                            tx_tabs_state.broadcast(TabsState::new(&tabs))?;
+                            tx_tabs_state.send(TabsState::new(&tabs)).await?;
                         }
                         TabManagerRecv::CloseNamedTab(name) => {
                             let close_tab = tabs.values().find(|t| t.name == name);
@@ -172,18 +172,19 @@ impl TabManagerService {
     async fn close_tab(
         id: TabId,
         tabs: &mut HashMap<TabId, TabMetadata>,
-        tx: &mut mpsc::Sender<TabManagerSend>,
-        tx_close: &mut broadcast::Sender<TabRecv>,
-        tx_tabs_state: &mut watch::Sender<TabsState>,
+        tx: &mut impl Sender<TabManagerSend>,
+        tx_close: &mut impl Sender<TabRecv>,
+        tx_tabs_state: &mut impl Sender<TabsState>,
     ) -> anyhow::Result<()> {
         tabs.remove(&id);
 
         tx.send(TabManagerSend::TabTerminated(id))
             .await
             .context("tx TabTerminated")?;
-        tx_close.send(TabRecv::Terminate(id)).ok();
+        tx_close.send(TabRecv::Terminate(id)).await.ok();
         tx_tabs_state
-            .broadcast(TabsState::new(&tabs))
+            .send(TabsState::new(&tabs))
+            .await
             .context("tx_tabs_state TabsState")?;
 
         debug!("got tabs: {:?}", tabs);

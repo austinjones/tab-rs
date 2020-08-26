@@ -1,6 +1,6 @@
 use crate::bus::TerminalBus;
 
-use lifeline::Service;
+use lifeline::prelude::*;
 
 pub struct TerminalCrosstermService {}
 

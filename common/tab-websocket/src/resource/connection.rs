@@ -1,6 +1,6 @@
 use crate::WebsocketConnection;
 use futures::executor::block_on;
-use lifeline::impl_storage_take;
+use lifeline::{impl_storage_take, prelude::*};
 use log::error;
 
 #[derive(Debug)]

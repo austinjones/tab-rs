@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use listener::ListenerService;
 
-use lifeline::Service;
+use lifeline::prelude::*;
 
 mod listener;
 mod tab_manager;

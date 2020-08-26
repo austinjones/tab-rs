@@ -5,8 +5,8 @@ use crate::{
 };
 
 use anyhow::Context;
-use lifeline::Task;
-use lifeline::{Bus, Lifeline, Service};
+use lifeline::prelude::*;
+use lifeline::prelude::*;
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tokio::stream::StreamExt;
@@ -25,11 +25,11 @@ impl Service for TabStateService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
-        let rx_tab = bus.rx::<TabStateSelect>()?;
-        let rx_tab_metadata = bus.rx::<TabMetadata>()?;
-        let rx_tab_terminated = bus.rx::<TabTerminated>()?;
+        let mut rx_tab = bus.rx::<TabStateSelect>()?;
+        let mut rx_tab_metadata = bus.rx::<TabMetadata>()?.into_inner();
+        let mut rx_tab_terminated = bus.rx::<TabTerminated>()?;
 
-        let tx = bus.tx::<TabState>()?;
+        let mut tx = bus.tx::<TabState>()?;
         let mut tx_websocket = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<TabShutdown>()?;
 
@@ -69,7 +69,7 @@ impl Service for TabStateService {
                                 TabState::Awaiting(name.to_string())
                             };
 
-                            tx.broadcast(state.clone())?;
+                            tx.send(state.clone()).await?;
                         }
                     },
                     Event::Metadata(metadata) => {
@@ -77,7 +77,7 @@ impl Service for TabStateService {
                             info!("tab active {}", metadata.name.as_str());
 
                             state = TabState::Selected(metadata.id, metadata.name.clone());
-                            tx.broadcast(state.clone())?;
+                            tx.send(state.clone()).await?;
 
                             tx_websocket.send(Request::Subscribe(metadata.id)).await?;
                         }
@@ -90,7 +90,7 @@ impl Service for TabStateService {
                         if let TabState::Selected(selected_id, ref _name) = state {
                             if terminated_id == selected_id {
                                 state = TabState::None;
-                                tx.broadcast(state.clone())?;
+                                tx.send(state.clone()).await?;
                                 tx_shutdown
                                     .send(TabShutdown {})
                                     .await
