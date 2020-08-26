@@ -245,11 +245,11 @@ impl CarryFrom<MainBus> for TabBus {
                                         tx_websocket.send(request).await?;
                                     }
 
-                                    error!("retask - waiting for creation on tab {}", id);
+                                    debug!("retask - waiting for creation on tab {}", id);
                                     let metadata =
                                         Self::await_created(name, &mut rx_tabs_state).await;
 
-                                    error!("retask - sending retask to tab {}", id);
+                                    debug!("retask - sending retask to tab {}", id);
                                     let request = Request::Retask(id, metadata.id);
                                     tx_websocket.send(request).await?;
                                     tx_shutdown.send(MainShutdown {}).await?;
