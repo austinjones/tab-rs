@@ -1,8 +1,5 @@
 use crate::{
-    message::{
-        cli::CliRecv,
-        tab::{TabRecv, TabSend},
-    },
+    message::tab::{TabRecv, TabSend},
     prelude::*,
 };
 

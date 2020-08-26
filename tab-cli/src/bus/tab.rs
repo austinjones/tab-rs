@@ -13,7 +13,7 @@ use crate::{
 };
 use anyhow::Context;
 use std::collections::HashMap;
-use std::convert::TryFrom;
+
 use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
 use tokio::{
     stream::StreamExt,
@@ -367,7 +367,7 @@ impl TabBus {
     async fn await_created(name: String, rx: &mut impl Receiver<TabsState>) -> TabMetadata {
         // TODO: 2 second timeout?
         loop {
-            let mut state = rx.recv().await;
+            let state = rx.recv().await;
 
             if !state.is_some() {
                 continue;
