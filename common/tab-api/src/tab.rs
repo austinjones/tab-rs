@@ -20,6 +20,7 @@ pub struct TabMetadata {
     pub id: TabId,
     pub name: String,
     pub dimensions: (u16, u16),
+    pub shell: String,
 }
 
 impl TabMetadata {
@@ -28,6 +29,7 @@ impl TabMetadata {
             id,
             name: create.name,
             dimensions: create.dimensions,
+            shell: create.shell,
         }
     }
 }
@@ -36,4 +38,5 @@ impl TabMetadata {
 pub struct CreateTabMetadata {
     pub name: String,
     pub dimensions: (u16, u16),
+    pub shell: String,
 }

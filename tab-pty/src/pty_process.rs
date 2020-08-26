@@ -1,5 +1,6 @@
-use log::info;
+use log::{debug, error, info};
 use std::{
+    collections::HashMap,
     process::{Command, ExitStatus},
     sync::Arc,
 };
@@ -40,6 +41,7 @@ pub enum PtyResponse {
 pub struct PtyOptions {
     pub dimensions: (u16, u16),
     pub command: String,
+    pub env: HashMap<String, String>,
 }
 
 #[derive(Clone)]
@@ -139,6 +141,10 @@ impl PtyProcess {
         let pty = AsyncPtyMaster::open()?;
 
         let mut child = Command::new(options.command);
+        for (k, v) in options.env {
+            child.env(k, v);
+        }
+
         let child = child.spawn_pty_async(&pty)?;
 
         pty.resize(options.dimensions)
@@ -180,12 +186,18 @@ impl PtyProcess {
     }
 
     async fn write_input(
-        mut stdin: impl AsyncWriteExt + Unpin,
+        mut stdin: AsyncPtyMasterWriteHalf,
         mut rx: tokio::sync::mpsc::Receiver<PtyRequest>,
     ) {
         while let Some(request) = rx.recv().await {
             match request {
-                PtyRequest::Resize(_dimensions) => {}
+                PtyRequest::Resize(dimensions) => {
+                    if let Err(e) = stdin.resize(dimensions).await {
+                        error!("failed to resize pty: {:?}", e);
+                    }
+
+                    info!("resized to dimensions: {:?}", &dimensions);
+                }
                 PtyRequest::Input(chunk) => Self::write_stdin(&mut stdin, chunk).await,
             }
         }

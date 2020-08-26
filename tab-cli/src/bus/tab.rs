@@ -103,13 +103,19 @@ impl CarryFrom<MainBus> for TabBus {
             let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
             let mut tx_request = from.tx::<Request>()?;
 
+            let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
+
             Self::try_task("request_tab", async move {
                 while let Some(update) = rx_tab_state.recv().await {
                     if let TabState::Awaiting(name) = update {
                         let terminal_size = rx_terminal_size.borrow().clone();
                         let dimensions = terminal_size.0;
                         tx_request
-                            .send(Request::CreateTab(CreateTabMetadata { name, dimensions }))
+                            .send(Request::CreateTab(CreateTabMetadata {
+                                name,
+                                dimensions,
+                                shell: shell.clone(),
+                            }))
                             .await
                             .context("tx Request::CreateTab")?;
                     }

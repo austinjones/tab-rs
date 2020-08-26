@@ -10,6 +10,8 @@ pub enum CliSend {
     Input(TabId, InputChunk),
     CreateTab(CreateTabMetadata),
     RequestScrollback(TabId),
+    /// Resizes the tab to the given number of (cols, rows)
+    ResizeTab(TabId, (u16, u16)),
     CloseTab(TabId),
     CloseNamedTab(String),
 }

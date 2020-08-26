@@ -9,6 +9,7 @@ use crate::{
 };
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
+use terminal_event::TerminalEventService;
 
 mod crossterm_mode;
 mod echo_mode;
@@ -17,6 +18,7 @@ mod terminal_event;
 pub struct TerminalService {
     _main_terminal: MainTerminalCarrier,
     _terminal_mode: Lifeline,
+    _terminal_event: TerminalEventService,
 }
 
 enum ServiceLifeline {
@@ -35,6 +37,7 @@ impl Service for TerminalService {
         terminal_bus.capacity::<TerminalRecv>(2048)?;
 
         let _main_terminal = terminal_bus.carry_from(bus)?;
+        let _terminal_event = TerminalEventService::spawn(&terminal_bus)?;
 
         let mut rx_terminal_mode = terminal_bus.rx::<TerminalMode>()?;
 
@@ -72,6 +75,7 @@ impl Service for TerminalService {
         Ok(Self {
             _main_terminal,
             _terminal_mode,
+            _terminal_event,
         })
     }
 }

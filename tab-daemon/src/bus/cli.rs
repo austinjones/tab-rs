@@ -139,6 +139,10 @@ impl CliBus {
                     let message = TabRecv::Input(input);
                     tx.send(message).await.context("tx TabRecv closed")?;
                 }
+                CliSend::ResizeTab(id, dimensions) => {
+                    let message = TabRecv::Resize(id, dimensions);
+                    tx.send(message).await?;
+                }
             }
         }
 

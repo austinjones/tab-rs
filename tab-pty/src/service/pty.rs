@@ -4,6 +4,7 @@ use crate::{
     pty_process::{PtyOptions, PtyProcess, PtyReceiver, PtyRequest},
 };
 
+use std::collections::HashMap;
 use tab_api::{
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabId,
@@ -43,9 +44,15 @@ impl PtyService {
                     debug!("initializing on tab {}", create.id);
                     let name = create.name.clone();
 
+                    let mut env = HashMap::new();
+                    env.insert("SHELL".to_string(), create.shell.clone());
+                    env.insert("TAB".to_string(), create.name.clone());
+                    env.insert("TAB_ID".to_string(), create.id.0.to_string());
+
                     let options = PtyOptions {
                         dimensions: create.dimensions,
-                        command: "bash".to_string(),
+                        command: create.shell.clone(),
+                        env,
                     };
 
                     let (send, recv) = PtyProcess::spawn(options).await?;
@@ -70,6 +77,12 @@ impl PtyService {
                 }
                 PtyWebsocketRequest::Terminate => {
                     tx_shutdown.send(PtyShutdown {}).await?;
+                }
+                PtyWebsocketRequest::Resize(dimensions) => {
+                    debug!("received resize request: {:?}", dimensions);
+                    if let Some(ref mut sender) = sender {
+                        sender.send(PtyRequest::Resize(dimensions)).await?;
+                    }
                 }
             }
         }

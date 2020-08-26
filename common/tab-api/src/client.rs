@@ -22,6 +22,9 @@ pub enum Request {
     /// Terminates the shell on the given tab
     CreateTab(CreateTabMetadata),
 
+    /// Resizes the given tab, to the provided (cols, rows)
+    ResizeTab(TabId, (u16, u16)),
+
     /// Terminates the shell on the given tab
     CloseTab(TabId),
 
