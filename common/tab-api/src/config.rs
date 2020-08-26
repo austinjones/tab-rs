@@ -66,6 +66,16 @@ pub fn config_path() -> Result<PathBuf> {
     Ok(path)
 }
 
+pub fn history_path(shell: &str, name: &str) -> Result<PathBuf> {
+    let mut path = dotdir_path()?;
+    path.push("history");
+
+    let filename = format!("history-{}-{}.txt", shell, name);
+    path.push(filename);
+
+    Ok(path)
+}
+
 pub fn load_config() -> anyhow::Result<Config> {
     let path = config_path()?;
 
