@@ -10,6 +10,8 @@ pub struct PtyShutdown {}
 pub enum PtyRecv {
     Init(TabMetadata),
     Scrollback,
+    /// Resizes to the given number of (cols, rows)
+    Resize((u16, u16)),
     Input(TabInput),
     Terminate,
 }

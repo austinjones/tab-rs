@@ -57,6 +57,13 @@ impl AsAsyncPtyFd for &mut AsyncPtyMasterReadHalf {
     }
 }
 
+impl AsAsyncPtyFd for AsyncPtyMasterWriteHalf {
+    fn as_async_pty_fd(&self, cx: &mut Context<'_>) -> Poll<RawFd> {
+        let l = ready!(self.handle.poll_lock(cx));
+        Poll::Ready(l.as_raw_fd())
+    }
+}
+
 impl AsAsyncPtyFd for &AsyncPtyMasterWriteHalf {
     fn as_async_pty_fd(&self, cx: &mut Context<'_>) -> Poll<RawFd> {
         let l = ready!(self.handle.poll_lock(cx));

@@ -119,6 +119,14 @@ impl CarryFrom<MainBus> for TerminalBus {
                                 tx_request.send(Request::Input(id, chunk)).await?;
                             }
                         }
+                        TerminalSend::Resize(size) => {
+                            let tab = rx_tab_state.borrow().clone();
+
+                            if let TabState::Selected(id, _name) = tab {
+                                error!("setting size: {} {:?}", &id.0, &size);
+                                tx_request.send(Request::ResizeTab(id, size)).await?;
+                            }
+                        }
                     }
                 }
 
