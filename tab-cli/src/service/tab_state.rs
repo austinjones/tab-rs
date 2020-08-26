@@ -77,7 +77,7 @@ impl Service for TabStateService {
                                 tx_websocket.send(Request::Unsubscribe(id)).await?;
                             }
 
-                            tx_websocket.send(Request::Subscribe(id));
+                            tx_websocket.send(Request::Subscribe(id)).await?;
                             state = TabState::Selected(id);
 
                             tx.send(state.clone()).await?;

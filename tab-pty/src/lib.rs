@@ -2,10 +2,7 @@ use crate::prelude::*;
 
 use message::pty::PtyShutdown;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
-use std::{
-    process::Stdio,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 use tab_api::{launch::*, pty::PtyWebsocketRequest};
 
 use lifeline::dyn_bus::DynBus;
