@@ -3,7 +3,7 @@ use crate::{
     message::{
         cli::{CliRecv, CliSend, CliShutdown},
         tab::{TabInput, TabRecv, TabSend},
-        tab_manager::TabManagerRecv,
+        tab_manager::{TabManagerRecv, TabManagerSend},
     },
     state::tab::TabsState,
 };
@@ -64,6 +64,7 @@ impl CarryFrom<ListenerBus> for CliBus {
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
         let tx_tab = from.tx::<TabRecv>()?;
         let rx_tab = from.rx::<TabSend>()?;
+        let rx_manager = from.rx::<TabManagerSend>()?;
 
         let tx_conn = self.tx::<CliRecv>()?;
         let rx_conn = self.rx::<CliSend>()?;
@@ -71,11 +72,17 @@ impl CarryFrom<ListenerBus> for CliBus {
         let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
         let tx_shutdown = self.tx::<CliShutdown>()?;
 
-        let _forward = Self::try_task("output", Self::run_output(rx_tab, tx_conn, id_subscription));
+        // todo: convert this to block-style for each lifeline.
+        let _forward = Self::try_task(
+            "output",
+            Self::run_output(rx_tab, tx_conn.clone(), id_subscription),
+        );
         let _reverse = Self::try_task(
             "input",
             Self::run_input(rx_conn, tx_tab, tx_manager, tx_shutdown),
         );
+        let _terminated =
+            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn));
 
         let _forward_tabs_state = {
             let mut rx_tabs_state = from.rx::<TabsState>()?;
@@ -158,6 +165,21 @@ impl CliBus {
         Ok(())
     }
 
+    async fn handle_terminated(
+        mut rx: impl Receiver<TabManagerSend>,
+        mut tx: impl Sender<CliRecv>,
+    ) -> anyhow::Result<()> {
+        while let Some(msg) = rx.recv().await {
+            match msg {
+                TabManagerSend::TabTerminated(id) => {
+                    tx.send(CliRecv::TabStopped(id)).await?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     async fn handle_tabsend(
         msg: TabSend,
         tx: &mut impl Sender<CliRecv>,
@@ -176,7 +198,10 @@ impl CliBus {
                 ))
                 .await?
             }
-            TabSend::Stopped(id) => tx.send(CliRecv::TabStopped(id)).await?,
+            TabSend::Stopped(id) => {
+                debug!("notifying client of terminated tab {}", id);
+                tx.send(CliRecv::TabStopped(id)).await?;
+            }
             TabSend::Scrollback(scrollback) => {
                 tx.send(CliRecv::Scrollback(scrollback)).await?;
             }
