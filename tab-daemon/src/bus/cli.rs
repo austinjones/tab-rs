@@ -143,6 +143,10 @@ impl CliBus {
                     let message = TabRecv::Resize(id, dimensions);
                     tx.send(message).await?;
                 }
+                CliSend::Retask(from, to) => {
+                    let message = TabRecv::Retask(from, to);
+                    tx.send(message).await?;
+                }
             }
         }
 
@@ -175,6 +179,14 @@ impl CliBus {
             TabSend::Stopped(id) => tx.send(CliRecv::TabStopped(id)).await?,
             TabSend::Scrollback(scrollback) => {
                 tx.send(CliRecv::Scrollback(scrollback)).await?;
+            }
+            TabSend::Retask(from, to) => {
+                if !id_subscription.contains(&from) {
+                    return Ok(());
+                }
+
+                debug!("retasking client from {:?} to {:?}", from, to);
+                tx.send(CliRecv::Retask(from, to)).await?;
             }
         };
 

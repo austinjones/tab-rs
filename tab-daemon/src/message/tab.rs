@@ -23,6 +23,8 @@ pub enum TabRecv {
     Scrollback(TabId),
     /// Resizes the tab to the given number of (cols, rows)
     Resize(TabId, (u16, u16)),
+    // Retasks all clients from the first tab, to the second
+    Retask(TabId, TabId),
     Input(TabInput),
     Terminate(TabId),
 }
@@ -43,6 +45,7 @@ impl TabScrollback {
 pub enum TabSend {
     Started(TabMetadata),
     Scrollback(TabScrollback),
+    Retask(TabId, TabId),
     Output(TabOutput),
     Stopped(TabId),
 }
