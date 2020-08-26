@@ -1,6 +1,6 @@
 use crate::message::main::{MainRecv, MainShutdown};
 use crate::{prelude::*, state::tab::TabState};
-use lifeline::{lifeline_bus, Message, Resource};
+use lifeline::prelude::*;
 
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use tokio::sync::{broadcast, mpsc, watch};

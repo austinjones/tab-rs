@@ -3,7 +3,7 @@ use daemonfile::DaemonFile;
 use crate::bus::DaemonBus;
 use log::{info, LevelFilter};
 
-use lifeline::{dyn_bus::DynBus, Bus, Service};
+use lifeline::{dyn_bus::DynBus, prelude::*};
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
@@ -84,7 +84,7 @@ async fn main_async() -> anyhow::Result<()> {
     info!("Daemon port: {}", config.port);
 
     let _service = DaemonService::spawn(&bus)?;
-    let shutdown = bus.rx::<DaemonShutdown>()?;
+    let mut shutdown = bus.rx::<DaemonShutdown>()?;
 
     info!("Waiting for termination");
     loop {
@@ -92,7 +92,7 @@ async fn main_async() -> anyhow::Result<()> {
             _ = ctrl_c() => {
                 break;
             },
-            _ = shutdown => {
+            _ = shutdown.recv() => {
                 break;
             }
         }

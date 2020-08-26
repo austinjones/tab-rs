@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use super::pty::PtyService;
-use dyn_bus::DynBus;
+use lifeline::dyn_bus::DynBus;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,

@@ -14,12 +14,13 @@ impl Service for TerminalEventService {
 
     #[allow(unreachable_code)]
     fn spawn(bus: &TerminalBus) -> Self::Lifeline {
-        let tx = bus.tx::<TerminalSizeState>()?;
+        let mut tx = bus.tx::<TerminalSizeState>()?;
 
         let _update = Self::try_task("run", async move {
             loop {
                 let size = crossterm::terminal::size().expect("get terminal size");
-                tx.broadcast(TerminalSizeState(size))
+                tx.send(TerminalSizeState(size))
+                    .await
                     .context("send TerminalStateSize")?;
 
                 tokio::time::delay_for(Duration::from_millis(200)).await;

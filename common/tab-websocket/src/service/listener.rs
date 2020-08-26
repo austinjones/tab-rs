@@ -10,11 +10,10 @@ use crate::{
 };
 use log::{debug, error};
 
-use lifeline::request::Request as LifelineRequest;
-use lifeline::Task;
-use lifeline::{dyn_bus::DynBus, Bus, Lifeline, Service};
+use lifeline::prelude::*;
+use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
 use std::net::SocketAddr;
-use tokio::{net::TcpListener, sync::mpsc};
+use tokio::net::TcpListener;
 
 pub struct WebsocketListenerService {
     _accept: Lifeline,
@@ -37,7 +36,7 @@ impl Service for WebsocketListenerService {
 
 async fn accept_connections(
     mut listener: TcpListener,
-    mut tx: mpsc::Sender<WebsocketConnectionMessage>,
+    mut tx: impl Sender<WebsocketConnectionMessage>,
     auth_token: WebsocketAuthToken,
 ) -> anyhow::Result<()> {
     loop {
@@ -100,8 +99,7 @@ mod tests {
         },
         service::WebsocketService,
     };
-    use lifeline::assert_completes;
-    use lifeline::{dyn_bus::DynBus, Bus, Service};
+    use lifeline::{assert_completes, dyn_bus::DynBus, prelude::*};
     use std::net::SocketAddr;
     use tokio::net::TcpListener;
 
@@ -145,7 +143,9 @@ mod tests {
 
         let _sender = WebsocketService::spawn(&bus)?;
 
-        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let mut rx_conn = listener_bus
+            .rx::<WebsocketConnectionMessage>()?
+            .into_inner();
         let conn = rx_conn.try_recv();
 
         assert!(conn.is_ok());
@@ -158,7 +158,9 @@ mod tests {
         let (listener_bus, _serve, addr) = serve("TOKEN").await?;
         let (bus, _connect) = connect(addr, "TOKEN").await?;
 
-        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let mut rx_conn = listener_bus
+            .rx::<WebsocketConnectionMessage>()?
+            .into_inner();
         let conn = rx_conn.try_recv()?;
         let _serve = WebsocketService::spawn(&conn.bus)?;
 
@@ -185,7 +187,9 @@ mod tests {
         let (listener_bus, _serve, addr) = serve("TOKEN").await?;
         let (bus, _connect) = connect(addr, "TOKEN").await?;
 
-        let mut rx_conn = listener_bus.rx::<WebsocketConnectionMessage>()?;
+        let mut rx_conn = listener_bus
+            .rx::<WebsocketConnectionMessage>()?
+            .into_inner();
         let conn = rx_conn.try_recv()?;
         let _serve = WebsocketService::spawn(&conn.bus)?;
 

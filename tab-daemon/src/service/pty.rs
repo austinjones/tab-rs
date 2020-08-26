@@ -30,24 +30,23 @@ impl Service for PtyService {
         let _websocket = {
             let mut rx_websocket = bus
                 .rx::<PtyWebsocketResponse>()?
+                .into_inner()
                 .filter(|e| e.is_ok())
                 .map(|e| e.unwrap());
-            let tx_daemon = bus.tx::<PtySend>()?;
+            let mut tx_daemon = bus.tx::<PtySend>()?;
             let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
             Self::try_task("websocket", async move {
                 while let Some(msg) = rx_websocket.next().await {
                     match msg {
                         PtyWebsocketResponse::Started(metadata) => {
-                            tx_daemon
-                                .send(PtySend::Started(metadata))
-                                .map_err(into_msg)?;
+                            tx_daemon.send(PtySend::Started(metadata)).await?;
                         }
                         PtyWebsocketResponse::Output(output) => {
-                            tx_daemon.send(PtySend::Output(output)).map_err(into_msg)?;
+                            tx_daemon.send(PtySend::Output(output)).await?;
                         }
                         PtyWebsocketResponse::Stopped => {
-                            tx_daemon.send(PtySend::Stopped).map_err(into_msg)?;
+                            tx_daemon.send(PtySend::Stopped).await?;
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;
                         }
@@ -59,29 +58,24 @@ impl Service for PtyService {
         };
 
         let _daemon = {
-            let mut rx_daemon = bus
-                .rx::<PtyRecv>()?
-                .filter(|e| e.is_ok())
-                .map(|e| e.unwrap());
-            let tx_websocket = bus.tx::<PtyWebsocketRequest>()?;
+            let mut rx_daemon = bus.rx::<PtyRecv>()?;
+            let mut tx_websocket = bus.tx::<PtyWebsocketRequest>()?;
             let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
             Self::try_task("daemon", async move {
-                while let Some(msg) = rx_daemon.next().await {
+                while let Some(msg) = rx_daemon.recv().await {
                     match msg {
                         PtyRecv::Init(init) => {
                             let message = PtyWebsocketRequest::Init(init);
-                            tx_websocket.send(message).map_err(into_msg)?;
+                            tx_websocket.send(message).await?;
                         }
                         PtyRecv::Input(input) => {
                             let input: InputChunk = (*input.stdin).clone();
                             let message = PtyWebsocketRequest::Input(input);
-                            tx_websocket.send(message).map_err(into_msg)?;
+                            tx_websocket.send(message).await?;
                         }
                         PtyRecv::Terminate => {
-                            tx_websocket
-                                .send(PtyWebsocketRequest::Terminate)
-                                .map_err(into_msg)?;
+                            tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
 
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;

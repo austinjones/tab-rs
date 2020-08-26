@@ -1,11 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Instant,
-};
+use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 
 type TabsMap = HashMap<TabId, TabMetadata>;
