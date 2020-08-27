@@ -27,6 +27,7 @@ pub enum TabRecv {
     Retask(TabId, TabId),
     Input(TabInput),
     Terminate(TabId),
+    TerminateAll,
 }
 
 #[derive(Debug, Clone)]

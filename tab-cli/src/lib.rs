@@ -45,12 +45,15 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     .unwrap();
 
     let select_tab = matches.value_of("TAB-NAME");
-    let (mut tx, shutdown, _service) = spawn().await?;
-    let completion = matches.value_of("COMPLETION");
+    let (mut tx, rx_shutdown, _service) = spawn().await?;
+    let completion = matches.is_present("AUTOCOMPLETE-TAB");
     let close = matches.is_present("CLOSE");
+    let shutdown = matches.is_present("SHUTDOWN");
 
-    if let Some(comp) = completion {
-        tx.send(MainRecv::AutocompleteTab(comp.to_string())).await?;
+    if shutdown {
+        tx.send(MainRecv::GlobalShutdown).await?;
+    } else if completion {
+        tx.send(MainRecv::AutocompleteTab).await?;
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
@@ -63,7 +66,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
         tx.send(MainRecv::SelectInteractive).await?;
     }
 
-    wait_for_shutdown(shutdown).await;
+    wait_for_shutdown(rx_shutdown).await;
 
     Ok(())
 }

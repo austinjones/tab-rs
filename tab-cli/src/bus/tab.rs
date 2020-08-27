@@ -268,20 +268,23 @@ impl CarryFrom<MainBus> for TabBus {
                                 Self::echo_tabs(&state.tabs);
 
                                 tx_shutdown.send(MainShutdown {}).await?;
+                                break;
                             }
                         }
-                        MainRecv::AutocompleteTab(complete) => {
+                        MainRecv::AutocompleteTab => {
                             while let Some(state) = rx_tabs_state.recv().await {
                                 if !state.initialized {
                                     continue;
                                 }
 
-                                Self::echo_completion(&state.tabs, complete.as_str());
+                                Self::echo_completion(&state.tabs);
 
                                 tx_shutdown.send(MainShutdown {}).await?;
+                                break;
                             }
                         }
 
+                        MainRecv::GlobalShutdown => {}
                         MainRecv::SelectInteractive => {}
                         MainRecv::CloseTab(_) => {}
                     }
@@ -320,21 +323,12 @@ impl TabBus {
         }
     }
 
-    fn echo_completion(tabs: &HashMap<TabId, TabMetadata>, completion: &str) {
-        debug!("echo completion: {:?}, {}", tabs, completion);
+    fn echo_completion(tabs: &HashMap<TabId, TabMetadata>) {
+        debug!("echo completion: {:?}", tabs);
 
-        let mut names: Vec<&str> = tabs
-            .values()
-            .map(|v| v.name.as_str())
-            .filter(|name| name.starts_with(completion))
-            .collect();
+        let mut names: Vec<&str> = tabs.values().map(|v| v.name.as_str()).collect();
 
-        names.sort_by(|a, b| {
-            let a_len = Self::overlap(a, completion);
-            let b_len = Self::overlap(b, completion);
-
-            a_len.cmp(&b_len)
-        });
+        names.sort();
 
         for name in names {
             println!("{}", name);

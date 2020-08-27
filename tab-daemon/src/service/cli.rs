@@ -147,6 +147,9 @@ impl CliService {
                 let message = CliSend::Retask(id, name);
                 tx_daemon.send(message).await?;
             }
+            Request::GlobalShutdown => {
+                tx_daemon.send(CliSend::GlobalShutdown).await?;
+            }
         }
 
         Ok(())

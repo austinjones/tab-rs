@@ -36,10 +36,10 @@ fn init() -> ArgMatches<'static> {
                 .hidden(true),
         )
         .arg(
-            Arg::with_name("COMPLETION")
-                .long("_completion")
+            Arg::with_name("AUTOCOMPLETE-TAB")
+                .long("_autocomplete_tab")
                 .hidden(true)
-                .takes_value(true)
+                .takes_value(false)
                 .help("runs the daemon using `cargo run`"),
         )
         .arg(

@@ -33,6 +33,9 @@ pub enum Request {
 
     /// Terminates the shell on the given tab, by name
     CloseNamedTab(String),
+
+    /// Shuts down all tab processes, including the daemon and all ptys
+    GlobalShutdown,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -30,6 +30,7 @@ pub struct ListenerService {
     _tabs: TabManagerService,
     _retask: RetaskService,
     _connection_carrier: ConnectionMessageCarrier,
+    _daemon_carrier: ListenerDaemonCarrier,
 }
 
 impl Service for ListenerService {
@@ -48,6 +49,7 @@ impl Service for ListenerService {
         let _listener = WebsocketListenerService::spawn(&websocket_bus)?;
 
         let listener_bus = ListenerBus::default();
+        let _daemon_carrier = listener_bus.carry_from(bus)?;
         let _connection_carrier = listener_bus.carry_from(&websocket_bus)?;
 
         let _tabs = TabManagerService::spawn(&listener_bus)?;
@@ -59,6 +61,7 @@ impl Service for ListenerService {
             _listener,
             _new_session,
             _connection_carrier,
+            _daemon_carrier,
             _retask,
             _tabs,
         })
