@@ -68,7 +68,8 @@ where
                 }
 
                 tx.send(WebsocketSend(TungsteniteMessage::Close(None)))
-                    .await?;
+                    .await
+                    .ok();
 
                 Ok(())
             })

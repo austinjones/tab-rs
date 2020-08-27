@@ -24,6 +24,8 @@ tab-pty-process = { path = "../tab-pty-process"}
 futures = "0.3"
 async-stream = "0.3"
 
+async-trait = "0.1"
+
 # authentication / tokens
 rand = "0.7"
 base64 = "0.12"

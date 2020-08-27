@@ -15,10 +15,7 @@ use anyhow::Context;
 use std::collections::HashMap;
 
 use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc, watch},
-};
+use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct TabBus);
 

@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches};
+use clap::ArgMatches;
 
 use crate::prelude::*;
 use service::main::*;
@@ -19,19 +19,6 @@ mod prelude;
 mod service;
 mod state;
 
-pub fn main() -> anyhow::Result<()> {
-    let args = init();
-    if let Some(launch) = args.value_of("LAUNCH") {
-        match launch {
-            "daemon" => tab_daemon::daemon_main(),
-            "pty" => tab_pty::pty_main(),
-            _ => panic!("unsupported --_launch value"),
-        }
-    } else {
-        cli_main(args)
-    }
-}
-
 pub fn cli_main(args: ArgMatches) -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
@@ -47,52 +34,6 @@ pub fn cli_main(args: ArgMatches) -> anyhow::Result<()> {
     result?;
 
     Ok(())
-}
-
-fn init() -> ArgMatches<'static> {
-    App::new("Terminal Multiplexer")
-        .version("0.1")
-        .author("Austin Jones <implAustin@gmail.com>")
-        .about("Provides persistent terminal sessions with multiplexing.")
-        // .arg(
-        //     Arg::with_name("DEBUG")
-        //         .long("debug")
-        //         .required(false)
-        //         .takes_value(false)
-        //         .help("enables debug logging"),
-        // )
-        .arg(
-            Arg::with_name("LAUNCH")
-                .long("_launch")
-                .required(false)
-                .takes_value(true)
-                .hidden(true),
-        )
-        .arg(
-            Arg::with_name("COMPLETION")
-                .long("_completion")
-                .hidden(true)
-                .takes_value(true)
-                .help("runs the daemon using `cargo run`"),
-        )
-        .arg(
-            Arg::with_name("CLOSE")
-                .short("w")
-                .takes_value(false)
-                .help("closes the tab with the given name"),
-        )
-        .arg(
-            Arg::with_name("LIST")
-                .short("l")
-                .help("lists the active tabs"),
-        )
-        .arg(
-            Arg::with_name("TAB-NAME")
-                .help("switches to the provided tab")
-                .required(false)
-                .index(1),
-        )
-        .get_matches()
 }
 
 async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
