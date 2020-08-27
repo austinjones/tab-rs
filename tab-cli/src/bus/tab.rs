@@ -309,7 +309,7 @@ impl TabBus {
         }
 
         tabs.sort();
-        tabs.dedup();
+        tabs.dedup_by(|(n, _), (n2, _)| n == n2);
 
         tabs
     }
