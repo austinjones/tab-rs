@@ -55,6 +55,7 @@ impl WebsocketMessageBus for CliBus {
 pub struct ListenerConnectionCarrier {
     _forward: Lifeline,
     _reverse: Lifeline,
+    _terminated: Lifeline,
     _forward_tabs_state: Lifeline,
 }
 
@@ -99,6 +100,7 @@ impl CarryFrom<ListenerBus> for CliBus {
         Ok(ListenerConnectionCarrier {
             _forward,
             _reverse,
+            _terminated,
             _forward_tabs_state,
         })
     }

@@ -175,12 +175,14 @@ impl TabManagerService {
 
         tx.send(TabManagerSend::TabTerminated(id))
             .await
-            .context("tx TabTerminated")?;
+            .context("tx TabTerminated")
+            .ok();
         tx_close.send(TabRecv::Terminate(id)).await.ok();
         tx_tabs_state
             .send(TabsState::new(&tabs))
             .await
-            .context("tx_tabs_state TabsState")?;
+            .context("tx_tabs_state TabsState")
+            .ok();
 
         Ok(())
     }
