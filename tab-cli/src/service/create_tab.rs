@@ -11,6 +11,7 @@ use crate::{
 use tab_api::tab::CreateTabMetadata;
 use time::Duration;
 use tokio::{sync::watch, time};
+
 pub struct CreateTabService {
     _request_tab: Lifeline,
 }
@@ -55,35 +56,6 @@ impl Service for CreateTabService {
             Ok(())
         });
 
-        // let _create_tab = {
-        //     let mut rx_tab_state = self.rx::<TabState>()?;
-        //     let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
-        //     let mut tx_request = from.tx::<Request>()?;
-
-        //     let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
-
-        //     Self::try_task("request_tab", async move {
-        //         while let Some(update) = rx_tab_state.recv().await {
-        //             if let TabState::Awaiting(name) = update {
-        //                 let terminal_size = rx_terminal_size.borrow().clone();
-        //                 let dimensions = terminal_size.0;
-
-        //                 let current_dir = std::env::current_dir()?;
-        //                 tx_request
-        //                     .send(Request::CreateTab(CreateTabMetadata {
-        //                         name,
-        //                         dimensions,
-        //                         shell: shell.clone(),
-        //                         dir: current_dir.to_string_lossy().to_string(),
-        //                     }))
-        //                     .await
-        //                     .context("tx Request::CreateTab")?;
-        //             }
-        //         }
-
-        //         Ok(())
-        //     })
-        // };
         Ok(Self { _request_tab })
     }
 }
@@ -96,14 +68,14 @@ impl CreateTabService {
         tx_websocket: &mut impl Sender<Request>,
     ) -> anyhow::Result<()> {
         let name = normalize_name(name.as_str());
-        let tab = workspace.into_iter().find(|tab| tab.name == name);
+        let workspace_tab = workspace.into_iter().find(|tab| tab.name == name);
 
         let dimensions = rx_terminal_size.borrow().0.clone();
         let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
-        let metadata = if let Some(tab) = tab {
+        let metadata = if let Some(workspace_tab) = workspace_tab {
             CreateTabMetadata {
-                name: tab.name,
-                dir: tab.directory.to_string_lossy().to_string(),
+                name: workspace_tab.name,
+                dir: workspace_tab.directory.to_string_lossy().to_string(),
                 dimensions,
                 shell,
             }
@@ -116,10 +88,10 @@ impl CreateTabService {
                 shell,
             }
         };
-        // TODO: move this to a helper and unify across all creation points
 
         let request = Request::CreateTab(metadata);
         tx_websocket.send(request).await?;
+
         Ok(())
     }
 

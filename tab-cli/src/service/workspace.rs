@@ -24,9 +24,9 @@ impl Service for WorkspaceService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut tx = bus.tx::<WorkspaceState>()?;
         let _monitor = Self::try_task("monitor", async move {
-            // find the workspace root
             loop {
                 let state = load_state();
+
                 if let Err(err) = state {
                     error!("failed to load config: {:?}", err);
                 } else {
@@ -35,8 +35,8 @@ impl Service for WorkspaceService {
                     let state = WorkspaceState::Ready(tabs);
                     tx.send(state).await.ok();
                 }
-                // read the workspace root, and all children
-                time::delay_for(Duration::from_millis(250)).await;
+
+                time::delay_for(Duration::from_millis(1000)).await;
             }
 
             Ok(())
@@ -53,24 +53,15 @@ struct LoaderState {
 }
 
 fn load_state() -> anyhow::Result<LoaderState> {
-    // let config = Config::Workspace(Workspace {
-    //     workspace: vec![WorkspaceItem::Tab(Tab {
-    //         tab: "foo".to_owned(),
-    //         dir: None,
-    //         command: None,
-    //     })],
-    // });
-
-    // let string = serde_yaml::to_string(&config)?;
-    // error!("serialized: {}", string);
-
     let mut loader_state = LoaderState {
         repos: Vec::new(),
         tabs: Vec::new(),
         workspace: None,
     };
+
     let init_dir = std::env::current_dir()?;
     let mut working_dir: Option<&Path> = Some(init_dir.as_path());
+
     while let Some(dir) = working_dir {
         let config = load_yml(dir);
         if let Some(config) = config {
@@ -92,11 +83,6 @@ fn load_state() -> anyhow::Result<LoaderState> {
     }
 
     Ok(loader_state)
-}
-
-enum LoadError {
-    NoConfig,
-    SerdeError,
 }
 
 fn load_yml(dir: &Path) -> Option<anyhow::Result<Config>> {
