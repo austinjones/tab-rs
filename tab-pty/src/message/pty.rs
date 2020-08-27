@@ -1,5 +1,5 @@
 use lifeline::impl_storage_clone;
-use std::{collections::HashMap, process::ExitStatus};
+use std::{collections::HashMap, path::PathBuf, process::ExitStatus};
 use tab_api::chunk::{InputChunk, OutputChunk};
 
 #[derive(Debug, Clone)]
@@ -25,6 +25,8 @@ pub enum PtyResponse {
 pub struct PtyOptions {
     pub dimensions: (u16, u16),
     pub command: String,
+    pub args: Vec<String>,
+    pub working_directory: PathBuf,
     pub env: HashMap<String, String>,
 }
 

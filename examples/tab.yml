@@ -1,0 +1,8 @@
+workspace:
+  - repo: my-project/
+  - tab: workspace-tab
+    doc: "this is a top-level workspace tab"
+
+# workspace:
+#   - tab: from-config
+#   - repo: tab-rs

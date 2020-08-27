@@ -1,0 +1,7 @@
+repo: proj
+doc: "my project"
+
+tabs:
+  - tab: run
+    dir: src/
+    doc: "runs the project server"

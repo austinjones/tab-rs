@@ -47,6 +47,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     let select_tab = matches.value_of("TAB-NAME");
     let (mut tx, rx_shutdown, _service) = spawn().await?;
     let completion = matches.is_present("AUTOCOMPLETE-TAB");
+    let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
     let close = matches.is_present("CLOSE");
     let shutdown = matches.is_present("SHUTDOWN");
 
@@ -54,6 +55,8 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
         tx.send(MainRecv::GlobalShutdown).await?;
     } else if completion {
         tx.send(MainRecv::AutocompleteTab).await?;
+    } else if close_completion {
+        tx.send(MainRecv::AutocompleteCloseTab).await?;
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
@@ -93,4 +96,13 @@ async fn spawn() -> anyhow::Result<(
     let main_shutdown = bus.rx::<MainShutdown>()?;
 
     Ok((tx, main_shutdown, service))
+}
+
+pub fn normalize_name(name: &str) -> String {
+    let name = name.to_string().trim().to_string();
+    if name.ends_with("/") {
+        name
+    } else {
+        name + "/"
+    }
 }

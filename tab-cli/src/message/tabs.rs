@@ -14,3 +14,8 @@ pub struct TabShutdown {}
 
 #[derive(Debug, Clone)]
 pub struct RequestTabClose(pub TabId);
+
+#[derive(Debug, Clone)]
+pub enum CreateTabRequest {
+    Named(String),
+}

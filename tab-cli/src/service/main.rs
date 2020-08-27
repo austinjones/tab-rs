@@ -1,8 +1,12 @@
-use super::{tab_state::TabStateService, tabs::TabsStateService, terminal::TerminalService};
+use super::{
+    create_tab::CreateTabService, tab_state::TabStateService, tabs::TabsStateService,
+    terminal::TerminalService, workspace::WorkspaceService,
+};
 use crate::prelude::*;
 use crate::{
     bus::MainBus,
     message::main::{MainRecv, MainShutdown},
+    normalize_name,
 };
 
 use lifeline::dyn_bus::DynBus;
@@ -16,6 +20,8 @@ pub struct MainService {
     _main: Lifeline,
     _main_tab: MainTabCarrier,
     _main_websocket: WebsocketCarrier,
+    _workspace: WorkspaceService,
+    _create_tab: CreateTabService,
     _tab_state: TabStateService,
     _tabs_state: TabsStateService,
     _terminal: TerminalService,
@@ -54,6 +60,8 @@ impl Service for MainService {
         });
 
         let _tab_state = TabStateService::spawn(&tab_bus)?;
+        let _workspace = WorkspaceService::spawn(&tab_bus)?;
+        let _create_tab = CreateTabService::spawn(&tab_bus)?;
         let _tabs_state = TabsStateService::spawn(&tab_bus)?;
         let _terminal = TerminalService::spawn(&main_bus)?;
         let _close_tab = CloseTabService::spawn(&main_bus)?;
@@ -62,6 +70,8 @@ impl Service for MainService {
             _main,
             _main_tab,
             _main_websocket,
+            _workspace,
+            _create_tab,
             _tab_state,
             _tabs_state,
             _terminal,
@@ -89,6 +99,7 @@ impl Service for CloseTabService {
             while let Some(msg) = rx_main.recv().await {
                 match msg {
                     MainRecv::CloseTab(name) => {
+                        let name = normalize_name(name.as_str());
                         tx_request.send(Request::CloseNamedTab(name)).await?;
                         tx_shutdown.send(MainShutdown {}).await?;
                     }

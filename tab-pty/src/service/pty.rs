@@ -1,5 +1,6 @@
 use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
+use anyhow::Context;
 use lifeline::{Receiver, Sender};
 use std::process::Command;
 use tab_api::chunk::{InputChunk, OutputChunk};
@@ -84,6 +85,9 @@ impl PtyService {
         let pty = AsyncPtyMaster::open()?;
 
         let mut child = Command::new(options.command);
+        child.current_dir(options.working_directory);
+        child.args(options.args.as_slice());
+
         for (k, v) in options.env {
             child.env(k, v);
         }
@@ -94,7 +98,7 @@ impl PtyService {
             .await
             .expect("failed to resize pty");
 
-        let (read, write) = pty.split();
+        let (read, mut write) = pty.split();
 
         Ok((child, read, write))
     }
