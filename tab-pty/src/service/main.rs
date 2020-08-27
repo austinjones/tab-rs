@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use super::pty::PtyService;
+use super::client::ClientService;
 use lifeline::dyn_bus::DynBus;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
@@ -8,12 +8,12 @@ use tab_websocket::{
 };
 
 pub struct MainService {
-    _pty: PtyService,
+    _pty: ClientService,
     _carrier: WebsocketCarrier,
 }
 
 impl Service for MainService {
-    type Bus = PtyBus;
+    type Bus = MainBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
@@ -24,7 +24,7 @@ impl Service for MainService {
         let _carrier = websocket_connection_bus.carry_from(bus)?;
 
         debug!("Launching MainService");
-        let _pty = PtyService::spawn(&bus)?;
+        let _pty = ClientService::spawn(&bus)?;
 
         Ok(Self { _pty, _carrier })
     }

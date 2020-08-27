@@ -8,9 +8,10 @@ use crate::prelude::*;
 use tab_api::chunk::InputChunk;
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 
-use tokio::stream::StreamExt;
+use tokio::{stream::StreamExt, time};
 
 use scrollback::PtyScrollbackService;
+use time::Duration;
 
 pub struct PtyService {
     _websocket: Lifeline,
@@ -81,6 +82,8 @@ impl Service for PtyService {
                         }
                         PtyRecv::Terminate => {
                             tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
+
+                            time::delay_for(Duration::from_millis(50)).await;
 
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;

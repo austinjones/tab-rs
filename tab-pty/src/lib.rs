@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use message::pty::PtyShutdown;
+use message::pty::MainShutdown;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 use std::time::Duration;
 use tab_api::{launch::*, pty::PtyWebsocketRequest};
@@ -52,12 +52,12 @@ async fn main_async() -> anyhow::Result<()> {
 
 async fn spawn() -> anyhow::Result<(
     impl Sender<PtyWebsocketRequest>,
-    impl Receiver<PtyShutdown>,
+    impl Receiver<MainShutdown>,
     MainService,
 )> {
     let config = launch_daemon().await?;
 
-    let bus = PtyBus::default();
+    let bus = MainBus::default();
 
     let ws_url = format!("ws://127.0.0.1:{}/pty", config.port);
     let websocket = tab_websocket::connect_authorized(ws_url, config.auth_token.clone()).await?;
@@ -67,7 +67,7 @@ async fn spawn() -> anyhow::Result<(
     let main = MainService::spawn(&bus)?;
 
     let tx = bus.tx::<PtyWebsocketRequest>()?;
-    let main_shutdown = bus.rx::<PtyShutdown>()?;
+    let main_shutdown = bus.rx::<MainShutdown>()?;
 
     Ok((tx, main_shutdown, main))
 }
