@@ -1,3 +1,5 @@
+//! Common metadata about Tabs.
+
 use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

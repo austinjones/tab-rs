@@ -5,18 +5,35 @@ use tab_api::{
     tab::{TabId, TabMetadata},
 };
 
+/// An input (stdin) event for tab, identified by an id.
+/// Cheaply clonable and sent over broadcast channels.
+///
+/// Messaged on the CliBus, and forwarded to active PTYs.
 #[derive(Debug, Clone)]
 pub struct TabInput {
     pub id: TabId,
     pub stdin: Arc<InputChunk>,
 }
 
+/// An output (stdout) event for tab, identified by an id
+/// Cheaply clonable and sent over broadcast channels.
+///
+/// Messaged on the PtyBus, and forwarded to subscribed CLIs via `TabSend`.
 #[derive(Debug, Clone)]
 pub struct TabOutput {
     pub id: TabId,
     pub stdout: Arc<OutputChunk>,
 }
 
+/// A message transmitted to a tab, used as a broadcast adapter between CLI and PTY connections.
+///
+/// Carried over the ListenerBus.
+///
+/// Usage:
+/// - Tx from the `ListenerConnectionCarrier`, to forward lifecycle & stdin from CLI connections
+/// - Tx from the `TabManagerService`, to offer tab assignments to PTY connections
+/// - Rx from the `ListenerPtyCarrier`, to forward events to an established PTY tab.
+/// - Rx from the `RetaskService`, to broadcast retask to subscribed CLI connections.
 #[derive(Debug, Clone)]
 pub enum TabRecv {
     Assign(Assignment<TabMetadata>),
@@ -30,6 +47,8 @@ pub enum TabRecv {
     TerminateAll,
 }
 
+/// A cheaply clonable message with the latest tab scrollback.
+/// Receivers can call `msg.scrollback.scrollback()` to clone & iterate over the scrollback buffer.
 #[derive(Debug, Clone)]
 pub struct TabScrollback {
     pub id: TabId,
@@ -42,6 +61,15 @@ impl TabScrollback {
     }
 }
 
+/// A message sent from an established tab, to provide lifecycle notification events,
+/// and scrollback/stdout.  Also provides retask notifications if the `tab-cli` is invoked from within a tab.
+///
+/// Carried over the ListenerBus.
+///
+/// Usage:
+/// - Tx from the `ListenerPtyCarrier` to forward raw PTY events.
+/// - Tx from the `RetaskService`, to provide retask notifications to subscribed CLI connections
+/// - Rx from the `ListenerConnectionCarrier`, to forward notifications to subscribed CLI connections
 #[derive(Debug, Clone)]
 pub enum TabSend {
     Started(TabMetadata),

@@ -1,3 +1,5 @@
+//! `tab`, a modern terminial multiplexer designed for overwhelmed software & systems engineers.
+//!
 use clap::App;
 use clap::Arg;
 use clap::ArgMatches;
@@ -19,8 +21,11 @@ pub fn main() -> anyhow::Result<()> {
 fn init() -> ArgMatches<'static> {
     App::new("Terminal Multiplexer")
         .version("0.1")
+        .name("tab")
         .author("Austin Jones <implAustin@gmail.com>")
-        .about("Provides persistent terminal sessions with multiplexing.")
+        .about("`tab`, a modern terminal multiplexer designed for overwhelmed software & systems engineers.")
+        .long_about(include_str!("about.txt"))
+        .after_help(include_str!("after-help.txt"))
         // .arg(
         //     Arg::with_name("DEBUG")
         //         .long("debug")
@@ -50,13 +55,14 @@ fn init() -> ArgMatches<'static> {
                 .help("runs the daemon using `cargo run`"),
         )
         .arg(
-            Arg::with_name("CLOSE")
+            Arg::with_name("CLOSE-TAB")
                 .short("w")
-                .takes_value(false)
+                .takes_value(true)
                 .help("closes the tab with the given name"),
         )
         .arg(
             Arg::with_name("SHUTDOWN")
+                .short("W")
                 .long("shutdown")
                 .takes_value(false)
                 .help("terminates the tab daemon and all active pty sessions"),
@@ -64,6 +70,7 @@ fn init() -> ArgMatches<'static> {
         .arg(
             Arg::with_name("LIST")
                 .short("l")
+                .long("list")
                 .help("lists the active tabs"),
         )
         .arg(

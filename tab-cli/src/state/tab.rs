@@ -36,12 +36,3 @@ impl Default for TabState {
         Self::None
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct TabStateAvailable(pub Vec<TabMetadata>);
-
-impl Default for TabStateAvailable {
-    fn default() -> Self {
-        TabStateAvailable(vec![])
-    }
-}

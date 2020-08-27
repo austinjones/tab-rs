@@ -1,3 +1,5 @@
+//! PtyRequests and PtyResponses, communicated between `tab-pty` and `tab-daemon`.
+
 use crate::{
     chunk::{InputChunk, OutputChunk},
     tab::TabMetadata,
@@ -18,12 +20,3 @@ pub enum PtyWebsocketRequest {
     Resize((u16, u16)),
     Terminate,
 }
-
-// #[derive(Debug, Clone)]
-// pub struct PtyInit {
-//     pub name: String,
-//     pub dimensions: (u16, u16),
-//     pub command: String,
-//     // pub shell: String,
-//     // pub env: HashMap<String, String>
-// }
