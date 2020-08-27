@@ -295,6 +295,7 @@ impl TabBus {
         workspace: Option<Vec<WorkspaceTab>>,
     ) -> Vec<(String, String)> {
         let mut tabs = Vec::new();
+
         if let Some(running) = running {
             for (_id, metadata) in running.tabs {
                 tabs.push((metadata.name, "".to_string()));
@@ -308,7 +309,11 @@ impl TabBus {
         }
 
         tabs.sort();
-        tabs.dedup_by(|(n, _), (n2, _)| n == n2);
+        // reverse the sort, so items with doc comments are retained
+        tabs.reverse();
+        tabs.dedup_by(|(name, _), (name2, _)| name == name2);
+        // put it back.
+        tabs.reverse();
 
         tabs
     }
