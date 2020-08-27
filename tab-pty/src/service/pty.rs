@@ -1,6 +1,6 @@
 use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
-use anyhow::Context;
+
 use lifeline::{Receiver, Sender};
 use std::process::Command;
 use tab_api::chunk::{InputChunk, OutputChunk};
@@ -98,7 +98,7 @@ impl PtyService {
             .await
             .expect("failed to resize pty");
 
-        let (read, mut write) = pty.split();
+        let (read, write) = pty.split();
 
         Ok((child, read, write))
     }

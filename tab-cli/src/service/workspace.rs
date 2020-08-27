@@ -1,12 +1,11 @@
 use crate::{
     normalize_name,
     prelude::*,
-    state::workspace::{Config, Repo, Tab, Workspace, WorkspaceItem, WorkspaceState, WorkspaceTab},
+    state::workspace::{Config, Repo, Workspace, WorkspaceItem, WorkspaceState, WorkspaceTab},
 };
 use anyhow::Context;
 use lifeline::Service;
 use std::{
-    collections::HashMap,
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},

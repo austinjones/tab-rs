@@ -14,9 +14,8 @@ use crate::{
     },
 };
 use anyhow::Context;
-use std::collections::HashMap;
 
-use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
+use tab_api::tab::{TabId, TabMetadata};
 use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct TabBus);
@@ -247,7 +246,7 @@ impl CarryFrom<MainBus> for TabBus {
                             let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
                             let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
                             let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
-                            let tabs = tabs.into_iter().map(|(name, doc)| name).collect();
+                            let tabs = tabs.into_iter().map(|(name, _doc)| name).collect();
                             Self::echo_completion(&tabs);
                             tx_shutdown.send(MainShutdown {}).await?;
                         }
