@@ -164,7 +164,7 @@ fn tabs(mut loader: LoaderState) -> Vec<WorkspaceTab> {
         tabs.push(tab);
 
         // and then for any tabs the user defined
-        for tab in repo.tabs {
+        for tab in repo.tabs.into_iter().flat_map(|t| t.into_iter()) {
             let mut directory = path.to_path_buf();
             if let Some(subdir) = tab.dir {
                 directory.push(subdir);
