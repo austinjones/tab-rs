@@ -37,10 +37,17 @@ impl Service for MainService {
         let _main_tab = tab_bus.carry_from(main_bus)?;
 
         let mut rx_main = main_bus.rx::<MainRecv>()?;
+
+        let mut tx_websocket = main_bus.tx::<Request>()?;
+        let mut tx_shutdown = main_bus.tx::<MainShutdown>()?;
         let _main = Self::try_task("main_recv", async move {
             while let Some(msg) = rx_main.recv().await {
                 debug!("MainRecv: {:?}", &msg);
                 // all the event types are handled by carriers
+                if let MainRecv::GlobalShutdown = msg {
+                    tx_websocket.send(Request::GlobalShutdown).await?;
+                    tx_shutdown.send(MainShutdown {}).await?;
+                }
             }
 
             Ok(())

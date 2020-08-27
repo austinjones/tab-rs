@@ -124,6 +124,9 @@ impl CarryFrom<ListenerBus> for PtyBus {
                             tx_pty.send(PtyRecv::Resize(dimensions)).await?;
                         }
                         TabRecv::Retask(_, _) => {}
+                        TabRecv::TerminateAll => {
+                            tx_pty.send(PtyRecv::Terminate).await?;
+                        }
                     }
                 }
 

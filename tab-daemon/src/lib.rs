@@ -93,6 +93,7 @@ async fn main_async() -> anyhow::Result<()> {
                 break;
             },
             _ = shutdown.recv() => {
+                info!("daemon shutdown received");
                 break;
             }
         }

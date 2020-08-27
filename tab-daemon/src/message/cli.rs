@@ -16,6 +16,8 @@ pub enum CliSend {
     ResizeTab(TabId, (u16, u16)),
     CloseTab(TabId),
     CloseNamedTab(String),
+    /// Shuts down the Daemon and all PTY processes
+    GlobalShutdown,
 }
 
 #[derive(Debug, Clone)]

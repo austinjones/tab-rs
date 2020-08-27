@@ -2,6 +2,7 @@ use crate::prelude::*;
 use crate::{
     message::{
         cli::{CliRecv, CliSend, CliShutdown},
+        listener::ListenerShutdown,
         tab::{TabInput, TabRecv, TabSend},
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
@@ -14,7 +15,11 @@ use std::sync::Arc;
 use subscription::Subscription;
 use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc};
+use time::Duration;
+use tokio::{
+    sync::{broadcast, mpsc},
+    time,
+};
 
 lifeline_bus!(pub struct CliBus);
 
@@ -72,6 +77,7 @@ impl CarryFrom<ListenerBus> for CliBus {
         let tx_manager = from.tx::<TabManagerRecv>()?;
         let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
         let tx_shutdown = self.tx::<CliShutdown>()?;
+        let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
 
         // todo: convert this to block-style for each lifeline.
         let _forward = Self::try_task(
@@ -80,7 +86,13 @@ impl CarryFrom<ListenerBus> for CliBus {
         );
         let _reverse = Self::try_task(
             "input",
-            Self::run_input(rx_conn, tx_tab, tx_manager, tx_shutdown),
+            Self::run_input(
+                rx_conn,
+                tx_tab,
+                tx_manager,
+                tx_shutdown,
+                tx_listener_shutdown,
+            ),
         );
         let _terminated =
             Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn));
@@ -124,6 +136,7 @@ impl CliBus {
         mut tx: impl Sender<TabRecv>,
         mut tx_manager: impl Sender<TabManagerRecv>,
         mut tx_shutdown: impl Sender<CliShutdown>,
+        mut tx_listener_shutdown: impl Sender<ListenerShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {
@@ -155,6 +168,12 @@ impl CliBus {
                 CliSend::Retask(from, to) => {
                     let message = TabRecv::Retask(from, to);
                     tx.send(message).await?;
+                }
+                CliSend::GlobalShutdown => {
+                    info!("global shutdown received");
+                    tx.send(TabRecv::TerminateAll).await?;
+                    tx_listener_shutdown.send(ListenerShutdown {}).await?;
+                    time::delay_for(Duration::from_millis(50)).await;
                 }
             }
         }
