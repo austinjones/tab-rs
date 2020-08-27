@@ -52,7 +52,7 @@ pub struct WorkspaceRepoLink {
 pub struct Repo {
     pub repo: String,
     pub doc: Option<String>,
-    pub tabs: Vec<Tab>,
+    pub tabs: Option<Vec<Tab>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
