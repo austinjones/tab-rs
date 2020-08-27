@@ -1,0 +1,6 @@
+workspace:
+  # this is a repository.
+  # put a tab.yml in this directory with a repo configuration
+  - repo: my-project/
+  - tab: workspace-tab
+    doc: "this is a top-level workspace tab"

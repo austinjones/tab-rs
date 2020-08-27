@@ -13,6 +13,7 @@ pub enum MainRecv {
     SelectInteractive,
     CloseTab(String),
     AutocompleteTab,
+    AutocompleteCloseTab,
     GlobalShutdown,
 }
 

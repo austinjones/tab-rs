@@ -2,19 +2,20 @@ use crate::{
     message::{
         client::TabTerminated,
         main::{MainRecv, MainShutdown},
-        tabs::{TabShutdown, TabsRecv},
+        tabs::{CreateTabRequest, TabShutdown, TabsRecv},
     },
+    normalize_name,
     prelude::*,
     state::{
         tab::{SelectTab, TabState, TabStateAvailable},
         tabs::TabsState,
         terminal::TerminalSizeState,
+        workspace::{WorkspaceState, WorkspaceTab},
     },
 };
 use anyhow::Context;
-use std::collections::HashMap;
 
-use tab_api::tab::{CreateTabMetadata, TabId, TabMetadata};
+use tab_api::tab::{TabId, TabMetadata};
 use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct TabBus);
@@ -59,13 +60,21 @@ impl Message<TabBus> for TabsState {
     type Channel = watch::Sender<Self>;
 }
 
+impl Message<TabBus> for CreateTabRequest {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<TabBus> for WorkspaceState {
+    type Channel = watch::Sender<Self>;
+}
+
 pub struct MainTabCarrier {
     pub(super) _main: Lifeline,
     pub(super) _tx_selected: Lifeline,
     pub(super) _forward_request: Lifeline,
     pub(super) _forward_shutdown: Lifeline,
 
-    pub(super) _create_tab: Lifeline,
+    // pub(super) _create_tab: Lifeline,
     pub(super) _rx_response: Lifeline,
 }
 
@@ -92,33 +101,6 @@ impl CarryFrom<MainBus> for TabBus {
             Self::try_task("forward_shutdown", async move {
                 rx.recv().await;
                 tx.send(MainShutdown {}).await.ok();
-                Ok(())
-            })
-        };
-
-        let _create_tab = {
-            let mut rx_tab_state = self.rx::<TabState>()?;
-            let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
-            let mut tx_request = from.tx::<Request>()?;
-
-            let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
-
-            Self::try_task("request_tab", async move {
-                while let Some(update) = rx_tab_state.recv().await {
-                    if let TabState::Awaiting(name) = update {
-                        let terminal_size = rx_terminal_size.borrow().clone();
-                        let dimensions = terminal_size.0;
-                        tx_request
-                            .send(Request::CreateTab(CreateTabMetadata {
-                                name,
-                                dimensions,
-                                shell: shell.clone(),
-                            }))
-                            .await
-                            .context("tx Request::CreateTab")?;
-                    }
-                }
-
                 Ok(())
             })
         };
@@ -199,9 +181,10 @@ impl CarryFrom<MainBus> for TabBus {
 
         let _main = {
             let mut rx_tabs_state = self.rx::<TabsState>()?.into_inner();
-            let rx_terminal_size = self.rx::<TerminalSizeState>()?.into_inner();
+            let mut rx_workspace = self.rx::<WorkspaceState>()?.into_inner();
             let mut rx_main = from.rx::<MainRecv>()?;
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
+            let mut tx_create = self.tx::<CreateTabRequest>()?;
             let mut tx_select = self.tx::<SelectTab>()?;
             let mut tx_websocket = self.tx::<Request>()?;
 
@@ -209,6 +192,7 @@ impl CarryFrom<MainBus> for TabBus {
                 while let Some(msg) = rx_main.recv().await {
                     match msg {
                         MainRecv::SelectTab(name) => {
+                            let name = normalize_name(name.as_str());
                             if let Ok(id) = std::env::var("TAB_ID") {
                                 if let Ok(id) = id.parse() {
                                     if let Ok(env_name) = std::env::var("TAB") {
@@ -224,23 +208,9 @@ impl CarryFrom<MainBus> for TabBus {
 
                                     Self::await_initialized(&mut rx_tabs_state).await;
 
-                                    let tab_exists = rx_tabs_state
-                                        .borrow()
-                                        .tabs
-                                        .values()
-                                        .find(|tab| tab.name == name)
-                                        .is_some();
-                                    if !tab_exists {
-                                        // TODO: move this to a helper and unify across all creation points
-                                        let metadata = CreateTabMetadata {
-                                            name: name.clone(),
-                                            dimensions: rx_terminal_size.borrow().0.clone(),
-                                            shell: std::env::var("SHELL")
-                                                .unwrap_or("/usr/bin/env bash".to_string()),
-                                        };
-                                        let request = Request::CreateTab(metadata);
-                                        tx_websocket.send(request).await?;
-                                    }
+                                    tx_create
+                                        .send(CreateTabRequest::Named(name.clone()))
+                                        .await?;
 
                                     debug!("retask - waiting for creation on tab {}", id);
                                     let metadata =
@@ -254,34 +224,48 @@ impl CarryFrom<MainBus> for TabBus {
                                 }
                             }
 
+                            tx_create
+                                .send(CreateTabRequest::Named(name.clone()))
+                                .await?;
+
                             tx_select
                                 .send(SelectTab::NamedTab(name))
                                 .await
                                 .context("send TabStateSelect")?;
                         }
                         MainRecv::ListTabs => {
-                            while let Some(state) = rx_tabs_state.recv().await {
-                                if !state.initialized {
-                                    continue;
-                                }
+                            let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+                            let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
+                            let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
 
-                                Self::echo_tabs(&state.tabs);
-
-                                tx_shutdown.send(MainShutdown {}).await?;
-                                break;
-                            }
+                            Self::echo_tabs(&tabs);
+                            tx_shutdown.send(MainShutdown {}).await?;
                         }
                         MainRecv::AutocompleteTab => {
-                            while let Some(state) = rx_tabs_state.recv().await {
-                                if !state.initialized {
-                                    continue;
+                            // the the list of available tabs, both running (ad-hoc), and from the workspace library
+                            let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+                            let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
+                            let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
+                            let tabs = tabs.into_iter().map(|(name, _doc)| name).collect();
+                            Self::echo_completion(&tabs);
+                            tx_shutdown.send(MainShutdown {}).await?;
+                        }
+                        MainRecv::AutocompleteCloseTab => {
+                            // get the list of tabs which are running on the daemon.
+                            let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+
+                            let mut tabs = Vec::new();
+                            if let Some(running_tabs) = running_tabs {
+                                for (_id, metadata) in running_tabs.tabs {
+                                    tabs.push(metadata.name);
                                 }
-
-                                Self::echo_completion(&state.tabs);
-
-                                tx_shutdown.send(MainShutdown {}).await?;
-                                break;
                             }
+
+                            tabs.sort();
+                            tabs.dedup();
+
+                            Self::echo_completion(&tabs);
+                            tx_shutdown.send(MainShutdown {}).await?;
                         }
 
                         MainRecv::GlobalShutdown => {}
@@ -299,39 +283,65 @@ impl CarryFrom<MainBus> for TabBus {
             _tx_selected,
             _forward_request,
             _forward_shutdown,
-            _create_tab,
+            // _create_tab,
             _rx_response,
         })
     }
 }
 
 impl TabBus {
-    fn echo_tabs(tabs: &HashMap<TabId, TabMetadata>) {
+    fn merge_tabs(
+        running: Option<TabsState>,
+        workspace: Option<Vec<WorkspaceTab>>,
+    ) -> Vec<(String, String)> {
+        let mut tabs = Vec::new();
+        if let Some(running) = running {
+            for (_id, metadata) in running.tabs {
+                tabs.push((metadata.name, "".to_string()));
+            }
+        }
+
+        if let Some(workspace) = workspace {
+            for tab in workspace.into_iter() {
+                tabs.push((tab.name, tab.doc));
+            }
+        }
+
+        tabs.sort();
+        tabs.dedup_by(|(n, _), (n2, _)| n == n2);
+
+        tabs
+    }
+
+    fn echo_tabs(tabs: &Vec<(String, String)>) {
         debug!("echo tabs: {:?}", tabs);
 
-        let mut names: Vec<&str> = tabs.values().map(|v| v.name.as_str()).collect();
-        names.sort();
-
-        if names.len() == 0 {
+        if tabs.len() == 0 {
             println!("No active tabs.");
             return;
         }
 
+        let len = tabs.iter().map(|(name, _doc)| name.len()).max().unwrap();
+        let target_len = len + 4;
         println!("Available tabs:");
-        for name in names {
-            println!("\t{}", name);
+        for (name, doc) in tabs.iter() {
+            print!("    {}", name);
+            if doc.len() > 0 {
+                for _ in name.len()..target_len {
+                    print!(" ");
+                }
+                println!("({})", doc);
+            } else {
+                println!("");
+            }
         }
     }
 
-    fn echo_completion(tabs: &HashMap<TabId, TabMetadata>) {
+    fn echo_completion(tabs: &Vec<String>) {
         debug!("echo completion: {:?}", tabs);
 
-        let mut names: Vec<&str> = tabs.values().map(|v| v.name.as_str()).collect();
-
-        names.sort();
-
-        for name in names {
-            println!("{}", name);
+        for tab in tabs {
+            println!("{}", tab);
         }
     }
 
@@ -348,15 +358,46 @@ impl TabBus {
         return matches;
     }
 
-    async fn await_initialized(rx: &mut impl Receiver<TabsState>) {
+    async fn await_initialized(rx: &mut watch::Receiver<TabsState>) -> Option<TabsState> {
+        {
+            let borrow = rx.borrow();
+            if borrow.initialized {
+                return Some(borrow.clone());
+            }
+        }
+
         let mut state = rx.recv().await;
         // TODO: 2 second timeout?
 
-        while state.is_some() && !state.unwrap().initialized {
+        while state.is_some() && !state.as_ref().unwrap().initialized {
             state = rx.recv().await;
         }
+
+        state
     }
 
+    async fn await_workspace(
+        rx: &mut watch::Receiver<WorkspaceState>,
+    ) -> Option<Vec<WorkspaceTab>> {
+        {
+            let borrow = rx.borrow();
+            if let WorkspaceState::Ready(ref ready) = *borrow {
+                return Some(ready.clone());
+            }
+        }
+        let mut state = rx.recv().await;
+        // TODO: 2 second timeout?
+
+        while state.is_some() {
+            if let Some(WorkspaceState::Ready(ready)) = state {
+                return Some(ready);
+            };
+
+            state = rx.recv().await;
+        }
+
+        None
+    }
     async fn await_created(name: String, rx: &mut watch::Receiver<TabsState>) -> TabMetadata {
         {
             let borrow = rx.borrow();

@@ -43,6 +43,13 @@ fn init() -> ArgMatches<'static> {
                 .help("runs the daemon using `cargo run`"),
         )
         .arg(
+            Arg::with_name("AUTOCOMPLETE-CLOSE-TAB")
+                .long("_autocomplete_close_tab")
+                .hidden(true)
+                .takes_value(false)
+                .help("runs the daemon using `cargo run`"),
+        )
+        .arg(
             Arg::with_name("CLOSE")
                 .short("w")
                 .takes_value(false)

@@ -6,6 +6,7 @@ use lifeline::dyn_bus::DynBus;
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     hash::{Hash, Hasher},
+    path::PathBuf,
 };
 use tab_api::{
     config::history_path,
@@ -81,9 +82,19 @@ impl ClientService {
                         env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
                     }
 
+                    let mut args = vec![];
+                    if create.shell.ends_with("fish") {
+                        args.push("--interactive".to_string());
+                    } else if create.shell.ends_with("bash") {
+                    } else if create.shell.ends_with("zsh") {
+                    }
+
+                    let working_directory = PathBuf::from(create.dir.clone());
                     let options = PtyOptions {
                         dimensions: create.dimensions,
                         command: create.shell.clone(),
+                        args,
+                        working_directory: working_directory.clone(),
                         env,
                     };
 

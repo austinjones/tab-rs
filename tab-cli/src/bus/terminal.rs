@@ -123,7 +123,7 @@ impl CarryFrom<MainBus> for TerminalBus {
                             let tab = rx_tab_state.borrow().clone();
 
                             if let TabState::Selected(id) = tab {
-                                error!("setting size: {} {:?}", &id.0, &size);
+                                debug!("setting size: {} {:?}", &id.0, &size);
                                 tx_request.send(Request::ResizeTab(id, size)).await?;
                             }
                         }
