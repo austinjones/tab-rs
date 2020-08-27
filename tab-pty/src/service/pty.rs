@@ -1,4 +1,4 @@
-use crate::message::pty::{MainShutdown, PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
+use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
 use lifeline::{Receiver, Sender};
 use std::process::Command;
@@ -17,7 +17,7 @@ static CHUNK_LEN: usize = 2048;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
 static STDIN_CHANNEL_SIZE: usize = 32;
 
-mod process;
+// mod process;
 // mod receiver;
 // mod sender;
 

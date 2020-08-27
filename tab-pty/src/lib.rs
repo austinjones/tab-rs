@@ -12,7 +12,6 @@ use tab_websocket::resource::connection::WebsocketResource;
 mod bus;
 mod message;
 mod prelude;
-mod pty_process;
 mod service;
 
 pub fn pty_main() -> anyhow::Result<()> {

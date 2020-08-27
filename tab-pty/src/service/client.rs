@@ -10,7 +10,6 @@ use std::{
 use tab_api::{
     config::history_path,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
-    tab::TabId,
 };
 use time::Duration;
 use tokio::time;
