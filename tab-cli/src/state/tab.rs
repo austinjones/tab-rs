@@ -1,4 +1,4 @@
-use tab_api::tab::{TabId, TabMetadata};
+use tab_api::tab::TabId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectTab {
