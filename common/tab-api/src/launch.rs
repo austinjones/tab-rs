@@ -1,6 +1,7 @@
 //! Launches `tab-daemon` and `tab-pty` processes.
 //! The initial launch occurs in the `tab-cli`, using the currently running executible id.
 //! `tab` exposes a hidden `tab --_launch [daemon|pty]` argument, which is used here to launch associated services.
+
 use crate::config::{is_running, load_daemon_file, DaemonConfig};
 use lifeline::prelude::*;
 use log::*;
