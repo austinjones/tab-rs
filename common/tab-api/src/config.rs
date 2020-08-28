@@ -2,11 +2,7 @@ use anyhow::Result;
 use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter},
-    path::{Path, PathBuf},
-};
+use std::{fs::File, io::BufReader, path::PathBuf};
 use sysinfo::SystemExt;
 
 /// Config created for each daemon process
