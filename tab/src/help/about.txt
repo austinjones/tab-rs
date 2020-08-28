@@ -9,3 +9,4 @@ QUICKSTART:
                     or get https://starship.rs/
     $ tab -w foo  > to close a tab.
     $ tab -l      > to view the tabs
+    $ ctrl-W      > to disconnect the session

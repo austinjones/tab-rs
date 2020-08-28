@@ -2,7 +2,7 @@ use log::{debug, error, warn};
 use std::{
     fs::File,
     io::{BufReader, BufWriter},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tab_api::config::{daemon_file, is_running, load_daemon_file, DaemonConfig};
 use thiserror::Error;
@@ -42,8 +42,11 @@ impl DaemonFile {
 
         std::fs::create_dir_all(daemon_file.parent().unwrap())?;
         let file = File::create(daemon_file.as_path())?;
+
         let buf_writer = BufWriter::new(file);
         serde_yaml::to_writer(buf_writer, config)?;
+
+        Self::set_mode(daemon_file.as_path())?;
 
         debug!("writing daemonfile: {:?}", &config);
         let daemon_file = DaemonFile {
@@ -76,6 +79,24 @@ impl DaemonFile {
         let buf_reader = BufReader::new(file);
         let config: DaemonConfig = serde_yaml::from_reader(buf_reader)?;
         Ok(config)
+    }
+
+    #[cfg(target_family = "unix")]
+    fn set_mode(path: &Path) -> anyhow::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+
+        let metadata = path.metadata()?;
+        let mut permissions = metadata.permissions();
+        permissions.set_mode(0o600);
+
+        std::fs::set_permissions(path, permissions)?;
+
+        Ok(())
+    }
+
+    #[cfg(not(target_family = "unix"))]
+    fn set_mode(path: &Path) -> anyhow::Result<()> {
+        Ok(())
     }
 }
 
