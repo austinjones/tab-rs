@@ -8,19 +8,12 @@ pub fn init() -> ArgMatches<'static> {
 
 fn app() -> App<'static, 'static> {
     App::new("Terminal Multiplexer")
-        .version("0.1")
+        .version("v0.1")
         .name("tab")
         .author("Austin Jones <implAustin@gmail.com>")
         .about("`tab`, a modern terminal multiplexer designed for overwhelmed software & systems engineers.")
         .long_about(include_str!("help/about.txt"))
         .after_help(include_str!("help/after-help.txt"))
-        // .arg(
-        //     Arg::with_name("DEBUG")
-        //         .long("debug")
-        //         .required(false)
-        //         .takes_value(false)
-        //         .help("enables debug logging"),
-        // )
         .arg(
             Arg::with_name("LAUNCH")
                 .long("_launch")
