@@ -1,8 +1,9 @@
 [package]
 name = "tab"
-version = "0.1.0"
-authors = ["Austin Jones <austin.jones@threatx.com>"]
+version = "0.2.0"
+authors = ["Austin Jones <implAustin@gmail.com>"]
 edition = "2018"
+
 
 [[bin]]
 name = "tab"
@@ -15,3 +16,6 @@ tab-daemon = { path = "../tab-daemon" }
 tab-pty = { path = "../tab-pty" }
 clap = "2.33.2"
 anyhow = "1.0"
+
+[build-dependencies]
+clap = "2.33"

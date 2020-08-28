@@ -1,0 +1,43 @@
+#compdef tab
+
+autoload -U is-at-least
+
+_tab_select() {
+    tab --_autocomplete_tab
+}
+
+_tab_close() {
+    tab --_autocomplete_close_tab
+}
+
+_tab() {
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+
+    _arguments -C \
+        '-w+[closes the tab with the given name]: :->close'\
+        '--close=[closes the tab with the given name]: :->close'\
+        '-l[lists the active tabs]::(*)' \
+        '--list[lists the active tabs]::(*)' \
+        '-W[terminates the tab daemon and all active pty sessions]::(*)' \
+        '--shutdown[terminates the tab daemon and all active pty sessions]::(*)' \
+        '-h[Prints help information]::(*)' \
+        '--help[Prints help information]::(*)' \
+        '-V[Prints version information]::(*)' \
+        '--version[Prints version information]::(*)' 
+        
+    _arguments -C '1:first arg:->select'
+
+    case $state in
+        (select) compadd "$@" $(_tab_select) ;;
+        (close) compadd "$@" $(_tab_close) ;;
+        (*) compadd "$@" $(_tab_close)
+    esac
+}
+
+_tab "$@"

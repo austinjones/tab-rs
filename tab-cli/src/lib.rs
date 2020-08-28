@@ -39,16 +39,18 @@ pub fn cli_main(args: ArgMatches) -> anyhow::Result<()> {
 async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     CombinedLogger::init(vec![TermLogger::new(
         LevelFilter::Warn,
-        simplelog::Config::default(),
+        simplelog::ConfigBuilder::new()
+            .set_time_format("%+".to_owned())
+            .build(),
         TerminalMode::Stderr,
     )])
     .unwrap();
 
     let select_tab = matches.value_of("TAB-NAME");
+    let close_tab = matches.value_of("CLOSE-TAB");
     let (mut tx, rx_shutdown, _service) = spawn().await?;
     let completion = matches.is_present("AUTOCOMPLETE-TAB");
     let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
-    let close = matches.is_present("CLOSE");
     let shutdown = matches.is_present("SHUTDOWN");
 
     if shutdown {
@@ -60,11 +62,9 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
-        if close {
-            tx.send(MainRecv::CloseTab(tab.to_string())).await?;
-        } else {
-            tx.send(MainRecv::SelectTab(tab.to_string())).await?;
-        }
+        tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+    } else if let Some(tab) = close_tab {
+        tx.send(MainRecv::CloseTab(tab.to_string())).await?;
     } else {
         tx.send(MainRecv::SelectInteractive).await?;
     }

@@ -9,14 +9,13 @@ CONFIG:
 AUTOCOMPLETE:
     `tab` supports dynamic autocomplete for tab selection.
 
-    TODO: readme instructions
     Setup instructions are available at https://github.com/austinjones/tab-rs
 
 SECURITY:
     The tab daemon listens for authenticated WebSocket connections on the 127.0.0.1 address.
 
     The daemon requires the following to accept any connection:
-      - The request must include a 128 byte auth token, stored in the file: ~/.tab/daemon-pid.yml
+      - The request must include a 128 byte auth token, stored in the file: ~/.tab/daemon-pid.yml with permissions 600.
       - The request's Origin header must not be set.  This prevents any connection from a browser.
 
     The authentication code has very strong unit test coverage.
