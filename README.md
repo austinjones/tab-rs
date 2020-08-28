@@ -155,7 +155,6 @@ fi
 # Security
 Tab can execute commands in a terminal, so I take security seriously.  This is how I protect your machine in `tab`:
 
-
 The `tab` daemon requires the following to accept any websocket connection:
 - The request must include a 128 byte auth token, stored in the file: `~/.tab/daemon-pid.yml`.  On unix operating systems, the file is assigned the permissions `600`.
 - The `Origin` header must not be present in the request.  This prevents any connection from a browser.
