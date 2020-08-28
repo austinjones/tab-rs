@@ -126,7 +126,7 @@ function fish_prompt
 end
 ```
 
-## ZSH
+## Zsh
 `tab` supports dynamic autocompletion and a custom statusbar in zsh.
 
 1. Install OhMyZsh, and copy the TODO LINK `completions/zsh/_tab` script to `${ZSH_CUSTOM}/plugins/tab/_tab`.
@@ -158,4 +158,4 @@ Tab can execute commands in a terminal, so I take security seriously.  This is h
 The `tab` daemon requires the following to accept any websocket connection:
 - The request must include a 128 byte auth token, stored in the file: `~/.tab/daemon-pid.yml`.  On unix operating systems, the file is assigned the permissions `600`.
 - The `Origin` header must not be present in the request.  This prevents any connection from a browser.
-- Websocket listeners bind to `127.0.0.1` on a random port.  This should prevent any attempted connections from the local network.
+- The daemon binds to `127.0.0.1` on a random port.  This should prevent any attempted connections from the local network.
