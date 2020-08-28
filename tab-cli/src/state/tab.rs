@@ -1,4 +1,4 @@
-use tab_api::tab::{TabId, TabMetadata};
+use tab_api::tab::TabId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectTab {
@@ -34,14 +34,5 @@ impl TabState {
 impl Default for TabState {
     fn default() -> Self {
         Self::None
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TabStateAvailable(pub Vec<TabMetadata>);
-
-impl Default for TabStateAvailable {
-    fn default() -> Self {
-        TabStateAvailable(vec![])
     }
 }

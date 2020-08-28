@@ -1,0 +1,11 @@
+`tab`, a modern terminal multiplexer designed for overwhelmed software & systems engineers.
+
+QUICKSTART:
+    $ tab foo     > to open a tab.
+    $ tab bar     > to switch to another tab.  
+                    works within an active session!
+    $ echo $TAB   > to view the active tab.  
+                    put this in your promptline, 
+                    or get https://starship.rs/
+    $ tab -w foo  > to close a tab.
+    $ tab -l      > to view the tabs

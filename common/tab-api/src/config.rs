@@ -2,22 +2,8 @@ use anyhow::Result;
 use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
-use std::{
-    fs::File,
-    io::{BufReader, BufWriter},
-    path::{Path, PathBuf},
-};
+use std::{fs::File, io::BufReader, path::PathBuf};
 use sysinfo::SystemExt;
-
-/// User-facing config for persistent cli & daemon behavior
-#[derive(Serialize, Deserialize)]
-pub struct Config {}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {}
-    }
-}
 
 /// Config created for each daemon process
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +15,7 @@ pub struct DaemonConfig {
 
 impl_storage_clone!(DaemonConfig);
 
+/// The full path to tab's dotdir directory, that can be used to store state for the user.
 pub fn dotdir_path() -> Result<PathBuf> {
     let mut dir = dirs::home_dir().ok_or_else(|| anyhow::Error::msg("home_dir not found"))?;
 
@@ -37,12 +24,15 @@ pub fn dotdir_path() -> Result<PathBuf> {
     Ok(dir)
 }
 
+/// The full path to the daemon's pidfile, used to identify the running process, and the available websocket port.
+/// Also stores an auth token that is required (in the Authorization header) to connect to the daemon.
 pub fn daemon_file() -> Result<PathBuf> {
     let mut dir = dotdir_path()?;
     dir.push("daemon-pid.yml");
     Ok(dir)
 }
 
+/// Determines if there is an active daemon, by checking the pidfile and the active system processes.
 pub fn is_running(config: &DaemonConfig) -> bool {
     let mut system = sysinfo::System::new_all();
     system.refresh_process(config.pid);
@@ -54,18 +44,15 @@ pub fn is_running(config: &DaemonConfig) -> bool {
         false
     }
 }
+
+/// Returns the path to the daemon's logfile.
 pub fn daemon_log() -> Result<PathBuf> {
     let mut dir = dotdir_path()?;
     dir.push("daemon.log");
     Ok(dir)
 }
 
-pub fn config_path() -> Result<PathBuf> {
-    let mut path = dotdir_path()?;
-    path.push("tab.yml");
-    Ok(path)
-}
-
+/// Returns the path to a unique logfile fro the given shell process, and tab name.
 pub fn history_path(shell: &str, name: &str) -> Result<PathBuf> {
     let mut path = dotdir_path()?;
     path.push("history");
@@ -76,23 +63,7 @@ pub fn history_path(shell: &str, name: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-pub fn load_config() -> anyhow::Result<Config> {
-    let path = config_path()?;
-
-    if !path.is_file() {
-        let config = Config::default();
-        write_config(path.as_path(), &config)?;
-
-        return Ok(config);
-    }
-
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let config = serde_yaml::from_reader(reader)?;
-
-    Ok(config)
-}
-
+/// Loads & deserializes the `DaemonConfig` from the daemon pidfile.
 pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
     let path = daemon_file()?;
 
@@ -108,16 +79,9 @@ pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
     Ok(Some(config))
 }
 
-pub fn write_config(path: &Path, config: &Config) -> Result<()> {
-    let file = File::create(path)?;
-    let writer = BufWriter::new(file);
-    serde_yaml::to_writer(writer, config)?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{config_path, daemon_file, dotdir_path};
+    use super::{daemon_file, dotdir_path};
 
     #[test]
     fn dotdir_path_matches() {
@@ -136,17 +100,6 @@ mod tests {
         expected.push("daemon-pid.yml");
 
         let path = daemon_file();
-        assert!(path.is_ok());
-        assert_eq!(expected, path.unwrap());
-    }
-
-    #[test]
-    fn config_path_matches() {
-        let mut expected = dirs::home_dir().expect("home dir required");
-        expected.push(".tab");
-        expected.push("tab.yml");
-
-        let path = config_path();
         assert!(path.is_ok());
         assert_eq!(expected, path.unwrap());
     }

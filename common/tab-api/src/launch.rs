@@ -1,3 +1,6 @@
+//! Launches `tab-daemon` and `tab-pty` processes.
+//! The initial launch occurs in the `tab-cli`, using the currently running executible id.
+//! `tab` exposes a hidden `tab --_launch [daemon|pty]` argument, which is used here to launch associated services.
 use crate::config::{is_running, load_daemon_file, DaemonConfig};
 use lifeline::prelude::*;
 use log::*;
@@ -7,6 +10,7 @@ use std::{
 };
 use tokio::{process::Command, select, signal::ctrl_c, time};
 
+/// Launches a new daemon process (if it is not already running), and waits until it is ready for websocket connections.
 pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     let exec = std::env::current_exe()?;
     let daemon_file = load_daemon_file()?;
@@ -53,6 +57,7 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     Ok(daemon_file)
 }
 
+/// Launches a new PTY process, which will connect to the running daemon.
 pub fn launch_pty() -> anyhow::Result<()> {
     let exec = std::env::current_exe()?;
     debug!("launching `tab-pty` at {}", &exec.to_string_lossy());
@@ -68,6 +73,9 @@ pub fn launch_pty() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Waits for either a ctrl-c signal, or a message on the given channel.
+///
+/// Useful in main() functions.
 pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
     info!("Waiting for termination");
 

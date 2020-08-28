@@ -7,7 +7,7 @@ use crate::{
     normalize_name,
     prelude::*,
     state::{
-        tab::{SelectTab, TabState, TabStateAvailable},
+        tab::{SelectTab, TabState},
         tabs::TabsState,
         terminal::TerminalSizeState,
         workspace::{WorkspaceState, WorkspaceTab},
@@ -38,10 +38,6 @@ impl Message<TabBus> for TabMetadata {
 
 impl Message<TabBus> for TabTerminated {
     type Channel = mpsc::Sender<Self>;
-}
-
-impl Message<TabBus> for TabStateAvailable {
-    type Channel = watch::Sender<Self>;
 }
 
 impl Message<TabBus> for TerminalSizeState {
@@ -111,7 +107,6 @@ impl CarryFrom<MainBus> for TabBus {
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;
             let mut tx_tab_metadata = self.tx::<TabMetadata>()?;
-            let mut tx_available_tabs = self.tx::<TabStateAvailable>()?;
             let mut tx_tab_terminated = self.tx::<TabTerminated>()?;
             let mut tx_select_tab = self.tx::<SelectTab>()?;
 
@@ -137,10 +132,6 @@ impl CarryFrom<MainBus> for TabBus {
                                 .await
                                 .context("tx TabsRecv::Update")?;
                         }
-                        Response::TabList(tabs) => tx_available_tabs
-                            .send(TabStateAvailable(tabs))
-                            .await
-                            .context("tx TabStateAvailable")?,
                         Response::TabTerminated(id) => {
                             tx_tabs.send(TabsRecv::Terminated(id)).await?;
 

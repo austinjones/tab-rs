@@ -1,0 +1,4 @@
+[env_var]
+variable = "TAB"
+prefix = "tab "
+style = "bold green"
