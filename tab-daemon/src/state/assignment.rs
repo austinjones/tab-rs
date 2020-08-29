@@ -1,4 +1,5 @@
 use std::{
+    clone::Clone,
     fmt::Debug,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -15,7 +16,7 @@ pub fn assignment<T: Debug + Clone>(value: T) -> (Retraction<T>, Assignment<T>) 
     (retraction, assignment)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment<T: Debug + Clone> {
     state: Arc<AssignmentState<T>>,
 }
@@ -66,6 +67,24 @@ struct AssignmentState<T: Debug + Clone> {
     value: T,
     created: Instant,
     pub(super) taken: AtomicBool,
+}
+
+impl<T> PartialEq for AssignmentState<T>
+where
+    T: PartialEq + Clone + Debug,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+            && self.created == other.created
+            && self.taken.load(Ordering::SeqCst) == other.taken.load(Ordering::SeqCst)
+    }
+}
+
+impl<T> Eq for AssignmentState<T>
+where
+    T: Eq + Clone + Debug,
+{
+    fn assert_receiver_is_total_eq(&self) {}
 }
 
 impl<T: Debug + Clone> AssignmentState<T> {

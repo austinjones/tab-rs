@@ -185,3 +185,9 @@ impl CarryFrom<ListenerBus> for PtyBus {
         })
     }
 }
+
+#[cfg(test)]
+mod to_pty_tests {}
+
+#[cfg(test)]
+mod to_listener_tests {}

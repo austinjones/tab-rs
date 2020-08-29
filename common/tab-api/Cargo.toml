@@ -8,10 +8,10 @@ edition = "2018"
 
 [dependencies]
 lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
-tokio = { version = "0.2" }
+tokio = { version = "0.2", features = ["process"] }
 sysinfo = "0.15"
 dirs = "3.0"
-serde = { version = "1.0", features = ["derive"]}
+serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 
 # logging

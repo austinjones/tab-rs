@@ -42,7 +42,7 @@ pub enum CliSend {
 /// Usage:
 /// - Tx from ListenerConnectionCarrier, for subscribed tabs which have been subscribed to by the CLI connection.
 /// - Rx into CliService, to be forwarded on the websocket.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliRecv {
     /// A notification that a tab with the given metadata has started, and is ready for subscriptions.
     TabStarted(TabMetadata),

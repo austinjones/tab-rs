@@ -68,34 +68,42 @@ impl CarryFrom<ListenerBus> for CliBus {
     type Lifeline = anyhow::Result<ListenerConnectionCarrier>;
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
-        let tx_tab = from.tx::<TabRecv>()?;
-        let rx_tab = from.rx::<TabSend>()?;
-        let rx_manager = from.rx::<TabManagerSend>()?;
+        let _forward = {
+            let rx_tab = from.rx::<TabSend>()?;
+            let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
 
-        let tx_conn = self.tx::<CliRecv>()?;
-        let rx_conn = self.rx::<CliSend>()?;
-        let tx_manager = from.tx::<TabManagerRecv>()?;
-        let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
-        let tx_shutdown = self.tx::<CliShutdown>()?;
-        let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
+            let tx_conn = self.tx::<CliRecv>()?;
 
-        // todo: convert this to block-style for each lifeline.
-        let _forward = Self::try_task(
-            "output",
-            Self::run_output(rx_tab, tx_conn.clone(), id_subscription),
-        );
-        let _reverse = Self::try_task(
-            "input",
-            Self::run_input(
-                rx_conn,
-                tx_tab,
-                tx_manager,
-                tx_shutdown,
-                tx_listener_shutdown,
-            ),
-        );
-        let _terminated =
-            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn));
+            Self::try_task(
+                "output",
+                Self::run_output(rx_tab, tx_conn.clone(), id_subscription),
+            )
+        };
+
+        let _reverse = {
+            let rx_conn = self.rx::<CliSend>()?;
+
+            let tx_tab = from.tx::<TabRecv>()?;
+            let tx_manager = from.tx::<TabManagerRecv>()?;
+            let tx_shutdown = self.tx::<CliShutdown>()?;
+            let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
+            Self::try_task(
+                "input",
+                Self::run_input(
+                    rx_conn,
+                    tx_tab,
+                    tx_manager,
+                    tx_shutdown,
+                    tx_listener_shutdown,
+                ),
+            )
+        };
+
+        let _terminated = {
+            let rx_manager = from.rx::<TabManagerSend>()?;
+            let tx_conn = self.tx::<CliRecv>()?;
+            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn))
+        };
 
         let _forward_tabs_state = {
             let mut rx_tabs_state = from.rx::<TabsState>()?;
@@ -208,6 +216,13 @@ impl CliBus {
     ) -> anyhow::Result<()> {
         match msg {
             TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
+            TabSend::Stopped(id) => {
+                debug!("notifying client of terminated tab {}", id);
+                tx.send(CliRecv::TabStopped(id)).await?;
+            }
+            TabSend::Scrollback(scrollback) => {
+                tx.send(CliRecv::Scrollback(scrollback)).await?;
+            }
             TabSend::Output(stdout) => {
                 if !id_subscription.contains(&stdout.id) {
                     return Ok(());
@@ -219,13 +234,6 @@ impl CliBus {
                 ))
                 .await?
             }
-            TabSend::Stopped(id) => {
-                debug!("notifying client of terminated tab {}", id);
-                tx.send(CliRecv::TabStopped(id)).await?;
-            }
-            TabSend::Scrollback(scrollback) => {
-                tx.send(CliRecv::Scrollback(scrollback)).await?;
-            }
             TabSend::Retask(from, to) => {
                 if !id_subscription.contains(&from) {
                     return Ok(());
@@ -235,6 +243,497 @@ impl CliBus {
                 tx.send(CliRecv::Retask(from, to)).await?;
             }
         };
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod forward_tests {
+    use crate::message::{
+        cli::CliRecv,
+        tab::{TabOutput, TabScrollback, TabSend},
+    };
+    use crate::{
+        prelude::*, service::pty::scrollback::ScrollbackBuffer, state::pty::PtyScrollback,
+    };
+    use lifeline::{assert_completes, assert_times_out, subscription::Subscription};
+    use std::sync::Arc;
+    use tab_api::{
+        chunk::OutputChunk,
+        tab::{TabId, TabMetadata},
+    };
+    use tokio::sync::Mutex;
+
+    #[tokio::test]
+    async fn started() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        let started = TabMetadata {
+            id: TabId(0),
+            name: "name".into(),
+            dimensions: (1, 1),
+            shell: "bash".into(),
+            dir: "dir".into(),
+        };
+
+        tx.send(TabSend::Started(started.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(CliRecv::TabStarted(started), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn stopped() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        tx.send(TabSend::Stopped(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(CliRecv::TabStopped(TabId(0)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn scrollback() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        let mut buffer = ScrollbackBuffer::new();
+        buffer.push(OutputChunk {
+            index: 0,
+            data: vec![0, 1],
+        });
+        buffer.push(OutputChunk {
+            index: 1,
+            data: vec![1, 2],
+        });
+        let scrollback = PtyScrollback::new(Arc::new(Mutex::new(buffer)));
+        let scrollback = TabScrollback {
+            id: TabId(0),
+            scrollback,
+        };
+        tx.send(TabSend::Scrollback(scrollback)).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            if let CliRecv::Scrollback(scroll) = msg.unwrap() {
+                let mut iter = scroll.scrollback().await;
+                assert_eq!(
+                    Some(OutputChunk {
+                        index: 1,
+                        data: vec![0, 1, 1, 2]
+                    }),
+                    iter.next()
+                );
+                assert_eq!(None, iter.next());
+            } else {
+                panic!("Expected CliRecv::Scrollback, found None");
+            }
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn output_subscribed() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut tx_subscription = cli_bus.tx::<Subscription<TabId>>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        tx.send(TabSend::Output(TabOutput {
+            id: TabId(0),
+            stdout: Arc::new(OutputChunk {
+                index: 0,
+                data: vec![0, 1, 2],
+            }),
+        }))
+        .await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            if let Some(CliRecv::Output(id, chunk)) = msg {
+                assert_eq!(TabId(0), id);
+                assert_eq!(
+                    OutputChunk {
+                        index: 0,
+                        data: vec![0, 1, 2],
+                    },
+                    chunk
+                );
+            } else {
+                panic!("expected CliRecv::Output, found: {:?}", msg)
+            }
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn output_unsubscribed() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?.into_inner();
+
+        tx.send(TabSend::Output(TabOutput {
+            id: TabId(0),
+            stdout: Arc::new(OutputChunk {
+                index: 0,
+                data: vec![0, 1, 2],
+            }),
+        }))
+        .await?;
+
+        assert_times_out!(async move {
+            rx.recv().await;
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask_subscribed() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut tx_subscription = cli_bus.tx::<Subscription<TabId>>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+        tx.send(TabSend::Retask(TabId(0), TabId(1))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(CliRecv::Retask(TabId(0), TabId(1)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask_unsubscribed() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        tx.send(TabSend::Retask(TabId(0), TabId(1))).await?;
+
+        assert_times_out!(async move {
+            let msg = rx.recv().await;
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod reverse_tests {
+    use crate::{
+        message::{
+            cli::CliSend,
+            listener::ListenerShutdown,
+            tab::{TabInput, TabRecv},
+            tab_manager::TabManagerRecv,
+        },
+        prelude::*,
+    };
+    use lifeline::assert_completes;
+    use tab_api::{
+        chunk::InputChunk,
+        tab::{CreateTabMetadata, TabId},
+    };
+
+    #[tokio::test]
+    async fn create_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabManagerRecv>()?;
+
+        let create = CreateTabMetadata {
+            name: "name".into(),
+            shell: "bash".into(),
+            dimensions: (1, 1),
+            dir: "dir".into(),
+        };
+
+        tx.send(CliSend::CreateTab(create.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabManagerRecv::CreateTab(create), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn close_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabManagerRecv>()?;
+
+        tx.send(CliSend::CloseTab(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabManagerRecv::CloseTab(TabId(0)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn close_named_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabManagerRecv>()?;
+
+        tx.send(CliSend::CloseNamedTab("foo".into())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabManagerRecv::CloseNamedTab("foo".into()), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn request_scrollback() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabRecv>()?;
+
+        tx.send(CliSend::RequestScrollback(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabRecv::Scrollback(TabId(0)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn input() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabRecv>()?;
+
+        tx.send(CliSend::Input(TabId(0), InputChunk { data: vec![0] }))
+            .await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(
+                TabRecv::Input(TabInput::new(TabId(0), vec![0u8])),
+                msg.unwrap()
+            );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn resize() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabRecv>()?;
+
+        tx.send(CliSend::ResizeTab(TabId(0), (1, 2))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabRecv::Resize(TabId(0), (1, 2)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<TabRecv>()?;
+
+        tx.send(CliSend::Retask(TabId(0), TabId(1))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabRecv::Retask(TabId(0), TabId(1)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn global_shutdown() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = cli_bus.tx::<CliSend>()?;
+        let mut rx = listener_bus.rx::<ListenerShutdown>()?;
+
+        tx.send(CliSend::GlobalShutdown).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod terminated_tests {
+    use crate::{
+        message::{cli::CliRecv, tab_manager::TabManagerSend},
+        prelude::*,
+    };
+    use lifeline::assert_completes;
+    use tab_api::tab::TabId;
+
+    #[tokio::test]
+    async fn retask() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabManagerSend>()?;
+        let mut rx = cli_bus.rx::<CliRecv>()?;
+
+        tx.send(TabManagerSend::TabTerminated(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(CliRecv::TabStopped(TabId(0)), msg.unwrap());
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tabs_state_tests {
+    use crate::{prelude::*, state::tab::TabsState};
+    use lifeline::assert_completes;
+    use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn forward_state() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = cli_bus.carry_from(&listener_bus)?;
+
+        let mut tx = listener_bus.tx::<TabsState>()?;
+        let mut rx = cli_bus.rx::<TabsState>()?;
+
+        tx.send(TabsState {
+            tabs: HashMap::new(),
+        })
+        .await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(
+                TabsState {
+                    tabs: HashMap::new()
+                },
+                msg.unwrap()
+            );
+        });
 
         Ok(())
     }

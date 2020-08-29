@@ -95,3 +95,69 @@ impl CarryFrom<WebsocketListenerBus> for ListenerBus {
         })
     }
 }
+
+#[cfg(test)]
+mod carrier_tests {
+    use crate::{
+        message::{daemon::DaemonShutdown, listener::ListenerShutdown},
+        prelude::*,
+    };
+    use lifeline::assert_completes;
+
+    #[tokio::test]
+    async fn forward_shutdown() -> anyhow::Result<()> {
+        let daemon_bus = DaemonBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = listener_bus.carry_from(&daemon_bus)?;
+
+        let mut tx = listener_bus.tx::<ListenerShutdown>()?;
+        let mut rx = daemon_bus.rx::<DaemonShutdown>()?;
+
+        tx.send(ListenerShutdown {}).await?;
+
+        assert_completes!(async move {
+            rx.recv().await;
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod connection_tests {
+    use crate::prelude::*;
+    use http::{Method, Uri};
+    use lifeline::assert_completes;
+    use tab_websocket::{
+        bus::{WebsocketConnectionBus, WebsocketListenerBus},
+        message::listener::{RequestMetadata, WebsocketConnectionMessage},
+    };
+
+    #[tokio::test]
+    async fn connection() -> anyhow::Result<()> {
+        let conn_bus = WebsocketListenerBus::default();
+        let listener_bus = ListenerBus::default();
+
+        let _carrier = conn_bus.carry_into(&listener_bus);
+
+        let mut tx = conn_bus.tx::<WebsocketConnectionMessage>()?.into_inner();
+        let mut rx = listener_bus.rx::<WebsocketConnectionMessage>()?;
+
+        assert_completes!(async move {
+            tx.send(WebsocketConnectionMessage {
+                bus: WebsocketConnectionBus::default(),
+                request: RequestMetadata {
+                    method: Method::GET,
+                    uri: "/path".parse::<Uri>().expect("uri parse"),
+                },
+            })
+            .await
+            .expect("failed to send message");
+
+            rx.recv().await;
+        });
+
+        Ok(())
+    }
+}

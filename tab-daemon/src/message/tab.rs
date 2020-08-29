@@ -9,10 +9,25 @@ use tab_api::{
 /// Cheaply clonable and sent over broadcast channels.
 ///
 /// Messaged on the CliBus, and forwarded to active PTYs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct TabInput {
     pub id: TabId,
     pub stdin: Arc<InputChunk>,
+}
+
+impl PartialEq for TabInput {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && *self.stdin == *other.stdin
+    }
+}
+
+impl TabInput {
+    pub fn new(id: TabId, data: Vec<u8>) -> Self {
+        Self {
+            id,
+            stdin: Arc::new(InputChunk { data }),
+        }
+    }
 }
 
 /// An output (stdout) event for tab, identified by an id
@@ -34,7 +49,7 @@ pub struct TabOutput {
 /// - Tx from the `TabManagerService`, to offer tab assignments to PTY connections
 /// - Rx from the `ListenerPtyCarrier`, to forward events to an established PTY tab.
 /// - Rx from the `RetaskService`, to broadcast retask to subscribed CLI connections.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TabRecv {
     Assign(Assignment<TabMetadata>),
     Scrollback(TabId),
@@ -53,6 +68,16 @@ pub enum TabRecv {
 pub struct TabScrollback {
     pub id: TabId,
     pub scrollback: PtyScrollback,
+}
+
+impl Eq for TabScrollback {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl PartialEq for TabScrollback {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl TabScrollback {

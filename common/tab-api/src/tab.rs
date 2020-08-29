@@ -17,7 +17,7 @@ impl Display for TabId {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct TabMetadata {
     pub id: TabId,
     pub name: String,
@@ -38,7 +38,7 @@ impl TabMetadata {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateTabMetadata {
     pub name: String,
     pub dimensions: (u16, u16),
