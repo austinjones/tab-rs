@@ -73,6 +73,7 @@ fn app() -> App<'static, 'static> {
                 .help("switches to the provided tab")
                 .required(false)
                 .value_name("TAB")
+                .default_value("any/")
                 .conflicts_with_all(&["CLOSE-TAB", "LIST", "SHUTDOWN"])
                 .index(1),
         )
