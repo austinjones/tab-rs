@@ -70,7 +70,7 @@ impl ClientService {
 
                         env.insert("fish_history".to_string(), history);
                     } else if create.shell.ends_with("bash") {
-                        let home = history_path("fish", create.name.as_str())?;
+                        let home = history_path("bash", create.name.as_str())?;
                         std::fs::create_dir_all(home.parent().unwrap())?;
 
                         env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());

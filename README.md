@@ -84,7 +84,7 @@ style = "bold green"
 
 1. Install the the autocompletion script:
 ```
-mkdir -p ~/.tab && tab --completion bash > ~/.tab/_tab.bash
+mkdir -p ~/.tab && tab --completion=bash > ~/.tab/_tab.bash
 ```
 
 2. Source the completion script from `~/.bashrc`
@@ -102,7 +102,7 @@ PS1="tab ${TAB:-/} $ "
 
 1. Install the autocompletion script to your fish completions directory.
 ```
-mkdir -p ~/.config/fish/completions && tab --completion fish > ~/.config/fish/completions/tab.fish
+mkdir -p ~/.config/fish/completions && tab --completion=fish > ~/.config/fish/completions/tab.fish
 ```
 
 2. If you want to use a custom command prompt, you can add to `~/.config/fish/config.fish`
@@ -131,7 +131,7 @@ end
 
 1. Install OhMyZsh, and copy the TODO LINK `completions/zsh/_tab` script to `${ZSH_CUSTOM}/plugins/tab/_tab`.
 ```
-mkdir -p "${ZSH_CUSTOM}/plugins/tab/" && tab --completion > "${ZSH_CUSTOM}/plugins/tab/_tab"
+mkdir -p "${ZSH_CUSTOM}/plugins/tab/" && tab --completion=zsh > "${ZSH_CUSTOM}/plugins/tab/_tab"
 ```
 
 2. Add `tab` to your `plugins` list in `~/.zshrc`:
