@@ -65,4 +65,4 @@ jobs:
 
       - uses: actions-rs/cargo@v1
         with:
-          command: test --release
+          command: --release test
