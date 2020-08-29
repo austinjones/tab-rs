@@ -15,6 +15,13 @@ pub struct DaemonConfig {
 
 impl_storage_clone!(DaemonConfig);
 
+/// Creates the dotdir path.
+pub fn mkdir() -> Result<()> {
+    let dotdir_path = dotdir_path()?;
+    std::fs::create_dir_all(dotdir_path)?;
+    Ok(())
+}
+
 /// The full path to tab's dotdir directory, that can be used to store state for the user.
 pub fn dotdir_path() -> Result<PathBuf> {
     let mut dir = dirs::home_dir().ok_or_else(|| anyhow::Error::msg("home_dir not found"))?;
