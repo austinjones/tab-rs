@@ -66,7 +66,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     } else if let Some(tab) = close_tab {
         tx.send(MainRecv::CloseTab(tab.to_string())).await?;
     } else {
-        panic!("unsupported command line options")
+        tx.send(MainRecv::SelectTab("any/".to_string())).await?;
     }
 
     wait_for_shutdown(rx_shutdown).await;
