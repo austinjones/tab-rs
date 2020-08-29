@@ -28,6 +28,6 @@ pub fn main() -> anyhow::Result<()> {
 
         Ok(())
     } else {
-        tab_cli::cli_main(args)
+        tab_command::command_main(args)
     }
 }

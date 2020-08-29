@@ -1244,18 +1244,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab"
-version = "0.2.0"
-dependencies = [
- "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "clap 2.33.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-api 0.1.0",
- "tab-cli 0.1.0",
- "tab-daemon 0.1.0",
- "tab-pty 0.1.0",
-]
-
-[[package]]
 name = "tab-api"
 version = "0.1.0"
 dependencies = [
@@ -1272,6 +1260,18 @@ dependencies = [
 
 [[package]]
 name = "tab-cli"
+version = "0.2.0"
+dependencies = [
+ "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.33.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api 0.1.0",
+ "tab-command 0.1.0",
+ "tab-daemon 0.1.0",
+ "tab-pty 0.1.0",
+]
+
+[[package]]
+name = "tab-command"
 version = "0.1.0"
 dependencies = [
  "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
