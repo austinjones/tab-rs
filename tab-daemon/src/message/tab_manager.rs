@@ -8,7 +8,7 @@ use tab_api::tab::{CreateTabMetadata, TabId};
 /// - Rx from the `TabManagerService`, which creates & closes active tabs.
 /// - Tx into the `ListenerConnectionCarrier`, to request that tabs be created/closed from a CLI connection.
 /// - Tx into the `ListenerPtyCarrier`, to notify the manager that a PTY process is terminating (e.g. user typed `exit`)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TabManagerRecv {
     CreateTab(CreateTabMetadata),
     CloseNamedTab(String),
