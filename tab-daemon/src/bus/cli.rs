@@ -68,34 +68,41 @@ impl CarryFrom<ListenerBus> for CliBus {
     type Lifeline = anyhow::Result<ListenerConnectionCarrier>;
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
-        let tx_tab = from.tx::<TabRecv>()?;
-        let rx_tab = from.rx::<TabSend>()?;
-        let rx_manager = from.rx::<TabManagerSend>()?;
+        let _forward = {
+            let rx_tab = from.rx::<TabSend>()?;
+            let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
 
-        let tx_conn = self.tx::<CliRecv>()?;
-        let rx_conn = self.rx::<CliSend>()?;
-        let tx_manager = from.tx::<TabManagerRecv>()?;
-        let id_subscription = self.rx::<Subscription<TabId>>()?.into_inner();
-        let tx_shutdown = self.tx::<CliShutdown>()?;
-        let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
+            let tx_conn = self.tx::<CliRecv>()?;
 
-        // todo: convert this to block-style for each lifeline.
-        let _forward = Self::try_task(
-            "output",
-            Self::run_output(rx_tab, tx_conn.clone(), id_subscription),
-        );
-        let _reverse = Self::try_task(
-            "input",
-            Self::run_input(
-                rx_conn,
-                tx_tab,
-                tx_manager,
-                tx_shutdown,
-                tx_listener_shutdown,
-            ),
-        );
-        let _terminated =
-            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn));
+            Self::try_task(
+                "output",
+                Self::run_output(rx_tab, tx_conn.clone(), id_subscription),
+            )
+        };
+
+        let _reverse = {
+            let rx_conn = self.rx::<CliSend>()?;
+
+            let tx_tab = from.tx::<TabRecv>()?;
+            let tx_manager = from.tx::<TabManagerRecv>()?;
+            let tx_shutdown = self.tx::<CliShutdown>()?;
+            let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
+            Self::try_task(
+                "input",
+                Self::run_input(
+                    rx_conn,
+                    tx_tab,
+                    tx_manager,
+                    tx_shutdown,
+                    tx_listener_shutdown,
+                ),
+            )
+        };
+        let _terminated = {
+            let rx_manager = from.rx::<TabManagerSend>()?;
+            let tx_conn = self.tx::<CliRecv>()?;
+            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn))
+        };
 
         let _forward_tabs_state = {
             let mut rx_tabs_state = from.rx::<TabsState>()?;
