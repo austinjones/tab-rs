@@ -19,7 +19,7 @@ mod prelude;
 mod service;
 mod state;
 
-pub fn cli_main(args: ArgMatches) -> anyhow::Result<()> {
+pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
