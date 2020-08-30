@@ -2,7 +2,7 @@ use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
 
 use lifeline::{Receiver, Sender};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use tab_api::chunk::{InputChunk, OutputChunk};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
@@ -87,6 +87,7 @@ impl PtyService {
         let mut child = Command::new(options.command);
         child.current_dir(options.working_directory);
         child.args(options.args.as_slice());
+        child.stderr(Stdio::inherit());
 
         for (k, v) in options.env {
             child.env(k, v);

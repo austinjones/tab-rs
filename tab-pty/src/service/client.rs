@@ -201,7 +201,8 @@ impl ClientSessionService {
                 PtyResponse::Output(out) => {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
-                PtyResponse::Terminated(_term) => {
+                PtyResponse::Terminated(code) => {
+                    info!("pty child process terminated with status: {:?}", &code);
                     tx.send(PtyWebsocketResponse::Stopped).await?;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
