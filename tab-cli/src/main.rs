@@ -9,7 +9,7 @@ pub fn main() -> anyhow::Result<()> {
 
     // create the dotdir path, so the modules don't need to worry about it.
     tab_api::config::mkdir()?;
-
+    
     if let Some(launch) = args.value_of("LAUNCH") {
         match launch {
             "daemon" => tab_daemon::daemon_main(),

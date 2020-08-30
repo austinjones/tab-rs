@@ -22,5 +22,13 @@ tab-pty = { path = "../tab-pty" }
 clap = "2.33.2"
 anyhow = "1.0"
 
+[dev-dependencies]
+lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
+tokio-test = "0.2.1"
+tokio = { version = "", features = ["process", "time", "rt-threaded"] } 
+insta = "0.16"
+assert_cmd = "1.0"
+tempfile = "3.1"
+
 [build-dependencies]
 clap = "2.33"

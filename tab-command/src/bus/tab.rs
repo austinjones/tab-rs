@@ -394,6 +394,7 @@ impl TabBus {
 
         None
     }
+
     async fn await_created(name: String, rx: &mut watch::Receiver<TabsState>) -> TabMetadata {
         {
             let borrow = rx.borrow();

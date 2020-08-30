@@ -39,6 +39,7 @@ impl Message<TerminalBus> for TerminalShutdown {
 pub struct MainTerminalCarrier {
     pub(super) _main: Lifeline,
     pub(super) _forward_shutdown: Lifeline,
+    pub(super) _select_echo_mode: Lifeline,
     pub(super) _echo_output: Lifeline,
     pub(super) _read_input: Lifeline,
 }
@@ -49,16 +50,33 @@ impl CarryFrom<MainBus> for TerminalBus {
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _main = {
             let mut rx_main = from.rx::<MainRecv>()?;
-            let mut tx_terminal_mode = self.tx::<TerminalMode>()?;
+            // let mut tx_terminal_mode = self.tx::<TerminalMode>()?;
 
             Self::try_task("main_recv", async move {
                 while let Some(msg) = rx_main.recv().await {
                     match msg {
                         MainRecv::SelectInteractive => {
-                            tx_terminal_mode.send(TerminalMode::Crossterm).await?;
+                            // tx_terminal_mode.send(TerminalMode::Crossterm).await?;
                         }
                         MainRecv::SelectTab(_) => {
-                            tx_terminal_mode.send(TerminalMode::Echo).await?;
+                            // tx_terminal_mode.send(TerminalMode::Echo).await?;
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(())
+            })
+        };
+
+        let _select_echo_mode = {
+            let mut rx = from.rx::<TabState>()?;
+            let mut tx = self.tx::<TerminalMode>()?;
+            Self::try_task("select_echo_mod", async move {
+                while let Some(msg) = rx.recv().await {
+                    match msg {
+                        TabState::Selected(_id) => {
+                            tx.send(TerminalMode::Echo).await?;
                         }
                         _ => {}
                     }
@@ -137,6 +155,7 @@ impl CarryFrom<MainBus> for TerminalBus {
         Ok(MainTerminalCarrier {
             _main,
             _forward_shutdown,
+            _select_echo_mode,
             _echo_output,
             _read_input,
         })

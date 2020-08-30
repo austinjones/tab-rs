@@ -6,6 +6,7 @@ use crate::config::{is_running, load_daemon_file, DaemonConfig};
 use lifeline::prelude::*;
 use log::*;
 use std::{
+    env,
     process::Stdio,
     time::{Duration, Instant},
 };
@@ -24,13 +25,21 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     let start_wait = Instant::now();
     if !running {
         debug!("launching `tab-daemon` at {}", &exec.to_string_lossy());
-        let _child = Command::new(exec)
+
+        let mut child = Command::new(exec);
+
+        child
             .args(&["--_launch", "daemon"])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .kill_on_drop(false)
-            .spawn()?;
+            .kill_on_drop(false);
+
+        if let Ok(dir) = env::var("TAB_RUNTIME_DIR") {
+            child.env("TAB_RUNTIME_DIR", dir);
+        }
+
+        let _child = child.spawn()?;
     }
 
     let timeout_duration = Duration::from_secs(2);
@@ -63,13 +72,19 @@ pub fn launch_pty() -> anyhow::Result<()> {
     let exec = std::env::current_exe()?;
     debug!("launching `tab-pty` at {}", &exec.to_string_lossy());
 
-    let _child = Command::new(exec)
+    let mut child = Command::new(exec);
+    child
         .args(&["--_launch", "pty"])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .kill_on_drop(false)
-        .spawn()?;
+        .kill_on_drop(false);
+
+    if let Ok(dir) = env::var("TAB_RUNTIME_DIR") {
+        child.env("TAB_RUNTIME_DIR", dir);
+    }
+
+    let _child = child.spawn()?;
 
     Ok(())
 }

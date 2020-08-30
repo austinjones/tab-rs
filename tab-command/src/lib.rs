@@ -62,6 +62,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
+        info!("selecting tab: {}", tab);
         tx.send(MainRecv::SelectTab(tab.to_string())).await?;
     } else if let Some(tab) = close_tab {
         tx.send(MainRecv::CloseTab(tab.to_string())).await?;

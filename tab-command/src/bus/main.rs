@@ -1,5 +1,8 @@
 use crate::message::main::{MainRecv, MainShutdown};
-use crate::{prelude::*, state::tab::TabState};
+use crate::{
+    prelude::*,
+    state::{tab::TabState, terminal::TerminalMode},
+};
 use lifeline::prelude::*;
 
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};

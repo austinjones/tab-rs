@@ -48,7 +48,6 @@ impl DaemonFile {
 
         Self::set_mode(daemon_file.as_path())?;
 
-        debug!("writing daemonfile: {:?}", &config);
         let daemon_file = DaemonFile {
             pid: config.pid,
             path: daemon_file,

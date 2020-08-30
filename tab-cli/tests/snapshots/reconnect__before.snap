@@ -1,0 +1,5 @@
+---
+source: tab-cli/tests/simple.rs
+expression: output_string
+---
+"\u{1b}[?1034hsh-3.2$ echo foo\r\r\nfoo\r\r\nsh-3.2$ "
