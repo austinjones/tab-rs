@@ -24,6 +24,7 @@ anyhow = "1.0"
 
 [dev-dependencies]
 lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
+strip-ansi-escapes = "0.1.0"
 tokio-test = "0.2.1"
 tokio = { version = "", features = ["process", "time", "rt-threaded"] } 
 insta = "0.16"

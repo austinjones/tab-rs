@@ -1,82 +1,28 @@
-use anyhow::Context;
-use insta::assert_debug_snapshot;
-use lifeline::assert_completes;
-use std::process::Stdio;
-use tempfile::tempdir;
-use time::Duration;
-use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
+use insta::assert_snapshot;
 
-/// Time to wait for the daemon to launch
-const INIT_DELAY_MS: u64 = 1200;
-
-/// Time to wait for output to be echoed on an active session
-const WRITE_DELAY_MS: u64 = 1200;
+mod common;
+use common::*;
 
 #[tokio::test]
 async fn test_reconnect() -> anyhow::Result<()> {
-    let dir = tempdir().context("failed to create tempdir")?;
-    println!("launching tests in dir: {}", dir.path().to_string_lossy());
-    let command = assert_cmd::cargo::cargo_bin("tab");
+    let mut session = TestSession::new()?;
 
-    let mut run = tokio::process::Command::new(command.as_path());
-    run.arg("test/reconnect/")
-        .env("SHELL", "sh")
-        .env("TAB_RUNTIME_DIR", dir.path().to_string_lossy().to_string())
-        .env("TAB_RAW_MODE", "false")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit());
+    let result = session
+        .command()
+        .tab("reconnect/")
+        .delay_ms(1000)
+        .stdin("echo foo\n")
+        .delay_ms(200) // delay a few moment, so we can confirm `echo foo` is echoed
+        .stdin_bytes(&[23u8])
+        .run()
+        .await?;
 
-    let mut child = run.spawn()?;
-    let mut stdin = child.stdin.take().expect("couldn't get child stdin");
+    assert_eq!(Some(0), result.exit_status.code());
+    assert_snapshot!("before", result.stdout);
 
-    time::delay_for(Duration::from_millis(INIT_DELAY_MS)).await;
-    stdin.write_all("echo foo\n".as_bytes()).await?;
-    stdin.flush().await?;
-
-    time::delay_for(Duration::from_millis(WRITE_DELAY_MS)).await;
-    stdin.write_all(vec![23u8].as_slice()).await?;
-    stdin.flush().await?;
-
-    assert_completes!(
-        async move {
-            let mut output = child.stdout.take().expect("couldn't get child stdout");
-            let mut output_string = "".to_string();
-            output
-                .read_to_string(&mut output_string)
-                .await
-                .expect("couldn't read to string");
-            assert_debug_snapshot!("before", output_string);
-        },
-        5000
-    );
-
-    let mut run = tokio::process::Command::new(command.as_path());
-    run.arg("test/reconnect/")
-        .env("SHELL", "sh")
-        .env("TAB_RUNTIME_DIR", dir.path().to_string_lossy().to_string())
-        .env("TAB_RAW_MODE", "false")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit());
-
-    let mut child = run.spawn()?;
-    let mut stdin = child.stdin.take().expect("couldn't get child stdin");
-    stdin.write_all("exit\n".as_bytes()).await?;
-    stdin.flush().await?;
-
-    assert_completes!(
-        async move {
-            let mut output = child.stdout.take().expect("couldn't get child stdout");
-            let mut output_string = "".to_string();
-            output
-                .read_to_string(&mut output_string)
-                .await
-                .expect("couldn't read to string");
-            assert_debug_snapshot!("after", output_string);
-        },
-        5000
-    );
+    let result = session.command().stdin("exit\n").run().await?;
+    assert_eq!(Some(0), result.exit_status.code());
+    assert_snapshot!("after", result.stdout);
 
     Ok(())
 }

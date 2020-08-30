@@ -21,7 +21,7 @@ pub async fn send_message<Msg: Serialize>(websocket: &mut WebsocketConnection, m
 pub async fn send_close(websocket: &mut WebsocketConnection) {
     if let Err(e) = websocket.send(Message::Close(None)).await {
         match e {
-            Error::ConnectionClosed | Error::AlreadyClosed => {
+            Error::ConnectionClosed | Error::AlreadyClosed | Error::Protocol(_) => {
                 return;
             }
             _ => {

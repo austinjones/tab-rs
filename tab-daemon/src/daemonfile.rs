@@ -103,6 +103,10 @@ impl Drop for DaemonFile {
     fn drop(&mut self) {
         let result = self.try_drop();
         if let Err(e) = result {
+            if e.to_string().starts_with("No such file or directory") {
+                return;
+            }
+
             error!("failed to drop pidfile: {}", e);
         }
     }

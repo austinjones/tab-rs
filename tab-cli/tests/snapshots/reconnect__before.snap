@@ -1,5 +1,7 @@
 ---
 source: tab-cli/tests/reconnect.rs
-expression: output_string
+expression: output
 ---
-"\u{1b}[?1034h$ echo foo\r\r\nfoo\r\r\n$ "
+$ echo foo
+foo
+$ 
