@@ -3,7 +3,7 @@ use insta::assert_snapshot;
 mod common;
 use common::*;
 
-// #[tokio::test]
+#[tokio::test]
 async fn switch() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 

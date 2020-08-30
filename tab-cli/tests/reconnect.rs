@@ -3,7 +3,7 @@ use insta::assert_snapshot;
 mod common;
 use common::*;
 
-// #[tokio::test]
+#[tokio::test]
 async fn reconnect() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
@@ -20,7 +20,13 @@ async fn reconnect() -> anyhow::Result<()> {
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("before", result.stdout);
 
-    let result = session.command().stdin("exit\n").run().await?;
+    let result = session
+        .command()
+        .tab("reconnect/")
+        .delay_ms(500)
+        .stdin("exit\n")
+        .run()
+        .await?;
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("after", result.stdout);
 
