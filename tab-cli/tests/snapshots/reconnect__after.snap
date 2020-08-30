@@ -2,4 +2,4 @@
 source: tab-cli/tests/reconnect.rs
 expression: output_string
 ---
-"echo foo\r\r\n\u{1b}[?1034hsh-3.2$ echo foo\r\r\nfoo\r\r\nsh-3.2$ exit\r\r\nexit\r\r\n"
+"\u{1b}[?1034h$ echo foo\r\r\nfoo\r\r\n$ exit\r\r\nexit\r\r\n"

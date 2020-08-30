@@ -43,7 +43,7 @@ async fn test_session() -> anyhow::Result<()> {
                 .expect("couldn't read to string");
             assert_debug_snapshot!("result", output_string);
         },
-        10000
+        5000
     );
 
     Ok(())

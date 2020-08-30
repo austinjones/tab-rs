@@ -12,6 +12,7 @@ const INIT_DELAY_MS: u64 = 1200;
 /// Time to wait for output to be echoed on an active session
 const WRITE_DELAY_MS: u64 = 1200;
 
+#[tokio::test]
 async fn test_reconnect() -> anyhow::Result<()> {
     let dir = tempdir().context("failed to create tempdir")?;
     println!("launching tests in dir: {}", dir.path().to_string_lossy());
@@ -29,6 +30,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");
 
+    time::delay_for(Duration::from_millis(INIT_DELAY_MS)).await;
     stdin.write_all("echo foo\n".as_bytes()).await?;
     stdin.flush().await?;
 
@@ -46,7 +48,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
                 .expect("couldn't read to string");
             assert_debug_snapshot!("before", output_string);
         },
-        1500
+        5000
     );
 
     let mut run = tokio::process::Command::new(command.as_path());
@@ -73,7 +75,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
                 .expect("couldn't read to string");
             assert_debug_snapshot!("after", output_string);
         },
-        1500
+        5000
     );
 
     Ok(())

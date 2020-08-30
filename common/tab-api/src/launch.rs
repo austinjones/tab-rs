@@ -113,7 +113,7 @@ pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
                 // if we terminate immediately, there could be terminal I/O going on.
                 // example:
                 //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
-                time::delay_for(Duration::from_millis(20)).await;
+                time::delay_for(Duration::from_millis(50)).await;
                 break;
             }
         }

@@ -82,6 +82,7 @@ impl Service for PtyService {
                             tx_websocket.send(message).await?;
                         }
                         PtyRecv::Terminate => {
+                            info!("pty process notified daemon of shutdown");
                             tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
 
                             time::delay_for(Duration::from_millis(50)).await;
