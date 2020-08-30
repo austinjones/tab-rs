@@ -1,5 +1,7 @@
 use crate::prelude::*;
-use crate::{message::terminal::TerminalSend, state::terminal::TerminalSizeState};
+use crate::{
+    env::terminal_size, message::terminal::TerminalSend, state::terminal::TerminalSizeState,
+};
 use anyhow::Context;
 use crossterm::event::Event;
 use std::time::Duration;
@@ -19,7 +21,7 @@ impl Service for TerminalEventService {
         let _update = Self::try_task("run", async move {
             let mut set_size = (0, 0);
             loop {
-                let size = crossterm::terminal::size().expect("get terminal size");
+                let size = terminal_size().expect("get terminal size");
                 if size != set_size {
                     set_size = size;
 
