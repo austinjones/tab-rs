@@ -12,7 +12,6 @@ const INIT_DELAY_MS: u64 = 1200;
 /// Time to wait for output to be echoed on an active session
 const WRITE_DELAY_MS: u64 = 200;
 
-#[tokio::test]
 async fn test_reconnect() -> anyhow::Result<()> {
     let dir = tempdir().context("failed to create tempdir")?;
     println!("launching tests in dir: {}", dir.path().to_string_lossy());
