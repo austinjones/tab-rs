@@ -6,7 +6,6 @@ use crate::config::{is_running, load_daemon_file, DaemonConfig};
 use lifeline::prelude::*;
 use log::*;
 use std::{
-    env,
     process::Stdio,
     time::{Duration, Instant},
 };

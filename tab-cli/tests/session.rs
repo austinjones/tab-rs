@@ -3,7 +3,7 @@ use insta::assert_debug_snapshot;
 use lifeline::assert_completes;
 use std::process::Stdio;
 use tempfile::tempdir;
-use time::Duration;
+
 use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 
 /// Time to wait for the daemon to launch
