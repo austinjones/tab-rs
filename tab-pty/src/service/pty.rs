@@ -3,7 +3,10 @@ use crate::prelude::*;
 
 use lifeline::{Receiver, Sender};
 use std::process::{Command, Stdio};
-use tab_api::chunk::{InputChunk, OutputChunk};
+use tab_api::{
+    chunk::{InputChunk, OutputChunk},
+    env::forward_env_std,
+};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
@@ -88,6 +91,8 @@ impl PtyService {
         child.current_dir(options.working_directory);
         child.args(options.args.as_slice());
         child.stderr(Stdio::inherit());
+
+        forward_env_std(&mut child);
 
         for (k, v) in options.env {
             child.env(k, v);
