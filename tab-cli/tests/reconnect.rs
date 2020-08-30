@@ -24,7 +24,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::inherit());
 
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");
@@ -57,7 +57,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::inherit());
 
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");

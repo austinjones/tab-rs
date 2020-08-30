@@ -9,6 +9,7 @@ use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 /// Time to wait for the daemon to launch
 const INIT_DELAY_MS: u64 = 1200;
 
+#[tokio::test]
 async fn test_session() -> anyhow::Result<()> {
     let dir = tempdir().context("failed to create tempdir")?;
     println!("launching tests in dir: {}", dir.path().to_string_lossy());
@@ -21,7 +22,7 @@ async fn test_session() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .kill_on_drop(true);
 
     let mut child = run.spawn()?;
