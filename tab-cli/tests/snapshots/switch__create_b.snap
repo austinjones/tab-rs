@@ -1,0 +1,7 @@
+---
+source: tab-cli/tests/switch.rs
+expression: result.stdout
+---
+$ echo b
+b
+$ 

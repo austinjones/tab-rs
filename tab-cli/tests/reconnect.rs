@@ -4,7 +4,7 @@ mod common;
 use common::*;
 
 #[tokio::test]
-async fn test_reconnect() -> anyhow::Result<()> {
+async fn reconnect() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
     let result = session

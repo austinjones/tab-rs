@@ -11,7 +11,7 @@ use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 mod common;
 
 #[tokio::test]
-async fn test_session() -> anyhow::Result<()> {
+async fn session() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
     let result = session

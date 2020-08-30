@@ -9,6 +9,7 @@ pub fn main() -> anyhow::Result<()> {
 
     // create the dotdir path, so the modules don't need to worry about it.
     tab_api::config::mkdir()?;
+    std::env::set_var("TAB_BIN", std::env::current_exe()?);
 
     if let Some(launch) = args.value_of("LAUNCH") {
         match launch {

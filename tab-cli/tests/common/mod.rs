@@ -1,7 +1,10 @@
 use anyhow::Context;
 use lifeline::assert_completes;
 use std::process::{ExitStatus, Stdio};
-use std::time::Duration;
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 use tempfile::{tempdir, TempDir};
 use tokio::process::Child;
 use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
@@ -13,6 +16,7 @@ pub enum Action {
 }
 
 pub struct TestSession {
+    binary: PathBuf,
     dir: TempDir,
 }
 
@@ -54,10 +58,8 @@ impl<'s> TestCommand<'s> {
     }
 
     pub async fn run(&mut self) -> anyhow::Result<TestResult> {
-        let executible = assert_cmd::cargo::cargo_bin("tab");
-
-        let mut run = tokio::process::Command::new(executible.as_path());
-        run.arg("test/reconnect/")
+        let mut run = tokio::process::Command::new(self.session.binary());
+        run.arg(self.tab.as_str())
             .env("SHELL", "/bin/sh")
             .env(
                 "TAB_RUNTIME_DIR",
@@ -109,7 +111,13 @@ impl TestSession {
         let dir = tempdir().context("failed to create tempdir")?;
         println!("launching tests in dir: {}", dir.path().to_string_lossy());
 
-        Ok(Self { dir })
+        let binary = assert_cmd::cargo::cargo_bin("tab");
+
+        Ok(Self { binary, dir })
+    }
+
+    pub fn binary(&self) -> &Path {
+        &self.binary.as_path()
     }
 
     pub fn command(&mut self) -> TestCommand {

@@ -14,6 +14,7 @@ pub fn is_raw_mode() -> bool {
 pub const FORWARD_ENV_VARS: &[&str] = &[
     "TAB_RUNTIME_DIR", // The daemon & pty should inherit the runtime directory of the command client
     "TAB_RAW_MODE", // Raw mode controls stderr forwarding.  When disabled, the command stderr pipe is inherited by the daemon/client
+    "TAB_BIN",      // path to the initiating tab binary (where the command was launched)
 ];
 
 pub fn forward_env(child: &mut Command) {
