@@ -1,5 +1,5 @@
 use anyhow::Context;
-use insta::{assert_debug_snapshot, assert_snapshot};
+use insta::assert_debug_snapshot;
 use lifeline::assert_completes;
 use std::process::Stdio;
 use tempfile::tempdir;

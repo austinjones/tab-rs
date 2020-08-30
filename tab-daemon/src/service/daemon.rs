@@ -1,6 +1,6 @@
 use crate::{message::daemon::DaemonShutdown, prelude::*};
 use listener::ListenerService;
-use std::fs;
+
 use tab_api::config::dotdir_path;
 use time::Duration;
 use tokio::time;

@@ -469,7 +469,7 @@ mod forward_tests {
         tx.send(TabSend::Retask(TabId(0), TabId(1))).await?;
 
         assert_times_out!(async move {
-            let msg = rx.recv().await;
+            let _msg = rx.recv().await;
         });
 
         Ok(())
