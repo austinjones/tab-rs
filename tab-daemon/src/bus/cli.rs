@@ -217,7 +217,7 @@ impl CliBus {
         match msg {
             TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
             TabSend::Stopped(id) => {
-                debug!("notifying client of terminated tab {}", id);
+                info!("notifying client of terminated tab {}", id);
                 tx.send(CliRecv::TabStopped(id)).await?;
             }
             TabSend::Scrollback(scrollback) => {
@@ -239,7 +239,7 @@ impl CliBus {
                     return Ok(());
                 }
 
-                debug!("retasking client from {:?} to {:?}", from, to);
+                info!("retasking client from {:?} to {:?}", from, to);
                 tx.send(CliRecv::Retask(from, to)).await?;
             }
         };

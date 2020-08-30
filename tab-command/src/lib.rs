@@ -91,7 +91,7 @@ async fn spawn() -> anyhow::Result<(
     let websocket = WebsocketResource(websocket);
     bus.store_resource(websocket);
 
-    debug!("Launching MainService");
+    info!("Launching MainService");
     let service = MainService::spawn(&bus)?;
 
     let tx = bus.tx::<MainRecv>()?;

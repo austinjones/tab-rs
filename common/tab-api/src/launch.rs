@@ -2,7 +2,10 @@
 //! The initial launch occurs in the `tab-cli`, using the currently running executible id.
 //! `tab` exposes a hidden `tab --_launch [daemon|pty]` argument, which is used here to launch associated services.
 
-use crate::config::{is_running, load_daemon_file, DaemonConfig};
+use crate::{
+    config::{is_running, load_daemon_file, DaemonConfig},
+    env::is_raw_mode,
+};
 use lifeline::prelude::*;
 use log::*;
 use std::{
@@ -31,8 +34,13 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
             .args(&["--_launch", "daemon"])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .kill_on_drop(false);
+
+        if is_raw_mode() {
+            child.stderr(Stdio::null());
+        } else {
+            child.stderr(Stdio::inherit());
+        }
 
         crate::env::forward_env(&mut child);
 
@@ -74,8 +82,13 @@ pub fn launch_pty() -> anyhow::Result<()> {
         .args(&["--_launch", "pty"])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .kill_on_drop(false);
+
+    if is_raw_mode() {
+        child.stderr(Stdio::null());
+    } else {
+        child.stderr(Stdio::inherit());
+    }
 
     crate::env::forward_env(&mut child);
 

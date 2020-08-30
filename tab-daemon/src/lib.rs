@@ -63,7 +63,7 @@ async fn main_async() -> anyhow::Result<()> {
 
     CombinedLogger::init(vec![
         TermLogger::new(
-            LevelFilter::Debug,
+            LevelFilter::Info,
             simplelog::Config::default(),
             TerminalMode::Stderr,
         ),

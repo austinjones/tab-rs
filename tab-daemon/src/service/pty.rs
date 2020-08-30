@@ -67,6 +67,7 @@ impl Service for PtyService {
                 while let Some(msg) = rx_daemon.recv().await {
                     match msg {
                         PtyRecv::Init(init) => {
+                            info!("pty initialized on tab {}", init.id);
                             let message = PtyWebsocketRequest::Init(init);
                             tx_websocket.send(message).await?;
                         }
