@@ -10,7 +10,7 @@ use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 const INIT_DELAY_MS: u64 = 1200;
 
 /// Time to wait for output to be echoed on an active session
-const WRITE_DELAY_MS: u64 = 200;
+const WRITE_DELAY_MS: u64 = 1200;
 
 #[tokio::test]
 async fn test_reconnect() -> anyhow::Result<()> {
@@ -30,7 +30,6 @@ async fn test_reconnect() -> anyhow::Result<()> {
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");
 
-    time::delay_for(Duration::from_millis(INIT_DELAY_MS)).await;
     stdin.write_all("echo foo\n".as_bytes()).await?;
     stdin.flush().await?;
 

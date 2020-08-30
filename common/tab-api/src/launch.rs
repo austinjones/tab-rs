@@ -35,9 +35,7 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
             .stderr(Stdio::null())
             .kill_on_drop(false);
 
-        if let Ok(dir) = env::var("TAB_RUNTIME_DIR") {
-            child.env("TAB_RUNTIME_DIR", dir);
-        }
+        crate::env::forward_env(&mut child);
 
         let _child = child.spawn()?;
     }
@@ -80,9 +78,7 @@ pub fn launch_pty() -> anyhow::Result<()> {
         .stderr(Stdio::null())
         .kill_on_drop(false);
 
-    if let Ok(dir) = env::var("TAB_RUNTIME_DIR") {
-        child.env("TAB_RUNTIME_DIR", dir);
-    }
+    crate::env::forward_env(&mut child);
 
     let _child = child.spawn()?;
 

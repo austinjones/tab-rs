@@ -28,7 +28,6 @@ async fn test_session() -> anyhow::Result<()> {
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");
 
-    time::delay_for(Duration::from_millis(INIT_DELAY_MS)).await;
     stdin.write_all("echo foo\n".as_bytes()).await?;
     stdin.write_all("exit\n".as_bytes()).await?;
     stdin.flush().await?;

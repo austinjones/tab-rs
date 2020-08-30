@@ -14,6 +14,7 @@ use tab_api::launch::*;
 use tab_websocket::resource::connection::WebsocketResource;
 
 mod bus;
+mod env;
 mod message;
 mod prelude;
 mod service;

@@ -2,18 +2,11 @@ use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-use std::env;
+use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 // the integration tests launch tab as a binary, not in a shell.
 // this env var allows them to disable the raw mode selection,
-
-fn raw_mode() -> bool {
-    env::var("TAB_RAW_MODE")
-        .ok()
-        .map(|raw| raw == "true")
-        .unwrap_or(true)
-}
 
 pub struct TerminalEchoService {
     _input: Lifeline,
@@ -25,7 +18,7 @@ impl Service for TerminalEchoService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TerminalBus) -> anyhow::Result<Self> {
-        if raw_mode() {
+        if is_raw_mode() {
             enable_raw_mode().expect("failed to enable raw mode");
         }
 
@@ -43,7 +36,7 @@ impl Service for TerminalEchoService {
 
 impl Drop for TerminalEchoService {
     fn drop(&mut self) {
-        if raw_mode() {
+        if is_raw_mode() {
             disable_raw_mode().expect("failed to disable raw mode");
         }
     }
@@ -115,7 +108,7 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
         }
     }
 
-    if raw_mode() {
+    if is_raw_mode() {
         disable_raw_mode().expect("failed to disable raw mode");
     }
 

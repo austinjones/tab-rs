@@ -7,13 +7,23 @@ use crate::{
     bus::TerminalBus,
     message::terminal::{TerminalRecv, TerminalSend},
 };
+use crossterm::terminal;
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
+use tab_api::env::is_raw_mode;
 use terminal_event::TerminalEventService;
 
 mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;
+
+pub fn terminal_size() -> anyhow::Result<(u16, u16)> {
+    if is_raw_mode() {
+        terminal::size().map_err(|err| err.into())
+    } else {
+        Ok((80, 24))
+    }
+}
 
 pub struct TerminalService {
     _main_terminal: MainTerminalCarrier,
