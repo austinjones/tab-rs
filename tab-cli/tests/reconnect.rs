@@ -12,7 +12,6 @@ const INIT_DELAY_MS: u64 = 1200;
 /// Time to wait for output to be echoed on an active session
 const WRITE_DELAY_MS: u64 = 1200;
 
-#[tokio::test]
 async fn test_reconnect() -> anyhow::Result<()> {
     let dir = tempdir().context("failed to create tempdir")?;
     println!("launching tests in dir: {}", dir.path().to_string_lossy());
@@ -25,7 +24,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::inherit());
 
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");
@@ -57,7 +56,7 @@ async fn test_reconnect() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+        .stderr(Stdio::inherit());
 
     let mut child = run.spawn()?;
     let mut stdin = child.stdin.take().expect("couldn't get child stdin");

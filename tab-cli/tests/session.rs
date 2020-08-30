@@ -22,7 +22,7 @@ async fn test_session() -> anyhow::Result<()> {
         .env("TAB_RAW_MODE", "false")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit())
         .kill_on_drop(true);
 
     let mut child = run.spawn()?;
