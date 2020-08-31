@@ -3,6 +3,7 @@ name = "tab-command"
 version = "0.2.0"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the cli command module for the tab terminal multiplexer"
+license = "MIT"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

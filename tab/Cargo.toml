@@ -8,6 +8,7 @@ authors = ["Austin Jones <implAustin@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/austinjones/tab-rs"
 repository = "https://github.com/austinjones/tab-rs"
+license = "MIT"
 readme = "../README.md"
 
 [[bin]]
