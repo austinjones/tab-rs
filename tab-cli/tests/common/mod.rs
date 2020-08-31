@@ -89,7 +89,7 @@ impl<'s> TestCommand<'s> {
                 let code = child.await;
                 (code, stdout)
             },
-            5000
+            10000
         );
 
         let result = TestResult {
