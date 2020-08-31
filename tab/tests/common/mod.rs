@@ -88,6 +88,8 @@ impl<'s> TestCommand<'s> {
                 self.session.dir.path().to_string_lossy().to_string(),
             )
             .env("TAB_RAW_MODE", "false")
+            .env("TAB", "")
+            .env("TAB_ID", "")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
@@ -110,14 +112,28 @@ impl<'s> TestCommand<'s> {
                             stdin.flush().await.expect("failed to flush stdin");
                         }
                         Action::AwaitStdout(match_target, timeout) => {
+                            println!("awaiting stdout: {:?}", match_target);
                             let start_search = stdout_buffer.len();
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
-                                let read = stdout
-                                    .read_buf(&mut buf.as_mut_slice())
-                                    .await
-                                    .expect("failed to read from buf");
+                                if Instant::now().duration_since(start_time) > *timeout {
+                                    break;
+                                }
+
+                                let timeout = time::timeout(Duration::from_millis(500), async {
+                                    stdout
+                                        .read_buf(&mut buf.as_mut_slice())
+                                        .await
+                                        .expect("failed to read from buf")
+                                })
+                                .await;
+
+                                if let Err(_e) = timeout {
+                                    continue;
+                                }
+
+                                let read = timeout.unwrap();
 
                                 stdout_buffer.extend_from_slice(&mut buf[0..read]);
 
@@ -125,10 +141,6 @@ impl<'s> TestCommand<'s> {
                                     &stdout_buffer[start_search..],
                                     match_target.as_slice(),
                                 ) {
-                                    break;
-                                }
-
-                                if Instant::now().duration_since(start_time) > *timeout {
                                     break;
                                 }
                             }
