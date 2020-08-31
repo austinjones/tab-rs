@@ -3,6 +3,7 @@ use tokio::process::Command;
 
 /// Instructs the command module that it should interact with the terminal in raw mode
 /// If false, the environment may not be a terminal pty.
+/// The integration tests disable this flag.
 pub fn is_raw_mode() -> bool {
     std::env::var("TAB_RAW_MODE")
         .ok()

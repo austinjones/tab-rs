@@ -5,9 +5,6 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-// the integration tests launch tab as a binary, not in a shell.
-// this env var allows them to disable the raw mode selection,
-
 pub struct TerminalEchoService {
     _input: Lifeline,
     _output: Lifeline,
