@@ -22,12 +22,3 @@ impl Default for TerminalMode {
         Self::Crossterm
     }
 }
-
-impl TerminalMode {
-    pub fn is_echo(&self) -> bool {
-        match self {
-            TerminalMode::Echo => true,
-            _ => false,
-        }
-    }
-}

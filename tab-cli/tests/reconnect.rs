@@ -3,6 +3,8 @@ use insta::assert_snapshot;
 mod common;
 use common::*;
 
+/// Tests that a session can be established, disconnected from, and re-established
+/// Covers connection, ctrl-W, disconnection, and scrollback
 #[tokio::test]
 async fn reconnect() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;

@@ -16,6 +16,7 @@ pub enum AuthState {
 }
 
 impl AuthHandler {
+    #[cfg(test)]
     pub fn new(token: WebsocketAuthToken) -> Self {
         AuthHandler {
             token,

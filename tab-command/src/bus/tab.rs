@@ -341,19 +341,6 @@ impl TabBus {
         }
     }
 
-    fn overlap(value: &str, target: &str) -> usize {
-        let mut matches = 0;
-        for (a, b) in value.chars().zip(target.chars()) {
-            if a != b {
-                return matches;
-            }
-
-            matches += 1;
-        }
-
-        return matches;
-    }
-
     async fn await_initialized(rx: &mut watch::Receiver<TabsState>) -> Option<TabsState> {
         {
             let borrow = rx.borrow();

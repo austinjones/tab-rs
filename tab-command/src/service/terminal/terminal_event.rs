@@ -18,6 +18,7 @@ impl Service for TerminalEventService {
         let mut tx = bus.tx::<TerminalSizeState>()?;
         let mut tx_send = bus.tx::<TerminalSend>()?;
 
+        #[allow(unreachable_code)]
         let _update = Self::try_task("run", async move {
             let mut set_size = (0, 0);
             loop {

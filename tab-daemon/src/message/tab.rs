@@ -22,6 +22,7 @@ impl PartialEq for TabInput {
 }
 
 impl TabInput {
+    #[cfg(test)]
     pub fn new(id: TabId, data: Vec<u8>) -> Self {
         Self {
             id,
