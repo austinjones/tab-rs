@@ -27,7 +27,7 @@ anyhow = "1.0"
 lifeline = "0.2.1"
 strip-ansi-escapes = "0.1.0"
 tokio-test = "0.2.1"
-tokio = { version = "", features = ["process", "time", "rt-threaded"] } 
+tokio = { version = "0.2", features = ["process", "time", "rt-threaded"] } 
 insta = "0.16"
 assert_cmd = "1.0"
 tempfile = "3.1"
