@@ -8,7 +8,7 @@ pub fn init() -> ArgMatches<'static> {
 
 fn app() -> App<'static, 'static> {
     App::new("Terminal Multiplexer")
-        .version("v0.1")
+        .version("v0.2")
         .name("tab")
         .author("Austin Jones <implAustin@gmail.com>")
         .about("`tab`, a modern terminal multiplexer designed for overwhelmed software & systems engineers.")
