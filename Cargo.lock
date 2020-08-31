@@ -1338,22 +1338,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-api"
-version = "0.1.0"
-dependencies = [
- "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "dirs 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lifeline 0.2.0 (git+https://github.com/austinjones/lifeline-rs.git)",
- "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_yaml 0.8.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "sysinfo 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tab-cli"
+name = "tab"
 version = "0.2.0"
 dependencies = [
  "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1369,6 +1354,21 @@ dependencies = [
  "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-test 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tab-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dirs 3.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lifeline 0.2.0 (git+https://github.com/austinjones/lifeline-rs.git)",
+ "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_yaml 0.8.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sysinfo 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
