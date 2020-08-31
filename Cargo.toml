@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "tab-cli",
+    "tab",
     "tab-command",
     "tab-daemon",
     "tab-pty",

@@ -1,5 +1,5 @@
 [package]
-name = "tab-cli"
+name = "tab"
 version = "0.2.0"
 description = "a modern terminal multiplexer designed for overwhelmed software & systems engineers"
 keywords = ["cli", "terminal", "tool"]
