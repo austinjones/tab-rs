@@ -97,39 +97,47 @@ impl<'s> TestCommand<'s> {
         let mut stdout = child.stdout.take().expect("couldn't get child stdout");
         let mut stdout_buffer = Vec::new();
 
-        for action in &self.actions {
-            match action {
-                Action::Delay(duration) => time::delay_for(duration.clone()).await,
-                Action::Stdin(input) => {
-                    stdin.write_all(input.as_slice()).await?;
-                    stdin.flush().await?;
-                }
-                Action::AwaitStdout(match_target, timeout) => {
-                    let start_search = stdout_buffer.len();
-                    let mut buf = vec![0u8; 32];
-                    let start_time = Instant::now();
-                    loop {
-                        let read = stdout
-                            .read_buf(&mut buf.as_mut_slice())
-                            .await
-                            .expect("failed to read from buf");
-
-                        stdout_buffer.extend_from_slice(&mut buf[0..read]);
-
-                        if let Some(_) = find_subsequence(
-                            &stdout_buffer[start_search..],
-                            match_target.as_slice(),
-                        ) {
-                            break;
+        assert_completes!(
+            async {
+                for action in &self.actions {
+                    match action {
+                        Action::Delay(duration) => time::delay_for(duration.clone()).await,
+                        Action::Stdin(input) => {
+                            stdin
+                                .write_all(input.as_slice())
+                                .await
+                                .expect("failed to write to stdin");
+                            stdin.flush().await.expect("failed to flush stdin");
                         }
+                        Action::AwaitStdout(match_target, timeout) => {
+                            let start_search = stdout_buffer.len();
+                            let mut buf = vec![0u8; 32];
+                            let start_time = Instant::now();
+                            loop {
+                                let read = stdout
+                                    .read_buf(&mut buf.as_mut_slice())
+                                    .await
+                                    .expect("failed to read from buf");
 
-                        if Instant::now().duration_since(start_time) > *timeout {
-                            break;
+                                stdout_buffer.extend_from_slice(&mut buf[0..read]);
+
+                                if let Some(_) = find_subsequence(
+                                    &stdout_buffer[start_search..],
+                                    match_target.as_slice(),
+                                ) {
+                                    break;
+                                }
+
+                                if Instant::now().duration_since(start_time) > *timeout {
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
+            },
+            30000
+        );
 
         let code = assert_completes!(
             async {
