@@ -5,8 +5,8 @@
 [package]
 name = "tab-pty-process"
 publish = false
-version = "0.4.0"
-authors = ["Austin Jones <implaustin@gmail.com>", "Alex Crichton <alex@alexcrichton.com>", "Peter Williams <peter@newton.cx>"]
+version = "0.2.0"
+authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "Interact with a child process through a pseudo-TTY, asynchronously using Tokio"
 repository = "https://github.com/austinjones/tab-rs/"
 readme = "README.md"
