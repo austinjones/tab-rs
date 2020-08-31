@@ -12,9 +12,9 @@ async fn reconnect() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("reconnect/")
-        .delay_ms(1000)
+        .await_stdout("$", 1000)
         .stdin("echo foo\n")
-        .delay_ms(200) // delay a few moment, so we can confirm `echo foo` is echoed
+        .await_stdout("echo foo", 200)
         .stdin_bytes(&[23u8])
         .run()
         .await?;
@@ -25,7 +25,7 @@ async fn reconnect() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("reconnect/")
-        .delay_ms(500)
+        .await_stdout("foo", 500)
         .stdin("exit\n")
         .run()
         .await?;

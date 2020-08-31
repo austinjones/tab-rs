@@ -5,7 +5,7 @@ use lifeline::assert_completes;
 use std::process::{ExitStatus, Stdio};
 use std::{
     path::{Path, PathBuf},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tempfile::{tempdir, TempDir};
 use tokio::process::Child;
@@ -15,6 +15,7 @@ use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 #[derive(Clone, Debug)]
 pub enum Action {
     Delay(Duration),
+    AwaitStdout(Vec<u8>, Duration),
     Stdin(Vec<u8>),
 }
 
@@ -55,6 +56,14 @@ impl<'s> TestCommand<'s> {
         self
     }
 
+    /// Writes stdin to the tab session
+    pub fn await_stdout<T: ToString>(&mut self, value: T, wait_ms: u64) -> &mut Self {
+        let duration = Duration::from_millis(wait_ms);
+        let action = Action::AwaitStdout(value.to_string().as_bytes().to_owned(), duration);
+        self.actions.push(action);
+        self
+    }
+
     /// Sleeps for the given duration (queued - not on the current thread)
     pub fn delay(&mut self, duration: Duration) -> &mut Self {
         let action = Action::Delay(duration);
@@ -85,6 +94,8 @@ impl<'s> TestCommand<'s> {
 
         let mut child = run.spawn()?;
         let mut stdin = child.stdin.take().expect("couldn't get child stdin");
+        let mut stdout = child.stdout.take().expect("couldn't get child stdout");
+        let mut stdout_buffer = Vec::new();
 
         for action in &self.actions {
             match action {
@@ -93,17 +104,48 @@ impl<'s> TestCommand<'s> {
                     stdin.write_all(input.as_slice()).await?;
                     stdin.flush().await?;
                 }
+                Action::AwaitStdout(match_target, timeout) => {
+                    let start_search = stdout_buffer.len();
+                    let mut buf = vec![0u8; 32];
+                    let start_time = Instant::now();
+                    loop {
+                        let read = stdout
+                            .read_buf(&mut buf.as_mut_slice())
+                            .await
+                            .expect("failed to read from buf");
+
+                        stdout_buffer.extend_from_slice(&mut buf[0..read]);
+
+                        if let Some(_) = find_subsequence(
+                            &stdout_buffer[start_search..],
+                            match_target.as_slice(),
+                        ) {
+                            break;
+                        }
+
+                        if Instant::now().duration_since(start_time) > *timeout {
+                            break;
+                        }
+                    }
+                }
             }
         }
 
-        let (code, stdout) = assert_completes!(
-            async move {
-                let stdout = await_stdout(&mut child).await;
+        let code = assert_completes!(
+            async {
+                stdout
+                    .read_to_end(&mut stdout_buffer)
+                    .await
+                    .expect("failed to read stdout");
                 let code = child.await;
-                (code, stdout)
+                code
             },
             10000
         );
+
+        let stdout_buffer =
+            strip_ansi_escapes::strip(&stdout_buffer).expect("couldn't strip escape sequences");
+        let stdout = std::str::from_utf8(stdout_buffer.as_slice())?.to_string();
 
         let result = TestResult {
             exit_status: code?,
@@ -112,6 +154,12 @@ impl<'s> TestCommand<'s> {
 
         Ok(result)
     }
+}
+
+fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 /// The result of a `tab` command execution
