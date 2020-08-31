@@ -15,15 +15,15 @@ name = "tab"
 path = "src/main.rs"
 
 [dependencies]
-tab-api = { path = "../common/tab-api" }
-tab-command = { path = "../tab-command" }
-tab-daemon = { path = "../tab-daemon" }
-tab-pty = { path = "../tab-pty" }
+tab-api = { version = "0.2.0", path = "../common/tab-api" }
+tab-command = { version = "0.2.0", path = "../tab-command" }
+tab-daemon = { version = "0.2.0", path = "../tab-daemon" }
+tab-pty = { version = "0.2.0", path = "../tab-pty" }
 clap = "2.33.2"
 anyhow = "1.0"
 
 [dev-dependencies]
-lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
+lifeline = "0.2.1"
 strip-ansi-escapes = "0.1.0"
 tokio-test = "0.2.1"
 tokio = { version = "", features = ["process", "time", "rt-threaded"] } 

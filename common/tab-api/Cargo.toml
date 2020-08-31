@@ -1,13 +1,16 @@
 [package]
 name = "tab-api"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Austin Jones <implAustin@gmail.com>"]
+description = "the common api module for the tab terminal multiplexer"
+homepage = "https://github.com/austinjones/tab-rs"
+repository = "https://github.com/austinjones/tab-rs"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
+lifeline = "0.2.1"
 tokio = { version = "0.2", features = ["process"] }
 sysinfo = "0.15"
 dirs = "3.0"

@@ -4,14 +4,12 @@
 
 [package]
 name = "tab-pty-process"
-publish = false
-version = "0.4.0"
-authors = ["Austin Jones <implaustin@gmail.com>", "Alex Crichton <alex@alexcrichton.com>", "Peter Williams <peter@newton.cx>"]
-description = "Interact with a child process through a pseudo-TTY, asynchronously using Tokio"
-repository = "https://github.com/austinjones/tab-rs/"
+version = "0.2.0"
+authors = ["Austin Jones <implAustin@gmail.com>"]
+description = "the tab multiplexer fork of tokio-pty-process.  Interact with a child process through a pseudo-TTY, asynchronously using Tokio"
 readme = "README.md"
-keywords = ["pseudotty", "tokio"]
-categories = ["asynchronous", "os::unix-apis"]
+homepage = "https://github.com/austinjones/tab-rs"
+repository = "https://github.com/austinjones/tab-rs"
 license = "MIT/Apache-2.0"
 edition = "2018"
 
