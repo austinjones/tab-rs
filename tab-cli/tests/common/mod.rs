@@ -169,6 +169,7 @@ pub struct TestResult {
     pub exit_status: ExitStatus,
 }
 
+#[allow(dead_code)]
 impl TestSession {
     /// Constructs a new `tab` session, generating a temp directory for the tab daemon.
     /// When the TestSession value is dropped, the daemon & pty sessions shut down.
@@ -194,18 +195,4 @@ impl TestSession {
             actions: Vec::new(),
         }
     }
-}
-
-async fn await_stdout(child: &mut Child) -> String {
-    let mut output = child.stdout.take().expect("couldn't get child stdout");
-    let mut output_string = "".to_string();
-    output
-        .read_to_string(&mut output_string)
-        .await
-        .expect("couldn't read to string");
-    let output_string =
-        strip_ansi_escapes::strip(&output_string).expect("couldn't strip escape sequences");
-    let output_string =
-        std::str::from_utf8(output_string.as_slice()).expect("couldn't parse stdout as utf8");
-    output_string.to_string()
 }

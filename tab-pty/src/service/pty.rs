@@ -71,6 +71,8 @@ impl PtyService {
 
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
+            // await long enough for the final stdout read to get through
+            time::delay_for(Duration::from_millis(10)).await;
             tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
 
             Ok(())
