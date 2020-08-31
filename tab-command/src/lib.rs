@@ -71,9 +71,8 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
         tx.send(MainRecv::SelectTab("any/".to_string())).await?;
     }
 
-    error!("got tab-command waiting for shutdown");
     wait_for_shutdown(rx_shutdown).await;
-    error!("got tab-command shutdown");
+
     Ok(())
 }
 
