@@ -7,6 +7,7 @@ use common::*;
 ///  that A can be reconnected to,
 ///  and B can be switched to by executing the tab binary within A.
 #[tokio::test]
+
 async fn switch() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
