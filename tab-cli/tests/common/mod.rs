@@ -8,7 +8,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tempfile::{tempdir, TempDir};
-use tokio::process::Child;
+
 use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 
 /// An action which interacts with a running tab command
