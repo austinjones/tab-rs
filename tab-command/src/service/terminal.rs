@@ -7,8 +7,10 @@ use crate::{
     bus::TerminalBus,
     message::terminal::{TerminalRecv, TerminalSend},
 };
+
 use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
+
 use terminal_event::TerminalEventService;
 
 mod crossterm_mode;

@@ -1,7 +1,6 @@
 extern crate clap;
 
 use clap::Shell;
-use std::{env, path::PathBuf};
 
 include!("src/cli.rs");
 

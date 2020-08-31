@@ -2,7 +2,10 @@
 //! The initial launch occurs in the `tab-cli`, using the currently running executible id.
 //! `tab` exposes a hidden `tab --_launch [daemon|pty]` argument, which is used here to launch associated services.
 
-use crate::config::{is_running, load_daemon_file, DaemonConfig};
+use crate::{
+    config::{is_running, load_daemon_file, DaemonConfig},
+    env::is_raw_mode,
+};
 use lifeline::prelude::*;
 use log::*;
 use std::{
@@ -24,13 +27,24 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     let start_wait = Instant::now();
     if !running {
         debug!("launching `tab-daemon` at {}", &exec.to_string_lossy());
-        let _child = Command::new(exec)
+
+        let mut child = Command::new(exec);
+
+        child
             .args(&["--_launch", "daemon"])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(false)
-            .spawn()?;
+            .kill_on_drop(false);
+
+        if is_raw_mode() {
+            child.stderr(Stdio::null());
+        } else {
+            child.stderr(Stdio::inherit());
+        }
+
+        crate::env::forward_env(&mut child);
+
+        let _child = child.spawn()?;
     }
 
     let timeout_duration = Duration::from_secs(2);
@@ -63,13 +77,22 @@ pub fn launch_pty() -> anyhow::Result<()> {
     let exec = std::env::current_exe()?;
     debug!("launching `tab-pty` at {}", &exec.to_string_lossy());
 
-    let _child = Command::new(exec)
+    let mut child = Command::new(exec);
+    child
         .args(&["--_launch", "pty"])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .kill_on_drop(false)
-        .spawn()?;
+        .kill_on_drop(false);
+
+    if is_raw_mode() {
+        child.stderr(Stdio::null());
+    } else {
+        child.stderr(Stdio::inherit());
+    }
+
+    crate::env::forward_env(&mut child);
+
+    let _child = child.spawn()?;
 
     Ok(())
 }
@@ -90,7 +113,7 @@ pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
                 // if we terminate immediately, there could be terminal I/O going on.
                 // example:
                 //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
-                time::delay_for(Duration::from_millis(20)).await;
+                time::delay_for(Duration::from_millis(50)).await;
                 break;
             }
         }

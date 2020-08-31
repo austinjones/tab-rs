@@ -2,8 +2,11 @@ use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
 
 use lifeline::{Receiver, Sender};
-use std::process::Command;
-use tab_api::chunk::{InputChunk, OutputChunk};
+use std::process::{Command, Stdio};
+use tab_api::{
+    chunk::{InputChunk, OutputChunk},
+    env::forward_env_std,
+};
 use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
@@ -60,7 +63,6 @@ impl PtyService {
         tx_response: impl Sender<PtyResponse> + Clone + Send + 'static,
     ) -> anyhow::Result<()> {
         let (child, read, write) = Self::create_pty(options).await?;
-
         // stdout reader
         let _output = Self::task("output", Self::read_output(read, tx_response.clone()));
         let _input = Self::task("input", Self::write_input(write, rx_request));
@@ -69,6 +71,8 @@ impl PtyService {
 
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
+            // await long enough for the final stdout read to get through
+            time::delay_for(Duration::from_millis(10)).await;
             tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
 
             Ok(())
@@ -87,6 +91,9 @@ impl PtyService {
         let mut child = Command::new(options.command);
         child.current_dir(options.working_directory);
         child.args(options.args.as_slice());
+        child.stderr(Stdio::inherit());
+
+        forward_env_std(&mut child);
 
         for (k, v) in options.env {
             child.env(k, v);

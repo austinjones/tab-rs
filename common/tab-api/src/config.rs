@@ -2,7 +2,7 @@ use anyhow::Result;
 use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{env, fs::File, io::BufReader, path::PathBuf};
 use sysinfo::SystemExt;
 
 /// Config created for each daemon process
@@ -24,6 +24,10 @@ pub fn mkdir() -> Result<()> {
 
 /// The full path to tab's dotdir directory, that can be used to store state for the user.
 pub fn dotdir_path() -> Result<PathBuf> {
+    if let Ok(var) = env::var("TAB_RUNTIME_DIR") {
+        return Ok(PathBuf::from(var));
+    }
+
     let mut dir = dirs::home_dir().ok_or_else(|| anyhow::Error::msg("home_dir not found"))?;
 
     dir.push(".tab");

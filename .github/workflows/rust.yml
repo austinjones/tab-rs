@@ -19,15 +19,15 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
-          key: ${{ runner.os }}-cargo-check
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: clippy
-          override: true
 
       - uses: actions-rs/cargo@v1
         with:
@@ -54,16 +54,16 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
-          key: ${{ runner.os }}-cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
-          override: true
 
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release
+          args: --release -- --nocapture

@@ -62,7 +62,7 @@ impl Service for TabManagerService {
                         }
 
                         if let Some(metadata) =
-                            retraction.retract_if_expired(Duration::from_millis(100))
+                            retraction.retract_if_expired(Duration::from_millis(500))
                         {
                             debug!("regenerating assignment for tab {:?}", metadata.id);
 
@@ -74,6 +74,7 @@ impl Service for TabManagerService {
                             new_retractions.push_back(retraction);
                         }
                     }
+
                     retractions.append(&mut new_retractions);
                     if terminate && retractions.is_empty() {
                         break 'monitor;
@@ -84,7 +85,7 @@ impl Service for TabManagerService {
                         launch_pty()?;
                     }
 
-                    time::delay_for(Duration::from_millis(100)).await;
+                    time::delay_for(Duration::from_millis(250)).await;
                 }
 
                 Ok(())

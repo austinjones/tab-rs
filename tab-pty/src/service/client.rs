@@ -10,6 +10,7 @@ use std::{
 };
 use tab_api::{
     config::history_path,
+    env::is_raw_mode,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
 };
 use time::Duration;
@@ -60,33 +61,56 @@ impl ClientService {
                     env.insert("TAB".to_string(), create.name.clone());
                     env.insert("TAB_ID".to_string(), create.id.0.to_string());
 
-                    // todo: better resolution of shells
-                    if create.shell.ends_with("fish") {
-                        let mut hasher = DefaultHasher::new();
-                        name.hash(&mut hasher);
-                        let id = hasher.finish();
+                    let shell = resolve_shell(create.shell.as_str());
+                    info!("shell detection: {:?}", shell);
+                    match shell {
+                        Shell::Sh => {
+                            let home = history_path("sh", create.name.as_str())?;
+                            std::fs::create_dir_all(home.parent().unwrap())?;
 
-                        let history = format!("tab_{}", id);
+                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                        }
+                        Shell::Zsh => {
+                            // this doesn't work on OSX.  /etc/zshrc overwrites it
+                            let home = history_path("zsh", create.name.as_str())?;
+                            std::fs::create_dir_all(home.parent().unwrap())?;
 
-                        env.insert("fish_history".to_string(), history);
-                    } else if create.shell.ends_with("bash") {
-                        let home = history_path("bash", create.name.as_str())?;
-                        std::fs::create_dir_all(home.parent().unwrap())?;
+                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                        }
+                        Shell::Bash => {
+                            let home = history_path("bash", create.name.as_str())?;
+                            std::fs::create_dir_all(home.parent().unwrap())?;
 
-                        env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
-                    } else if create.shell.ends_with("zsh") {
-                        // this doesn't work on OSX.  /etc/zshrc overwrites it
-                        let home = history_path("zsh", create.name.as_str())?;
-                        std::fs::create_dir_all(home.parent().unwrap())?;
+                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                        }
+                        Shell::Fish => {
+                            let mut hasher = DefaultHasher::new();
+                            name.hash(&mut hasher);
+                            let id = hasher.finish();
 
-                        env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                            let history = format!("tab_{}", id);
+
+                            env.insert("fish_history".to_string(), history);
+                        }
+                        Shell::Unknown => {}
                     }
 
                     let mut args = vec![];
-                    if create.shell.ends_with("fish") {
+
+                    // todo: better resolution of shells
+                    if let Shell::Fish = shell {
                         args.push("--interactive".to_string());
-                    } else if create.shell.ends_with("bash") {
-                    } else if create.shell.ends_with("zsh") {
+                    }
+
+                    if !is_raw_mode() {
+                        // if we are in test mode, try to make the terminal as predictable as possible
+                        info!("setting debug PS1 line");
+                        env.insert("PS1".into(), "$ ".into());
+                        if let Shell::Bash = shell {
+                            args.push("--noprofile".into());
+                            args.push("--norc".into());
+                            env.insert("BASH_SILENCE_DEPRECATION_WARNING".into(), "1".into());
+                        }
                     }
 
                     let working_directory = PathBuf::from(create.dir.clone());
@@ -201,8 +225,10 @@ impl ClientSessionService {
                 PtyResponse::Output(out) => {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
-                PtyResponse::Terminated(_term) => {
+                PtyResponse::Terminated(code) => {
+                    info!("pty child process terminated with status: {:?}", &code);
                     tx.send(PtyWebsocketResponse::Stopped).await?;
+                    time::delay_for(Duration::from_millis(100)).await;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }
@@ -210,4 +236,30 @@ impl ClientSessionService {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Shell {
+    Sh,
+    Zsh,
+    Bash,
+    Fish,
+    Unknown,
+}
+
+pub fn resolve_shell(command: &str) -> Shell {
+    for fragment in command.split(|c| c == '/' || c == ' ' || c == '\\') {
+        let fragment = fragment.trim();
+        if fragment.eq_ignore_ascii_case("sh") {
+            return Shell::Sh;
+        } else if fragment.eq_ignore_ascii_case("zsh") {
+            return Shell::Zsh;
+        } else if fragment.eq_ignore_ascii_case("bash") {
+            return Shell::Bash;
+        } else if fragment.eq_ignore_ascii_case("fish") {
+            return Shell::Fish;
+        }
+    }
+
+    Shell::Unknown
 }

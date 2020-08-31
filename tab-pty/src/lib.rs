@@ -15,6 +15,7 @@ mod prelude;
 mod service;
 
 pub fn pty_main() -> anyhow::Result<()> {
+    info!("pty process started");
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
@@ -25,6 +26,7 @@ pub fn pty_main() -> anyhow::Result<()> {
     let result = runtime.block_on(async { main_async().await });
 
     runtime.shutdown_timeout(Duration::from_millis(25));
+    info!("pty process terminated");
 
     result?;
 
@@ -33,7 +35,7 @@ pub fn pty_main() -> anyhow::Result<()> {
 
 fn init() {
     CombinedLogger::init(vec![TermLogger::new(
-        LevelFilter::Debug,
+        LevelFilter::Info,
         simplelog::Config::default(),
         TerminalMode::Stderr,
     )])

@@ -50,6 +50,7 @@ impl CarryFrom<MainBus> for TerminalBus {
         let _main = {
             let mut rx_main = from.rx::<MainRecv>()?;
             let mut tx_terminal_mode = self.tx::<TerminalMode>()?;
+            let mut rx_tab_state = from.rx::<TabState>()?.into_inner();
 
             Self::try_task("main_recv", async move {
                 while let Some(msg) = rx_main.recv().await {
@@ -58,6 +59,8 @@ impl CarryFrom<MainBus> for TerminalBus {
                             tx_terminal_mode.send(TerminalMode::Crossterm).await?;
                         }
                         MainRecv::SelectTab(_) => {
+                            // we don't want to begin reading stdin until the tab has been selected
+                            Self::await_selected(&mut rx_tab_state).await;
                             tx_terminal_mode.send(TerminalMode::Echo).await?;
                         }
                         _ => {}
@@ -140,5 +143,19 @@ impl CarryFrom<MainBus> for TerminalBus {
             _echo_output,
             _read_input,
         })
+    }
+}
+
+impl TerminalBus {
+    pub async fn await_selected(rx: &mut watch::Receiver<TabState>) {
+        if let TabState::Selected(_) = *rx.borrow() {
+            return;
+        }
+
+        while let Some(state) = rx.recv().await {
+            if let TabState::Selected(_) = state {
+                return;
+            }
+        }
     }
 }

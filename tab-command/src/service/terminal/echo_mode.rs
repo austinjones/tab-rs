@@ -2,6 +2,7 @@ use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub struct TerminalEchoService {
@@ -14,7 +15,9 @@ impl Service for TerminalEchoService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TerminalBus) -> anyhow::Result<Self> {
-        enable_raw_mode().expect("failed to enable raw mode");
+        if is_raw_mode() {
+            enable_raw_mode().expect("failed to enable raw mode");
+        }
 
         let rx = bus.rx::<TerminalRecv>()?;
         let tx = bus.tx::<TerminalSend>()?;
@@ -30,7 +33,9 @@ impl Service for TerminalEchoService {
 
 impl Drop for TerminalEchoService {
     fn drop(&mut self) {
-        disable_raw_mode().expect("failed to enable raw mode");
+        if is_raw_mode() {
+            disable_raw_mode().expect("failed to disable raw mode");
+        }
     }
 }
 
@@ -38,6 +43,7 @@ async fn forward_stdin(
     mut tx: impl Sender<TerminalSend>,
     mut tx_shutdown: impl Sender<TerminalShutdown>,
 ) -> anyhow::Result<()> {
+    info!("listening for stdin");
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
 
@@ -99,7 +105,9 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
         }
     }
 
-    disable_raw_mode().expect("failed to enable raw mode");
+    if is_raw_mode() {
+        disable_raw_mode().expect("failed to disable raw mode");
+    }
 
     Ok(())
 }

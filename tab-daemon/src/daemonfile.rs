@@ -48,7 +48,6 @@ impl DaemonFile {
 
         Self::set_mode(daemon_file.as_path())?;
 
-        debug!("writing daemonfile: {:?}", &config);
         let daemon_file = DaemonFile {
             pid: config.pid,
             path: daemon_file,
@@ -104,6 +103,10 @@ impl Drop for DaemonFile {
     fn drop(&mut self) {
         let result = self.try_drop();
         if let Err(e) = result {
+            if e.to_string().starts_with("No such file or directory") {
+                return;
+            }
+
             error!("failed to drop pidfile: {}", e);
         }
     }

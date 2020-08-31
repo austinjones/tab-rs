@@ -12,7 +12,6 @@ use log::{debug, error};
 
 use lifeline::prelude::*;
 use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
-use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
 pub struct WebsocketListenerService {
@@ -69,9 +68,14 @@ async fn accept_connections(
     }
 }
 
+#[cfg(test)]
 pub(crate) async fn serve(
     token: &str,
-) -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, SocketAddr)> {
+) -> anyhow::Result<(
+    WebsocketListenerBus,
+    WebsocketListenerService,
+    std::net::SocketAddr,
+)> {
     let bus = WebsocketListenerBus::default();
     bus.store_resource::<WebsocketAuthToken>(token.into());
 

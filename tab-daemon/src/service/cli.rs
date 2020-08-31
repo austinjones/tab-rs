@@ -173,7 +173,7 @@ impl CliService {
             }
             CliRecv::Scrollback(message) => {
                 if let Some(_identifier) = rx_subscription.get_identifier(&message.id) {
-                    debug!("processing scrollback for tab {}", message.id);
+                    info!("processing scrollback for tab {}", message.id);
 
                     let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();
 
@@ -200,13 +200,14 @@ impl CliService {
                 }
             }
             CliRecv::TabStopped(id) => {
+                info!("notifying client of stopped tab: {}", id);
                 tx_websocket
                     .send(Response::TabTerminated(id))
                     .await
                     .context("tx_websocket closed")?;
             }
             CliRecv::Retask(from, to) => {
-                debug!("acknowledging retask from {:?} to {:?}, updating subscriptions & requesting scrollback", from, to);
+                info!("acknowledging retask from {:?} to {:?}, updating subscriptions & requesting scrollback", from, to);
                 tx_websocket.send(Response::Retask(to)).await?;
                 tx_subscription
                     .send(Subscription::Unsubscribe(from))

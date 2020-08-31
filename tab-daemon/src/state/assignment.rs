@@ -56,6 +56,7 @@ impl<T: Debug + Clone> Retraction<T> {
         self.state.taken.load(Ordering::SeqCst)
     }
 
+    #[allow(dead_code)]
     /// Attempts to retract the assignment, returning Some if the retraction was successful
     pub fn retract(&self) -> Option<T> {
         self.state.take()

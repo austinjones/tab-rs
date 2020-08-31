@@ -14,6 +14,7 @@ use tab_api::launch::*;
 use tab_websocket::resource::connection::WebsocketResource;
 
 mod bus;
+mod env;
 mod message;
 mod prelude;
 mod service;
@@ -62,6 +63,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
+        info!("selecting tab: {}", tab);
         tx.send(MainRecv::SelectTab(tab.to_string())).await?;
     } else if let Some(tab) = close_tab {
         tx.send(MainRecv::CloseTab(tab.to_string())).await?;
@@ -89,7 +91,7 @@ async fn spawn() -> anyhow::Result<(
     let websocket = WebsocketResource(websocket);
     bus.store_resource(websocket);
 
-    debug!("Launching MainService");
+    info!("Launching MainService");
     let service = MainService::spawn(&bus)?;
 
     let tx = bus.tx::<MainRecv>()?;

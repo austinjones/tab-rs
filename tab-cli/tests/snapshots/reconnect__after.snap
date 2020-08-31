@@ -1,0 +1,9 @@
+---
+source: tab-cli/tests/reconnect.rs
+expression: output
+---
+$ echo foo
+foo
+$ exit
+exit
+

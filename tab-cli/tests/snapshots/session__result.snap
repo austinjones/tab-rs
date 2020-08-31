@@ -1,0 +1,9 @@
+---
+source: tab-cli/tests/session.rs
+expression: output
+---
+$ echo foo
+foo
+$ exit
+exit
+

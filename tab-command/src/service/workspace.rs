@@ -23,6 +23,8 @@ impl Service for WorkspaceService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut tx = bus.tx::<WorkspaceState>()?;
+
+        #[allow(unreachable_code)]
         let _monitor = Self::try_task("monitor", async move {
             loop {
                 let state = load_state();
