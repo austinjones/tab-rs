@@ -200,6 +200,7 @@ impl CliService {
                 }
             }
             CliRecv::TabStopped(id) => {
+                info!("notifying client of stopped tab: {}", id);
                 tx_websocket
                     .send(Response::TabTerminated(id))
                     .await
