@@ -12,6 +12,7 @@ async fn session() -> anyhow::Result<()> {
         .tab("session/")
         .delay_ms(1000)
         .stdin("echo foo\n")
+        .delay_ms(200)
         .stdin("exit\n")
         .run()
         .await?;
