@@ -41,7 +41,7 @@ async fn switch() -> anyhow::Result<()> {
         .tab("switch/a/")
         .delay_ms(1000)
         .stdin("$TAB_BIN switch/b/\n")
-        .delay_ms(600)
+        .delay_ms(1000)
         .stdin("exit\n")
         .run()
         .await?;
