@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 lifeline = "0.2.1"
-tokio = { version = "0.2", features = ["process"] }
+tokio = { version = "0.2", features = ["macros", "process", "time"] }
 sysinfo = "0.15"
 dirs = "3.0"
 serde = { version = "1.0", features = ["derive"] }
