@@ -26,9 +26,9 @@ async fn switch() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("switch/b/")
-        .await_stdout("$", 1000)
+        .await_stdout("$", 5000)
         .stdin("echo b\n")
-        .await_stdout("b", 200)
+        .await_stdout("b", 1000)
         .stdin_bytes(&[23u8])
         .run()
         .await?;
@@ -39,9 +39,9 @@ async fn switch() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("switch/a/")
-        .await_stdout("$", 1000)
+        .await_stdout("$", 5000)
         .stdin("$TAB_BIN switch/b/\n")
-        .await_stdout("echo b", 200)
+        .await_stdout("echo b", 1000)
         .stdin("exit\n")
         .run()
         .await?;

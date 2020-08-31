@@ -57,8 +57,8 @@ impl<'s> TestCommand<'s> {
     }
 
     /// Writes stdin to the tab session
-    pub fn await_stdout<T: ToString>(&mut self, value: T, wait_ms: u64) -> &mut Self {
-        let duration = Duration::from_millis(wait_ms);
+    pub fn await_stdout<T: ToString>(&mut self, value: T, timeout_ms: u64) -> &mut Self {
+        let duration = Duration::from_millis(timeout_ms);
         let action = Action::AwaitStdout(value.to_string().as_bytes().to_owned(), duration);
         self.actions.push(action);
         self

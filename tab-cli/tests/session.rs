@@ -12,9 +12,9 @@ async fn session() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("session/")
-        .await_stdout("$", 1000)
+        .await_stdout("$", 5000)
         .stdin("echo foo\n")
-        .await_stdout("echo foo", 200)
+        .await_stdout("echo foo", 1000)
         .stdin("exit\n")
         .run()
         .await?;
