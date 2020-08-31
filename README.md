@@ -16,7 +16,7 @@ a simple, state-agnostic cli command to bring you to your next task.
 ## Quickstart
 Quick installation & usage instructions:
 ```
-$ cargo install --git https://github.com/austinjones/tab-rs.git
+$ cargo install tab
 $ tab foo/     > to open a tab.
 $ tab bar/     > to switch to another tab.  
                 works within an active session!
