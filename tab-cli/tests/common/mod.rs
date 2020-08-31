@@ -60,7 +60,7 @@ impl<'s> TestCommand<'s> {
     pub async fn run(&mut self) -> anyhow::Result<TestResult> {
         let mut run = tokio::process::Command::new(self.session.binary());
         run.arg(self.tab.as_str())
-            .env("SHELL", "/bin/sh")
+            .env("SHELL", "/bin/bash")
             .env(
                 "TAB_RUNTIME_DIR",
                 self.session.dir.path().to_string_lossy().to_string(),

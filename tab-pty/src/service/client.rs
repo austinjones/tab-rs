@@ -104,9 +104,12 @@ impl ClientService {
 
                     if !is_raw_mode() {
                         // if we are in test mode, try to make the terminal as predictable as possible
-                        if let Shell::Sh = shell {
-                            info!("setting debug PS1 line");
-                            env.insert("PS1".into(), "$ ".into());
+                        info!("setting debug PS1 line");
+                        env.insert("PS1".into(), "$ ".into());
+                        if let Shell::Bash = shell {
+                            args.push("--noprofile".into());
+                            args.push("--norc".into());
+                            env.insert("BASH_SILENCE_DEPRECATION_WARNING".into(), "1".into());
                         }
                     }
 

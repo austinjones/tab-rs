@@ -14,7 +14,6 @@ use tab_pty_process::{
 use time::Duration;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    sync::{mpsc, oneshot},
     time,
 };
 
@@ -64,19 +63,14 @@ impl PtyService {
         tx_response: impl Sender<PtyResponse> + Clone + Send + 'static,
     ) -> anyhow::Result<()> {
         let (child, read, write) = Self::create_pty(options).await?;
-        let (tx_stdout_done, mut rx_stdout_done) = mpsc::channel(1);
         // stdout reader
-        let _output = Self::task(
-            "output",
-            Self::read_output(read, tx_response.clone(), tx_stdout_done),
-        );
+        let _output = Self::task("output", Self::read_output(read, tx_response.clone()));
         let _input = Self::task("input", Self::write_input(write, rx_request));
 
         let mut tx_exit = tx_response.clone();
 
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
-            rx_stdout_done.recv().await;
             tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
 
             Ok(())
@@ -114,11 +108,7 @@ impl PtyService {
         Ok((child, read, write))
     }
 
-    async fn read_output(
-        mut channel: impl AsyncReadExt + Unpin,
-        mut tx: impl Sender<PtyResponse>,
-        mut tx_done: impl Sender<()>,
-    ) {
+    async fn read_output(mut channel: impl AsyncReadExt + Unpin, mut tx: impl Sender<PtyResponse>) {
         let mut index = 0usize;
         let mut buffer = vec![0u8; CHUNK_LEN];
         while let Ok(read) = channel.read(buffer.as_mut_slice()).await {
@@ -141,8 +131,6 @@ impl PtyService {
             // without any buffering, the message rate can get very high
             time::delay_for(Duration::from_millis(5)).await;
         }
-
-        tx_done.send(()).await.ok();
     }
 
     async fn write_input(mut stdin: AsyncPtyMasterWriteHalf, mut rx: impl Receiver<PtyRequest>) {
