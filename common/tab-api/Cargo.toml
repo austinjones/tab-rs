@@ -2,6 +2,7 @@
 name = "tab-api"
 version = "0.2.0"
 authors = ["Austin Jones <implAustin@gmail.com>"]
+description = "the common api module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
 repository = "https://github.com/austinjones/tab-rs"
 edition = "2018"
