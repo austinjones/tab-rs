@@ -54,7 +54,7 @@ jobs:
         run: sudo apt install -y musl-tools
 
       - name: Build | Integration Tests
-        run: cargo test --release -- --nocapture
+        run: cargo test --release --target ${{ matrix.target }} -- --nocapture
 
       - name: Build | Build
         run: cargo build --release --bin tab --target ${{ matrix.target }}
