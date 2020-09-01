@@ -40,7 +40,7 @@ jobs:
             ~/.cargo/git
             ~/.cargo/bin
             target
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
