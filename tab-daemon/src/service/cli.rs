@@ -208,11 +208,16 @@ impl CliService {
             }
             CliRecv::Retask(from, to) => {
                 info!("acknowledging retask from {:?} to {:?}, updating subscriptions & requesting scrollback", from, to);
+
                 tx_websocket.send(Response::Retask(to)).await?;
+                time::delay_for(Duration::from_millis(10)).await;
+
                 tx_subscription
                     .send(Subscription::Unsubscribe(from))
                     .await?;
                 tx_subscription.send(Subscription::Subscribe(to)).await?;
+                time::delay_for(Duration::from_millis(10)).await;
+
                 tx_daemon.send(CliSend::RequestScrollback(to)).await?;
             }
         }
