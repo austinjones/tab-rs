@@ -25,7 +25,7 @@ impl Message<PtyBus> for PtyShutdown {
 }
 
 impl Message<PtyBus> for PtyWebsocketRequest {
-    type Channel = broadcast::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<PtyBus> for PtyWebsocketResponse {

@@ -8,6 +8,7 @@ use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
 use tokio::sync::Mutex;
 
+static MIN_CAPACITY: usize = 32768;
 static MAX_CHUNK_LEN: usize = 4096;
 
 pub struct PtyScrollbackService {
@@ -83,7 +84,6 @@ impl ScrollbackManager {
 #[derive(Debug, Clone)]
 pub struct ScrollbackBuffer {
     size: usize,
-    min_capacity: usize,
     pub(super) queue: VecDeque<OutputChunk>,
 }
 
@@ -91,17 +91,15 @@ impl ScrollbackBuffer {
     pub fn new() -> Self {
         ScrollbackBuffer {
             size: 0,
-            min_capacity: 8192,
             queue: VecDeque::new(),
         }
     }
 
     pub fn push(&mut self, mut chunk: OutputChunk) {
         if let Some(front_len) = self.queue.front().map(OutputChunk::len) {
-            if self.size > front_len + chunk.len()
-                && self.size - front_len + chunk.len() > self.min_capacity
-            {
-                self.queue.pop_back();
+            if self.size - front_len + chunk.len() > MIN_CAPACITY {
+                self.size -= front_len;
+                self.queue.pop_front();
             }
         }
 
@@ -110,13 +108,17 @@ impl ScrollbackBuffer {
         // It does cause the client to 'miss' chunks, but that is part of the API contract.
         if let Some(back) = self.queue.back_mut() {
             if back.len() + chunk.len() < MAX_CHUNK_LEN {
+                self.size += chunk.len();
+
                 back.data.append(&mut chunk.data);
                 back.index = chunk.index;
+
                 return;
             }
         }
 
-        self.queue.push_back(chunk)
+        self.size += chunk.len();
+        self.queue.push_back(chunk);
     }
 
     pub fn clone_queue(&self) -> VecDeque<OutputChunk> {

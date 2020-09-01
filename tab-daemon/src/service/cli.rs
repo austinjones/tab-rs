@@ -172,10 +172,8 @@ impl CliService {
                     .context("tx_websocket closed")?;
             }
             CliRecv::Scrollback(message) => {
-                if let Some(_identifier) = rx_subscription.get_identifier(&message.id) {
+                if let Some(subscription_id) = rx_subscription.get_identifier(&message.id) {
                     info!("processing scrollback for tab {}", message.id);
-
-                    let subscription_id = rx_subscription.get_identifier(&message.id).unwrap();
 
                     for chunk in message.scrollback().await {
                         let _index = chunk.index;

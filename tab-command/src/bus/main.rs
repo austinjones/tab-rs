@@ -22,7 +22,7 @@ impl Message<MainBus> for TabState {
 }
 
 impl Message<MainBus> for Request {
-    type Channel = broadcast::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<MainBus> for Response {

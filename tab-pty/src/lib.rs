@@ -59,6 +59,7 @@ async fn spawn() -> anyhow::Result<(
     let config = launch_daemon().await?;
 
     let bus = MainBus::default();
+    bus.capacity::<PtyWebsocketRequest>(64)?;
 
     let ws_url = format!("ws://127.0.0.1:{}/pty", config.port);
     let websocket = tab_websocket::connect_authorized(ws_url, config.auth_token.clone()).await?;
