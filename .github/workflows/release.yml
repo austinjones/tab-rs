@@ -101,7 +101,7 @@ jobs:
 
   crates_io:
     name: crates.io publish
-    needs: github_release
+    needs: checksums
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -119,6 +119,7 @@ jobs:
 
   # update_brew_formula:
   #   name: homebrew publish
+  #   needs: checksums
   #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: mislav/bump-homebrew-formula-action@v1.6
