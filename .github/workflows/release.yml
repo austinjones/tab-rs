@@ -1,0 +1,128 @@
+name: release
+on:
+  release: 
+    types: [published]
+
+jobs:
+  binaries:
+    name: cargo build
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          # - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          # - x86_64-apple-darwin
+          # - x86_64-pc-windows-msvc
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            name: tab-x86_64-unknown-linux-gnu.tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            name: tab-x86_64-unknown-linux-musl.tar.gz
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+            name: tab-x86_64-apple-darwin.tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            name: tab-x86_64-pc-windows-msvc.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: Setup | musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt install -y musl-tools
+
+      - name: Build | Build
+        if: matrix.target != 'x86_64-unknown-linux-musl'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build | Build (musl)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: cargo build --release --features tls-vendored --target ${{ matrix.target }}
+
+      - name: Post Setup | Prepare artifacts [Windows]
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip tab.exe
+          7z a ../../../${{ matrix.name }} tab.exe
+          cd -
+
+      - name: Post Setup | Prepare artifacts [-nix]
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip tab
+          tar czvf ../../../${{ matrix.name }} tab
+          cd -
+
+      - name: Post Setup | Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}
+
+  checksums:
+    name: checksums
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup | Checksums
+        run: for file in tab-*/tab-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Post Setup | Upload x86_64-unknown-linux-musl.sha256
+        uses: actions/upload-artifact@v2
+        with:
+          name: x86_64-unknown-linux-musl.sha256
+          path: x86_64-unknown-linux-musl.sha256
+
+  crates_io:
+    name: crates.io publish
+    needs: github_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: cargo publish
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }} --dry-run
+
+  # update_brew_formula:
+  #   name: homebrew publish
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: mislav/bump-homebrew-formula-action@v1.6
+  #       with:
+  #         formula-name: tab
+  #       env:
+  #         COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
