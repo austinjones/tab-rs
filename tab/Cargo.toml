@@ -1,7 +1,7 @@
 [package]
 name = "tab"
 version = "0.2.1"
-description = "a modern terminal multiplexer designed for overwhelmed software & systems engineers"
+description = "a modern terminal multiplexer designed for software & systems engineers"
 keywords = ["cli", "terminal", "tool"]
 categories = ["command-line-utilities"]
 authors = ["Austin Jones <implAustin@gmail.com>"]
@@ -16,10 +16,10 @@ name = "tab"
 path = "src/main.rs"
 
 [dependencies]
-tab-api = { version = "0.2.0", path = "../common/tab-api" }
-tab-command = { version = "0.2.0", path = "../tab-command" }
-tab-daemon = { version = "0.2.0", path = "../tab-daemon" }
-tab-pty = { version = "0.2.0", path = "../tab-pty" }
+tab-api = "0.2.0"
+tab-command = "0.2.0"
+tab-daemon = "0.2.0"
+tab-pty = "0.2.0"
 clap = "2.33.2"
 anyhow = "1.0"
 
