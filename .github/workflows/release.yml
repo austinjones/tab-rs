@@ -1,4 +1,4 @@
-name: release
+name: Release
 on:
   release: 
     types: [published]
@@ -71,28 +71,20 @@ jobs:
           tar czvf ../../../${{ matrix.name }} tab
           cd -
 
+      - name: Post Setup | Prepare checksums [Windows]
+        if: matrix.os == 'windows-latest'
+        run: Get-FileHash "${{ matrix.name }}" | Format-List > "${{ matrix.name }}.sha256"
+
+      - name: Post Setup | Prepare checksums [-nix]
+        if: matrix.os != 'windows-latest'
+        run: openssl dgst -sha256 -r "${{ matrix.name }}" | awk '{print $1}' > "${{ matrix.name }}.sha256"
+
       - name: Post Setup | Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ matrix.name }}
-          path: ${{ matrix.name }}
-
-  checksums:
-    name: checksums
-    needs: binaries
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup | Artifacts
-        uses: actions/download-artifact@v2
-
-      - name: Setup | Checksums
-        run: for file in tab-*/tab-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
-
-      - name: Post Setup | Upload x86_64-unknown-linux-musl.sha256
-        uses: actions/upload-artifact@v2
-        with:
-          name: x86_64-unknown-linux-musl.sha256
-          path: x86_64-unknown-linux-musl.sha256
+          args: '${{ matrix.name }}*'
 
   crates_io:
     name: crates.io publish
