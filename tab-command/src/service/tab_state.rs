@@ -9,6 +9,7 @@ use anyhow::Context;
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tokio::stream::StreamExt;
+
 pub struct TabStateService {
     _lifeline: Lifeline,
 }
@@ -25,7 +26,11 @@ impl Service for TabStateService {
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
         let rx_select = bus.rx::<SelectTab>()?;
-        let rx_tab_metadata = bus.rx::<TabMetadata>()?.into_inner();
+        let rx_tab_metadata = bus
+            .rx::<TabMetadata>()?
+            .into_inner()
+            .filter(|r| r.is_ok())
+            .map(|r| r.unwrap());
         let rx_tab_terminated = bus.rx::<TabTerminated>()?;
 
         let mut tx = bus.tx::<TabState>()?;
@@ -37,7 +42,7 @@ impl Service for TabStateService {
 
             let mut events = {
                 let tabs = rx_select.map(|elem| Event::Select(elem));
-                let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem.unwrap()));
+                let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem));
                 let tab_terminated = rx_tab_terminated.map(|elem| Event::Terminated(elem.0));
                 tabs.merge(tab_metadatas).merge(tab_terminated)
             };

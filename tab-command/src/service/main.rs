@@ -11,6 +11,7 @@ use crate::{
 
 use lifeline::dyn_bus::DynBus;
 
+use tab_api::tab::TabMetadata;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
@@ -34,6 +35,7 @@ impl Service for MainService {
 
     fn spawn(main_bus: &MainBus) -> anyhow::Result<Self> {
         let tab_bus = TabBus::default();
+        tab_bus.capacity::<TabMetadata>(256)?;
 
         let websocket_bus = WebsocketConnectionBus::default();
         let websocket = main_bus.resource::<WebsocketResource>()?;

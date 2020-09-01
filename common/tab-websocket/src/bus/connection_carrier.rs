@@ -6,8 +6,10 @@ use crate::{
 use lifeline::{dyn_bus::DynBus, prelude::*};
 use log::*;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::stream::StreamExt;
-use tokio::sync::broadcast;
+use tokio::{
+    stream::StreamExt,
+    sync::{broadcast, mpsc},
+};
 
 pub struct WebsocketCarrier {
     _websocket: WebsocketService,
@@ -16,7 +18,7 @@ pub struct WebsocketCarrier {
 }
 
 pub trait WebsocketMessageBus: Sized {
-    type Send: Message<Self, Channel = broadcast::Sender<Self::Send>>
+    type Send: Message<Self, Channel = mpsc::Sender<Self::Send>>
         + Clone
         + Send
         + Sync

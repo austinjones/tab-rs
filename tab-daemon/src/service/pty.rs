@@ -8,7 +8,7 @@ use crate::prelude::*;
 use tab_api::chunk::InputChunk;
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 
-use tokio::{stream::StreamExt, time};
+use tokio::time;
 
 use scrollback::PtyScrollbackService;
 use time::Duration;
@@ -29,16 +29,12 @@ impl Service for PtyService {
         // notify the tab manager of status
 
         let _websocket = {
-            let mut rx_websocket = bus
-                .rx::<PtyWebsocketResponse>()?
-                .into_inner()
-                .filter(|e| e.is_ok())
-                .map(|e| e.unwrap());
+            let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?;
             let mut tx_daemon = bus.tx::<PtySend>()?;
             let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
             Self::try_task("websocket", async move {
-                while let Some(msg) = rx_websocket.next().await {
+                while let Some(msg) = rx_websocket.recv().await {
                     match msg {
                         PtyWebsocketResponse::Started(metadata) => {
                             tx_daemon.send(PtySend::Started(metadata)).await?;

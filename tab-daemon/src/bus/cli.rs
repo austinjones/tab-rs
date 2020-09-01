@@ -32,7 +32,7 @@ impl Message<CliBus> for Request {
 }
 
 impl Message<CliBus> for Response {
-    type Channel = broadcast::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<CliBus> for CliSend {

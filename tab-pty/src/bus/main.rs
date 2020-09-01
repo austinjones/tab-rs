@@ -13,7 +13,7 @@ impl Message<MainBus> for PtyWebsocketRequest {
 }
 
 impl Message<MainBus> for PtyWebsocketResponse {
-    type Channel = broadcast::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<MainBus> for MainShutdown {

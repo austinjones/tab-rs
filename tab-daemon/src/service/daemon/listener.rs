@@ -1,7 +1,11 @@
 use super::{retask::RetaskService, tab_manager::TabManagerService};
 use crate::prelude::*;
 use crate::{
-    message::{cli::CliShutdown, pty::PtyShutdown},
+    message::{
+        cli::CliShutdown,
+        pty::{PtyRecv, PtySend, PtyShutdown},
+        tab::{TabRecv, TabSend},
+    },
     service::{cli::CliService, pty::PtyService},
 };
 use anyhow::Context;
@@ -49,6 +53,9 @@ impl Service for ListenerService {
         let _listener = WebsocketListenerService::spawn(&websocket_bus)?;
 
         let listener_bus = ListenerBus::default();
+        listener_bus.capacity::<TabSend>(128)?;
+        listener_bus.capacity::<TabRecv>(128)?;
+
         let _daemon_carrier = listener_bus.carry_from(bus)?;
         let _connection_carrier = listener_bus.carry_from(&websocket_bus)?;
 
@@ -89,6 +96,8 @@ impl ListenerService {
             let lifeline = match msg.request.uri.to_string().as_str() {
                 "/cli" => {
                     let cli_bus = CliBus::default();
+                    cli_bus.capacity::<Request>(128)?;
+                    cli_bus.capacity::<Response>(256)?;
 
                     let _listener_carrier = cli_bus.carry_from(&bus)?;
                     let _websocket_carrier = cli_bus.carry_into(&msg.bus)?;
@@ -105,6 +114,9 @@ impl ListenerService {
                 }
                 "/pty" => {
                     let pty_bus = PtyBus::default();
+                    pty_bus.capacity::<PtySend>(128)?;
+                    pty_bus.capacity::<PtyRecv>(128)?;
+
                     let _listener_carrier = pty_bus.carry_from(&bus)?;
                     let _websocket_carrier = pty_bus.carry_into(&msg.bus)?;
 

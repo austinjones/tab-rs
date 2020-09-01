@@ -85,6 +85,8 @@ async fn spawn() -> anyhow::Result<(
     let ws_url = format!("ws://127.0.0.1:{}/cli", daemon_file.port);
 
     let bus = MainBus::default();
+    bus.capacity::<Request>(128)?;
+    bus.capacity::<Response>(256)?;
 
     let websocket =
         tab_websocket::connect_authorized(ws_url, daemon_file.auth_token.clone()).await?;
