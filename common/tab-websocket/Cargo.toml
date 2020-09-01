@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 lifeline = "0.2.1"
 
-tungstenite = "0.11"
+tungstenite = { version = "0.11", default-features = false }
 async-tungstenite = { version = "0.8", features = ["tokio-runtime"] }
 tokio = { version = "0.2", features = ["macros", "sync", "stream", "signal"] }
 futures = "0.3"
@@ -22,8 +22,6 @@ thiserror = "1.0"
 bincode = "1.3"
 serde = "1.0"
 log = "0.4"
-
-async-trait = "0.1"
 
 [dev-dependencies]
 tokio-test = "0.2.1"
