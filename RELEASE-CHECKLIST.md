@@ -5,7 +5,9 @@
    4) tab-daemon
    5) tab-pty
    6) tab-pty-process
-2) Remove any cargo patches in ./Cargo.toml.
+2) Remove any cargo patches in `./Cargo.toml`.
 3) Update `tab/Cargo.toml` to use the released crates.
-4) Open a PR, and merge to master.
-5) Create a Github Release on master, and monitor the progress.
+4) Update `tab/Cargo.toml` with the new release version.
+5) Open a PR, and merge to master.
+6) Check that the master build succeeds.
+7) Create a Github Release on master, and monitor the progress.
