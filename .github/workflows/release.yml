@@ -11,19 +11,19 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
-          - x86_64-apple-darwin
+          # - x86_64-unknown-linux-musl
+          # - x86_64-apple-darwin
           # - x86_64-pc-windows-msvc
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             name: tab-x86_64-unknown-linux-gnu.tar.gz
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            name: tab-x86_64-unknown-linux-musl.tar.gz
-          - target: x86_64-apple-darwin
-            os: macOS-latest
-            name: tab-x86_64-apple-darwin.tar.gz
+          # - target: x86_64-unknown-linux-musl
+          #   os: ubuntu-latest
+          #   name: tab-x86_64-unknown-linux-musl.tar.gz
+          # - target: x86_64-apple-darwin
+          #   os: macOS-latest
+          #   name: tab-x86_64-apple-darwin.tar.gz
           # - target: x86_64-pc-windows-msvc
           #   os: windows-latest
           #   name: tab-x86_64-pc-windows-msvc.zip
@@ -84,29 +84,28 @@ jobs:
         run: openssl dgst -sha256 -r "${{ matrix.name }}" | awk '{print $1}' > "${{ matrix.name }}.sha256"
 
       - name: Post Setup | Upload artifacts
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: AButler/upload-release-assets@v2.0
         with:
-          args: '${{ matrix.name }}*'
+          files: '${{ matrix.name }}*'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  crates_io:
-    name: crates.io publish
-    needs: binaries
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
+  # crates_io:
+  #   name: crates.io publish
+  #   needs: binaries
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v2
 
-      - name: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+  #     - name: toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         override: true
 
-      - name: cargo publish
-        run: cargo publish --manifest-path ./tab/Cargo.toml --token ${{ secrets.CRATES_IO_TOKEN }} --dry-run
+  #     - name: cargo publish
+  #       run: cargo publish --manifest-path ./tab/Cargo.toml --token ${{ secrets.CRATES_IO_TOKEN }}
 
   # update_brew_formula:
   #   name: homebrew publish
