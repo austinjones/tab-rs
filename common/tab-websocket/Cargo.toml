@@ -1,6 +1,6 @@
 [package]
 name = "tab-websocket"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the websocket utility module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
