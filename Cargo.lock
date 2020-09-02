@@ -1219,7 +1219,7 @@ dependencies = [
 
 [[package]]
 name = "tab"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "assert_cmd 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
