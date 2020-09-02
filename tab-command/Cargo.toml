@@ -1,6 +1,6 @@
 [package]
 name = "tab-command"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the cli command module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 tab-api = "0.2.0"
-tab-websocket = "0.2.0"
+tab-websocket = "0.2.2"
 lifeline = "0.2.1"
 
 clap = "2.33.2"
