@@ -1,17 +1,12 @@
-# `tab`, a modern terminal multiplexer designed for software & systems engineers
-Tab is a configuration-driven terminal multiplexer, written in `Rust`.  Tab is designed for software & systems engineers
-who frequently context switch between tasks in the terminal (git, local servers, and ssh sessions).
-Tab allows you to organize your daily tasks (e.g. cd to this dir, run the server) into permanent tabs.
-Tab provides dynamic autocomplete to get you there, tab-unique command history to get you oriented, and
-a simple, state-agnostic cli command to bring you to your next task.
+# tab
 
-## Features:
-- Tab is _configuration-driven_.  `tab` provides persistent tab suggestions which always initialize in the correct working directory.
-  Configuration is defined in simple `tab.yml` files placed in your workspace and repository roots.
-- Tab is _shell-oriented_, and _minimialistic_.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab has first-class support for `bash`, `fish`, and `zsh`.
-- Tab provides _rich autocomplete_.  Your library of tabs are completed when switching to a new tab with `tab <TAB>` .  Your running tabs are completed when closing a tab with `tab -w <TAB>`.
-- Tab is _state-agnostic_.  You can invoke `tab` to do anything, from anywhere.  If a tab isn't running, it's started.  If a tab is running, it's reconnected (and possibly shared with another client).  If you have a tab selected, and you close it with `tab -w mytab`, your session is disconnected.
-- Tab is _low-latency_, and _efficient_.  It has a round-trip latency (stdin to stdout) of ~5ms.  The tab daemon uses 0.2% when idle, 1-2% CPU during normal usage, and 5% when a tab is throwing extreme amounts of stdout.
+**tab, an intuitive, config-driven terminal multiplexer designed for software & systems engineers**
+
+- **Configuration-driven:**  `tab` provides persistent, configurable tabs which you can rely on to organize your daily context-switches.
+- **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab uses your terminal emulator's natural scrollback buffer.  Tab has first-class support for `bash`, `fish`, and `zsh`.
+- **State-agnostic:**  You can ask `tab` to do anything, from anywhere.  Tabs are selected & closed using the same interface, regardless of whether they are attached, running, terminated, etc.
+- **Rich & dynamic auto-complete:**  Your library of tabs are auto-completed when switching to a new tab with `tab <TAB>` .  Your running tabs are auto-completed when closing a tab with `tab -w <TAB>`.
+- **Low-latency & Efficient:**  Tab is written in Rust, and has an async message-based architecture to minimize latency.  Tab has a round-trip latency (stdin to stdout) of ~5ms.  The tab daemon uses 0.2% when idle, 1-2% CPU during normal usage, and 5% when a tab is throwing extreme amounts of stdout.
 
 ## Quickstart
 Quick installation & usage instructions:
@@ -29,6 +24,22 @@ $ ctrl-W      > to disconnect the session
 ```
 
 Tab adds trailing slashes to tab names.  This makes autocomplete between `foo/` and it's children, `foo/bar/` work nicely.  You can type `tab foo` and tab will add the slashes for you.
+
+## Installation
+Tab currently supports OSX and Linux.
+
+Using Homebrew: 
+```
+brew install austinjones/taps/tab
+```
+
+Using cargo: 
+```
+cargo install tab
+```
+
+Or, from prebuilt-binaries: 
+[https://github.com/austinjones/tab-rs/releases/latest](https://github.com/austinjones/tab-rs/releases/latest)
 
 ## Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
@@ -70,7 +81,7 @@ Available tabs:
 ```
 
 # Shell Configuration
-Tab works best when you configure your terminal with autocomplete, and a statusbar.
+Tab works best when you configure your terminal with autocomplete, and a statusline.
 
 ## Starship
 The best way to configure the command prompt is to use [starship](https://starship.rs/).
