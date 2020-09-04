@@ -8,7 +8,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 /// A request, sent from a CLI connection to the daemon process.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Request {
     /// Subscribes to stdout/stderr on the given tab
     /// The WebSocket will produce a series of Chunk messages,
@@ -42,7 +42,7 @@ pub enum Request {
 }
 
 /// A response, sent from the daemon process to a connected CLI
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Response {
     /// An initial 'hello' message with introductory state, including a full list of running tabs.
     Init(InitResponse),
@@ -57,7 +57,7 @@ pub enum Response {
 }
 
 /// An initialization message sent to CLI connections.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct InitResponse {
     /// A complete set of active tabs, identified by TabId values.
     pub tabs: HashMap<TabId, TabMetadata>,

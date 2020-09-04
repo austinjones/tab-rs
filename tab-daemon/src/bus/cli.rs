@@ -17,7 +17,7 @@ use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId}
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
-    sync::{broadcast, mpsc},
+    sync::{broadcast, mpsc, watch},
     time,
 };
 
@@ -48,7 +48,7 @@ impl Message<CliBus> for subscription::Subscription<TabId> {
 }
 
 impl Message<CliBus> for TabsState {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = watch::Sender<Self>;
 }
 
 impl Resource<CliBus> for WebsocketResource {}

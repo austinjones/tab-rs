@@ -70,6 +70,7 @@ impl Service for CliService {
                 tx_websocket.send(message).await?;
             }
 
+            debug!("cli connection waiting for messages");
             while let Some(event) = rx.next().await {
                 match event {
                     Event::Websocket(msg) => {
@@ -117,6 +118,7 @@ impl CliService {
                 tx_daemon.send(CliSend::RequestScrollback(id)).await?;
             }
             Request::Unsubscribe(id) => {
+                debug!("client subscribing from tab {}", id);
                 tx_subscription
                     .send(Subscription::Unsubscribe(id))
                     .await
@@ -251,6 +253,111 @@ impl CliService {
             .context("tx_websocket closed")?;
 
         subscription_index.insert(subscription_id, index);
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CliService;
+    use crate::{bus::CliBus, message::cli::CliSend, state::tab::TabsState};
+    use lifeline::{assert_completes, subscription::Subscription, Bus, Receiver, Sender, Service};
+    use log::LevelFilter;
+    use simplelog::{Config, SimpleLogger};
+    use std::collections::HashMap;
+    use tab_api::{
+        client::{InitResponse, Request, Response},
+        tab::{TabId, TabMetadata},
+    };
+    use tokio::time;
+
+    #[tokio::test]
+    async fn init() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+
+        // create an existing tab, then spawn the connection
+        let mut tx = cli_bus.tx::<TabsState>()?;
+        let mut tabs = TabsState::default();
+        let tab_id = TabId(0);
+        let tab_metadata = TabMetadata {
+            id: TabId(0),
+            name: "name".into(),
+            dimensions: (1, 2),
+            shell: "bash".into(),
+            dir: "/".into(),
+        };
+        tabs.tabs.insert(tab_id, tab_metadata.clone());
+        tx.send(tabs).await?;
+
+        let _service = CliService::spawn(&cli_bus)?;
+        let mut rx = cli_bus.rx::<Response>()?;
+
+        assert_completes!(async move {
+            let init = rx.recv().await;
+
+            let mut expect_tabs = InitResponse {
+                tabs: HashMap::new(),
+            };
+            expect_tabs.tabs.insert(tab_id, tab_metadata.clone());
+            assert_eq!(Some(Response::Init(expect_tabs)), init);
+
+            let tab_update = rx.recv().await;
+            assert_eq!(Some(Response::TabUpdate(tab_metadata)), tab_update);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn subscribe() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let rx_subscription = cli_bus.rx::<Subscription<TabId>>()?.into_inner();
+        let mut rx_clisend = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::Subscribe(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx_clisend.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(CliSend::RequestScrollback(TabId(0)), msg.unwrap());
+
+            assert!(rx_subscription.contains(&TabId(0)));
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn unsubscribe() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut tx_subscription = cli_bus.tx::<Subscription<TabId>>()?;
+        let rx_subscription = cli_bus.rx::<Subscription<TabId>>()?.into_inner();
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        // setup the subscription
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        tx.send(Request::Unsubscribe(TabId(0))).await?;
+
+        assert_completes!(async move {
+            while rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
 
         Ok(())
     }
