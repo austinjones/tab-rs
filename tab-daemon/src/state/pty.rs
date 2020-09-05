@@ -50,6 +50,18 @@ impl PtyScrollback {
         Self { scrollback }
     }
 
+    #[cfg(test)]
+    pub fn empty() -> Self {
+        Self {
+            scrollback: Arc::new(Mutex::new(ScrollbackBuffer::new())),
+        }
+    }
+
+    #[cfg(test)]
+    pub async fn push(&self, chunk: OutputChunk) {
+        self.scrollback.lock().await.push(chunk);
+    }
+
     pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
         let scrollback = self.scrollback.lock().await.clone_queue();
         scrollback.into_iter()

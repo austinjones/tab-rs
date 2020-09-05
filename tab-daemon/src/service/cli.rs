@@ -259,16 +259,15 @@ impl CliService {
 }
 
 #[cfg(test)]
-mod tests {
+mod request_tests {
     use super::CliService;
     use crate::{bus::CliBus, message::cli::CliSend, state::tab::TabsState};
     use lifeline::{assert_completes, subscription::Subscription, Bus, Receiver, Sender, Service};
-    use log::LevelFilter;
-    use simplelog::{Config, SimpleLogger};
     use std::collections::HashMap;
     use tab_api::{
+        chunk::InputChunk,
         client::{InitResponse, Request, Response},
-        tab::{TabId, TabMetadata},
+        tab::{CreateTabMetadata, TabId, TabMetadata},
     };
     use tokio::time;
 
@@ -357,6 +356,231 @@ mod tests {
             while rx_subscription.contains(&TabId(0)) {
                 time::delay_for(Duration::from_millis(5)).await;
             }
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn input() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        let input = InputChunk { data: vec![1u8] };
+        tx.send(Request::Input(TabId(0), input.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::Input(TabId(0), input)), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn create_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        let tab = CreateTabMetadata {
+            name: "name".into(),
+            dimensions: (1, 2),
+            shell: "shell".into(),
+            dir: "/".into(),
+        };
+        tx.send(Request::CreateTab(tab.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::CreateTab(tab)), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn resize_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::ResizeTab(TabId(0), (1, 2))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::ResizeTab(TabId(0), (1, 2))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn close_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::CloseTab(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::CloseTab(TabId(0))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn close_named_tab() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::CloseNamedTab("tab".into())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::CloseNamedTab("tab".into())), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::Retask(TabId(0), TabId(1))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::Retask(TabId(0), TabId(1))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn global_shutdown() -> anyhow::Result<()> {
+        let cli_bus = CliBus::default();
+        let _service = CliService::spawn(&cli_bus)?;
+
+        let mut tx = cli_bus.tx::<Request>()?;
+        let mut rx = cli_bus.rx::<CliSend>()?;
+
+        tx.send(Request::GlobalShutdown).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSend::GlobalShutdown), msg);
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod recv_tests {
+    use super::CliService;
+    use crate::{
+        bus::CliBus,
+        message::{cli::CliRecv, tab::TabScrollback},
+    };
+    use lifeline::{assert_completes, subscription::Subscription, Bus, Receiver, Sender, Service};
+    use tab_api::{
+        chunk::OutputChunk,
+        client::Response,
+        tab::{TabId, TabMetadata},
+    };
+    use time::Duration;
+    use tokio::time;
+
+    #[tokio::test]
+    async fn tab_started() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus);
+
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        let metadata = TabMetadata {
+            id: TabId(0),
+            name: "name".into(),
+            dimensions: (1, 2),
+            shell: "shell".into(),
+            dir: "/".into(),
+        };
+
+        tx.send(CliRecv::TabStarted(metadata.clone())).await?;
+
+        assert_completes!(async move {
+            let _init_msg = rx.recv().await;
+            let msg = rx.recv().await;
+            assert_eq!(Some(Response::TabUpdate(metadata)), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn scrollback() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus);
+
+        let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
+        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        let scrollback = TabScrollback::empty(TabId(0));
+        scrollback
+            .push(OutputChunk {
+                index: 1,
+                data: vec![1, 2],
+            })
+            .await;
+
+        tx.send(CliRecv::Scrollback(scrollback)).await?;
+
+        assert_completes!(async move {
+            let _init_msg = rx.recv().await;
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(Response::Output(
+                    TabId(0),
+                    OutputChunk {
+                        index: 1,
+                        data: vec![1, 2]
+                    }
+                )),
+                msg
+            );
         });
 
         Ok(())
