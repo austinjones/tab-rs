@@ -1,7 +1,9 @@
-use super::tab::TabInput;
 use crate::state::pty::PtyScrollback;
 
-use tab_api::{chunk::OutputChunk, tab::TabMetadata};
+use tab_api::{
+    chunk::{InputChunk, OutputChunk},
+    tab::TabMetadata,
+};
 
 /// Terminates the PTY connection & supporting services.
 #[derive(Debug, Clone)]
@@ -19,7 +21,7 @@ pub enum PtyRecv {
     Scrollback,
     /// Resizes to the given number of (cols, rows)
     Resize((u16, u16)),
-    Input(TabInput),
+    Input(InputChunk),
     Terminate,
 }
 
@@ -36,4 +38,36 @@ pub enum PtySend {
     Output(OutputChunk),
     Scrollback(PtyScrollback),
     Stopped,
+}
+
+impl PartialEq for PtySend {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            PtySend::Started(tab) => {
+                if let PtySend::Started(other_tab) = other {
+                    return tab == other_tab;
+                } else {
+                    return false;
+                }
+            }
+            PtySend::Output(output) => {
+                if let PtySend::Output(other_output) = other {
+                    return output == other_output;
+                } else {
+                    return false;
+                }
+            }
+            PtySend::Scrollback(_scrollback) => {
+                // we can't implement this, as scrollback contains an async mutex
+                return false;
+            }
+            PtySend::Stopped => {
+                if let PtySend::Stopped = other {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
 }

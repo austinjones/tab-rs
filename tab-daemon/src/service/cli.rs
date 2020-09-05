@@ -500,21 +500,26 @@ mod recv_tests {
     use super::CliService;
     use crate::{
         bus::CliBus,
-        message::{cli::CliRecv, tab::TabScrollback},
+        message::{
+            cli::{CliRecv, CliSend},
+            tab::TabScrollback,
+        },
     };
-    use lifeline::{assert_completes, subscription::Subscription, Bus, Receiver, Sender, Service};
+    use lifeline::{
+        assert_completes, assert_times_out, subscription::Subscription, Bus, Receiver, Sender,
+        Service,
+    };
     use tab_api::{
         chunk::OutputChunk,
         client::Response,
         tab::{TabId, TabMetadata},
     };
-    use time::Duration;
     use tokio::time;
 
     #[tokio::test]
     async fn tab_started() -> anyhow::Result<()> {
         let bus = CliBus::default();
-        let _service = CliService::spawn(&bus);
+        let _service = CliService::spawn(&bus)?;
 
         let mut tx = bus.tx::<CliRecv>()?;
         let mut rx = bus.rx::<Response>()?;
@@ -541,7 +546,7 @@ mod recv_tests {
     #[tokio::test]
     async fn scrollback() -> anyhow::Result<()> {
         let bus = CliBus::default();
-        let _service = CliService::spawn(&bus);
+        let _service = CliService::spawn(&bus)?;
 
         let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
         let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
@@ -581,6 +586,174 @@ mod recv_tests {
                 )),
                 msg
             );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn scrollback_ignored_unsubscribed() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        let scrollback = TabScrollback::empty(TabId(0));
+        scrollback
+            .push(OutputChunk {
+                index: 1,
+                data: vec![1, 2],
+            })
+            .await;
+
+        tx.send(CliRecv::Scrollback(scrollback)).await?;
+
+        assert_completes!(async {
+            let _init_msg = rx.recv().await;
+        });
+
+        assert_times_out!(async {
+            rx.recv().await;
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn output() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
+        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        let output = OutputChunk {
+            index: 1,
+            data: vec![1, 2],
+        };
+
+        tx.send(CliRecv::Output(TabId(0), output)).await?;
+
+        assert_completes!(async move {
+            let _init_msg = rx.recv().await;
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(Response::Output(
+                    TabId(0),
+                    OutputChunk {
+                        index: 1,
+                        data: vec![1, 2]
+                    }
+                )),
+                msg
+            );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn output_ignores_unsubscribed() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        let output = OutputChunk {
+            index: 1,
+            data: vec![1, 2],
+        };
+
+        tx.send(CliRecv::Output(TabId(0), output)).await?;
+
+        assert_completes!(async {
+            let _init_msg = rx.recv().await;
+        });
+
+        assert_times_out!(async {
+            rx.recv().await;
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn tab_stopped() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        tx.send(CliRecv::TabStopped(TabId(0))).await?;
+
+        assert_completes!(async move {
+            let _init_msg = rx.recv().await;
+            let msg = rx.recv().await;
+            assert_eq!(Some(Response::TabTerminated(TabId(0))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
+        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+        let mut rx_daemon = bus.rx::<CliSend>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        tx.send(CliRecv::Retask(TabId(0), TabId(1))).await?;
+
+        assert_completes!(async {
+            let _init_msg = rx.recv().await;
+            let msg = rx.recv().await;
+            assert_eq!(Some(Response::Retask(TabId(1),)), msg);
+        });
+
+        assert_completes!(async {
+            while rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(1)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        assert_completes!(async {
+            let msg = rx_daemon.recv().await;
+            assert_eq!(Some(CliSend::RequestScrollback(TabId(1))), msg);
         });
 
         Ok(())

@@ -31,3 +31,28 @@ impl Service for RetaskService {
         Ok(Self { _fwd })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::RetaskService;
+    use crate::{bus::ListenerBus, message::tab::TabRecv};
+    use lifeline::{assert_completes, Bus, Receiver, Sender, Service};
+    use tab_api::tab::TabId;
+    #[tokio::test]
+    async fn echo() -> anyhow::Result<()> {
+        let bus = ListenerBus::default();
+        let _service = RetaskService::spawn(&bus);
+
+        let mut tx = bus.tx::<TabRecv>()?;
+        let mut rx = bus.rx::<TabRecv>()?;
+
+        tx.send(TabRecv::Retask(TabId(0), TabId(1))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(TabRecv::Retask(TabId(0), TabId(1))), msg);
+        });
+
+        Ok(())
+    }
+}

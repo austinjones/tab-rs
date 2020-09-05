@@ -6,14 +6,14 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PtyWebsocketResponse {
     Started(TabMetadata),
     Output(OutputChunk),
     Stopped,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PtyWebsocketRequest {
     Init(TabMetadata),
     Input(InputChunk),
