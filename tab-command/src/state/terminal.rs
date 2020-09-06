@@ -1,5 +1,6 @@
 use crate::env::terminal_size;
 
+/// The client's view of the current terminal size
 #[derive(Clone, Debug)]
 pub struct TerminalSizeState(pub (u16, u16));
 
@@ -11,9 +12,12 @@ impl Default for TerminalSizeState {
     }
 }
 
+/// The current terminal mode.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalMode {
+    /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout
     Echo,
+    /// Terminal is in interactive mode, using Crossterm.
     Crossterm,
 }
 

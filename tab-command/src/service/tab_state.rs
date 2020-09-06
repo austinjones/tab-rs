@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
 use tokio::stream::StreamExt;
 
+/// Tracks the current tab state, and updates TabState.
 pub struct TabStateService {
     _lifeline: Lifeline,
 }

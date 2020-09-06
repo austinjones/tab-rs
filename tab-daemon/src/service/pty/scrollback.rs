@@ -11,6 +11,7 @@ use tokio::sync::Mutex;
 static MIN_CAPACITY: usize = 32768;
 static MAX_CHUNK_LEN: usize = 4096;
 
+/// Spawns with a pty connection, and maintains a scrollback buffer.  Provides scrollback for tab-command clients
 pub struct PtyScrollbackService {
     _serve: Lifeline,
     _update: Lifeline,

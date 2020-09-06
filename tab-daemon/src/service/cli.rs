@@ -11,6 +11,8 @@ use subscription::Subscription;
 use time::Duration;
 use tokio::{stream::StreamExt, time};
 
+/// Drives an active connection from the tab-command client, and forwards messages between the websocket and the daemon.
+/// Tracks the client tab subscriptions, and filters messages received from the daemon.
 pub struct CliService {
     _run: Lifeline,
 }

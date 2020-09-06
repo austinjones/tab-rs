@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// The client's view of the workspace configuration
 #[derive(Debug, Clone)]
 pub enum WorkspaceState {
     Loading,
@@ -13,6 +14,7 @@ impl Default for WorkspaceState {
     }
 }
 
+/// A user-configured workspace tab, which may or may not be running
 #[derive(Debug, Clone)]
 pub struct WorkspaceTab {
     pub name: String,
@@ -21,6 +23,7 @@ pub struct WorkspaceTab {
     // pub command: Option<String>,
 }
 
+/// The top-level YAML configuration object, either a workspace root, or repository root
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Config {
@@ -30,12 +33,14 @@ pub enum Config {
     Repo(Repo),
 }
 
+/// The workspace root configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Workspace {
     pub workspace: Vec<WorkspaceItem>,
     pub doc: Option<String>,
 }
 
+/// An item within the workspace configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WorkspaceItem {
@@ -43,11 +48,13 @@ pub enum WorkspaceItem {
     Tab(Tab),
 }
 
+/// A link to a repository within the workspace, from the workspace root.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceRepoLink {
     pub repo: String,
 }
 
+/// The repository configuration root
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repo {
     pub repo: String,
@@ -55,6 +62,7 @@ pub struct Repo {
     pub tabs: Option<Vec<Tab>>,
 }
 
+/// A tab within the workspace or repository configurations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tab {
     pub tab: String,

@@ -3,6 +3,8 @@ use crate::{message::tabs::TabsRecv, state::tabs::TabsState};
 
 use std::collections::HashMap;
 use tab_api::tab::TabMetadata;
+
+/// Tracks all running tabs, and provides TabsState
 pub struct TabsStateService {
     _run: Lifeline,
 }

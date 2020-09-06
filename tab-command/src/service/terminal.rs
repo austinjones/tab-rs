@@ -17,6 +17,7 @@ mod crossterm_mode;
 mod echo_mode;
 mod terminal_event;
 
+/// Reads TerminalMode, and launches/cancels the TerminalEchoService / TerminalCrosstermService
 pub struct TerminalService {
     _main_terminal: MainTerminalCarrier,
     _terminal_mode: Lifeline,
