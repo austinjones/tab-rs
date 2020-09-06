@@ -13,13 +13,13 @@ pub enum DaemonConfigError {
     AlreadyRunning,
 }
 
+/// The runtime wrapper over `~/.tab/daemon-pid.yml`.  Creates and deletes the daemonfile.
 pub struct DaemonFile {
     pid: i32,
     path: PathBuf,
 }
 
 impl DaemonFile {
-    // TODO: doesn't work if ~/.tab doesn't exist for some reason
     pub fn new(config: &DaemonConfig) -> anyhow::Result<DaemonFile> {
         let daemon_file = daemon_file()?;
 

@@ -8,6 +8,13 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Creates an atomic assignment, given an identifier.
+///
+/// Returns a (retraction, assignment) pair.
+///
+/// The retraction can be used to cancel the assignment, and retrieve the identifier.
+///
+/// The assignment can be forwarded, and atomically accepted.
 pub fn assignment<T: Debug + Clone>(value: T) -> (Retraction<T>, Assignment<T>) {
     let state = Arc::new(AssignmentState::new(value));
     let assignment = Assignment::new(state.clone());
@@ -16,6 +23,7 @@ pub fn assignment<T: Debug + Clone>(value: T) -> (Retraction<T>, Assignment<T>) 
     (retraction, assignment)
 }
 
+/// The assignment half of the assignment pair.  Can be used to atomically accept the assignment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assignment<T: Debug + Clone> {
     state: Arc<AssignmentState<T>>,
@@ -32,6 +40,7 @@ impl<T: Debug + Clone> Assignment<T> {
     }
 }
 
+/// The retraction half of the assignment pair.  Can be used to atomically retract the assignment, so a new assignment event can be generated.
 #[derive(Debug, Clone)]
 pub struct Retraction<T: Debug + Clone> {
     state: Arc<AssignmentState<T>>,
@@ -63,6 +72,7 @@ impl<T: Debug + Clone> Retraction<T> {
     }
 }
 
+/// The internal state shared by the Retraction and Assignment structs.
 #[derive(Debug)]
 struct AssignmentState<T: Debug + Clone> {
     value: T,

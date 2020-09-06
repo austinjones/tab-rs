@@ -9,6 +9,7 @@ mod listener;
 mod retask;
 mod tab_manager;
 
+/// The main service for a tab-daemon service.  Spawns websocket listeners, and manages shutdown.
 pub struct DaemonService {
     _listener: ListenerService,
     _shutdown: TabdirShutdownService,

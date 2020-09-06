@@ -23,6 +23,11 @@ use tab_api::{
 };
 use tokio::{sync::mpsc, time};
 
+/// Manages the currently running tabs.  This is a point-of-contact between the tab-command and tab-pty clients.
+///
+/// - Serves 'create tab' requests from the tab-command client.
+/// - Spawns tab-pty processes (OS processes), and issues offers of tab assignment to connected pty clients.
+/// - Terminates tabs when requested by the tab-command client.
 pub struct TabManagerService {
     _recv: Lifeline,
     _retractions: Lifeline,

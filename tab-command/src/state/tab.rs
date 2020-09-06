@@ -1,11 +1,13 @@
 use tab_api::tab::TabId;
 
+/// The select tab action, either by name or id
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectTab {
     NamedTab(String),
     Tab(TabId),
 }
 
+/// The client's selected tab state.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TabState {
     None,

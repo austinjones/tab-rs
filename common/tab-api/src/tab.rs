@@ -3,6 +3,8 @@
 use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+
+/// Identifies a running tab using a numeric index.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TabId(pub u16);
 impl_storage_clone!(TabId);
@@ -17,6 +19,7 @@ impl Display for TabId {
     }
 }
 
+/// Tracked information about a running tab.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct TabMetadata {
     pub id: TabId,
@@ -38,6 +41,7 @@ impl TabMetadata {
     }
 }
 
+/// Information about a tab which will be created.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateTabMetadata {
     pub name: String,

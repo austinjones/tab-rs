@@ -17,6 +17,7 @@ use tab_websocket::{
     resource::connection::WebsocketResource,
 };
 
+/// Launches the tab-command client, including websocket, tab state, and terminal services.
 pub struct MainService {
     _main: Lifeline,
     _main_tab: MainTabCarrier,

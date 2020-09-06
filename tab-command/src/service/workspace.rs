@@ -13,6 +13,7 @@ use std::{
 use time::Duration;
 use tokio::time;
 
+/// Loads the workspace configuration using the current directory
 pub struct WorkspaceService {
     _monitor: Lifeline,
 }

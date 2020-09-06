@@ -12,6 +12,8 @@ use tab_api::tab::CreateTabMetadata;
 use time::Duration;
 use tokio::{sync::watch, time};
 
+/// Receives CreateTabRequests, and decides whether to send the daemon issue a create request.
+/// Assembles the CreateTabMetadata.
 pub struct CreateTabService {
     _request_tab: Lifeline,
 }

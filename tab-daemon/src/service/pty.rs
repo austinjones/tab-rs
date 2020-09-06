@@ -13,6 +13,7 @@ use tokio::time;
 use scrollback::PtyScrollbackService;
 use time::Duration;
 
+/// Drives an active tab-pty connection, forwarding events between the daemon and the websocket
 pub struct PtyService {
     _websocket: Lifeline,
     _daemon: Lifeline,

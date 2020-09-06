@@ -11,6 +11,7 @@ use tab_websocket::{
 use time::Duration;
 use tokio::time;
 
+/// The main service for the tab-pty module.  Connects to the daemon & handles shutdown.
 pub struct MainService {
     _pty: ClientService,
     _carrier: WebsocketCarrier,
