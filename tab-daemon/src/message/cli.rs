@@ -13,7 +13,7 @@ use tab_api::{
 /// - Tx from CliService, to create, delete, edit, and retask tabs.
 /// - Tx from CliService, to send stdin
 /// - Rx into ListenerConnectionCarrier
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CliSend {
     /// Provides a stdin chunk for the given tab
     Input(TabId, InputChunk),

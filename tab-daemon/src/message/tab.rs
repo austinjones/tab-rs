@@ -82,6 +82,19 @@ impl PartialEq for TabScrollback {
 }
 
 impl TabScrollback {
+    #[cfg(test)]
+    pub fn empty(id: TabId) -> Self {
+        Self {
+            id,
+            scrollback: PtyScrollback::empty(),
+        }
+    }
+
+    #[cfg(test)]
+    pub async fn push(&self, chunk: OutputChunk) {
+        self.scrollback.push(chunk).await;
+    }
+
     pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
         self.scrollback.scrollback().await
     }

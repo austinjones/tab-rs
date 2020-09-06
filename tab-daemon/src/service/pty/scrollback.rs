@@ -82,7 +82,7 @@ impl ScrollbackManager {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScrollbackBuffer {
     size: usize,
     pub(super) queue: VecDeque<OutputChunk>,

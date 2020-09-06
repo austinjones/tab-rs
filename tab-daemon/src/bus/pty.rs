@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use lifeline::Resource;
 use tab_api::{
+    chunk::InputChunk,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabMetadata,
 };
@@ -107,6 +108,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                                 continue;
                             }
 
+                            let input: InputChunk = (*input.stdin).clone();
                             tx_pty.send(PtyRecv::Input(input)).await?;
                         }
                         TabRecv::Terminate(id) => {
