@@ -58,6 +58,7 @@ fn app() -> App<'static, 'static> {
                 .long("close")
                 .takes_value(true)
                 .value_name("TAB")
+                .validator(validate_tab_name)
                 .help("closes the tab with the given name")
         )
         .arg(
@@ -74,6 +75,19 @@ fn app() -> App<'static, 'static> {
                 .required(false)
                 .value_name("TAB")
                 .conflicts_with_all(&["CLOSE-TAB", "LIST", "SHUTDOWN"])
+                .validator(validate_tab_name)
                 .index(1),
         )
+}
+
+fn validate_tab_name(name: String) -> Result<(), String> {
+    if name.contains(' ') || name.contains('\t') {
+        return Err("tab name may not contain whitespace".into());
+    }
+
+    if name.contains('\\') {
+        return Err("tab name may not contain backslashes".into());
+    }
+
+    Ok(())
 }
