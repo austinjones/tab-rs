@@ -82,3 +82,73 @@ impl CarryFrom<MainBus> for PtyBus {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        bus::*,
+        message::pty::{MainShutdown, PtyShutdown},
+    };
+    use lifeline::{assert_completes, Bus, CarryFrom, Receiver, Sender};
+    use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
+
+    #[tokio::test]
+    async fn forward_request() -> anyhow::Result<()> {
+        let main_bus = MainBus::default();
+        let bus = PtyBus::default();
+
+        let _carrier = bus.carry_from(&main_bus)?;
+
+        let mut tx = main_bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyWebsocketRequest>()?;
+
+        tx.send(PtyWebsocketRequest::Resize((1, 2))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyWebsocketRequest::Resize((1, 2))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn reply_response() -> anyhow::Result<()> {
+        let main_bus = MainBus::default();
+        let bus = PtyBus::default();
+
+        let _carrier = bus.carry_from(&main_bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketResponse>()?;
+        let mut rx = main_bus.rx::<PtyWebsocketResponse>()?;
+
+        tx.send(PtyWebsocketResponse::Stopped).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyWebsocketResponse::Stopped), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn reply_shutdown() -> anyhow::Result<()> {
+        let main_bus = MainBus::default();
+        let bus = PtyBus::default();
+
+        let _carrier = bus.carry_from(&main_bus)?;
+
+        let mut tx = bus.tx::<PtyShutdown>()?;
+        let mut rx = main_bus.rx::<MainShutdown>()?;
+
+        tx.send(PtyShutdown {}).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(MainShutdown {}), msg);
+        });
+
+        Ok(())
+    }
+}

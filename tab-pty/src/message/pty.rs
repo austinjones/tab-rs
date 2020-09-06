@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, process::ExitStatus};
 use tab_api::chunk::{InputChunk, OutputChunk};
 
 /// Terminates the process, websocket connection, and via cancellation the connected PTY shell session
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MainShutdown {}
 
 /// Terminates the PTY process.  Forwarded to the `MainBus` as a `MainShutdown`.
