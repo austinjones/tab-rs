@@ -16,6 +16,9 @@ use tab_api::{
 use time::Duration;
 use tokio::time;
 
+/// Drives messages between the pty, and the websocket connection to the daemon
+/// Handles startup & shutdown events, including daemon termination commands.
+/// Spawns the ClientSessionService, which handles the active tab session.
 pub struct ClientService {
     _run: Lifeline,
     _carrier: MainPtyCarrier,
@@ -144,6 +147,8 @@ impl ClientService {
     }
 }
 
+/// Drives an active tab session, forwarding input/output events betweeen the pty & daemon.
+/// Handles termination requests (from the daemon), and termination events (from the pty).
 pub struct ClientSessionService {
     _pty: PtyService,
     _output: Lifeline,

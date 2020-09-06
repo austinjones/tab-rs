@@ -25,6 +25,8 @@ static STDIN_CHANNEL_SIZE: usize = 32;
 // mod receiver;
 // mod sender;
 
+/// Handles direct I/O interactions with the pty OS resource.
+/// Handles shell-specific interactions (bash/fish/zsh).
 pub struct PtyService {
     _run: Lifeline,
 }
