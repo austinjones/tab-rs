@@ -1,11 +1,14 @@
 use lifeline::{impl_storage_clone, impl_storage_take};
 use tokio::net::TcpListener;
 
+/// A resource which wraps an established TCP listener.  Taken from the bus
 #[derive(Debug)]
 pub struct WebsocketListenerResource(pub TcpListener);
 
 impl_storage_take!(WebsocketListenerResource);
 
+/// A resource which defines an authentication token.  When present with a Some value,
+/// connections must provide this token in the Authorization header.
 #[derive(Debug, Clone)]
 pub struct WebsocketAuthToken(pub Option<String>);
 

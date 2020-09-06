@@ -6,6 +6,7 @@ use anyhow::Context;
 use crossterm::event::Event;
 use std::time::Duration;
 
+/// Broadcasts the TerminalSizeState, and sends TerminalSend::Resize events.
 pub struct TerminalEventService {
     _update: Lifeline,
 }

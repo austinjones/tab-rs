@@ -1,3 +1,5 @@
+# This adds the current tab to your starship statusline
+
 [env_var]
 variable = "TAB"
 prefix = "tab "

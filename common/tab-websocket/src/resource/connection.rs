@@ -3,6 +3,7 @@ use futures::executor::block_on;
 use lifeline::impl_storage_take;
 use log::error;
 
+/// A resource which wraps an established TCP websocket connection
 #[derive(Debug)]
 pub struct WebsocketResource(pub WebsocketConnection);
 

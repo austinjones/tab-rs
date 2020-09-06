@@ -14,6 +14,7 @@ use lifeline::prelude::*;
 use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
 use tokio::net::TcpListener;
 
+/// An established listener service, which transmits WebsocketConnectionMessages over the listener bus.
 pub struct WebsocketListenerService {
     _accept: Lifeline,
 }
@@ -33,6 +34,7 @@ impl Service for WebsocketListenerService {
     }
 }
 
+/// The main runloop for the WebsocketListenerService
 async fn accept_connections(
     mut listener: TcpListener,
     mut tx: impl Sender<WebsocketConnectionMessage>,

@@ -21,6 +21,8 @@ use lifeline::error::{
 use thiserror::Error;
 use tungstenite::Error;
 
+/// A service which clients & servers use to drive the websocket connection.
+/// Handles connection status & close frames, as well as logging & protocol errors.
 #[derive(Debug)]
 pub struct WebsocketService {
     _runloop: Lifeline,
