@@ -3,6 +3,9 @@ use tungstenite::handshake::server::{Callback, ErrorResponse, Request, Response}
 
 use lifeline::request::Request as LifelineRequest;
 
+/// A tungstenite handler that rejects origin headers,
+///  requires auth tokens (if the token resource contains a Some value),
+///  and collects the request metadata.
 pub struct AuthHandler {
     token: WebsocketAuthToken,
     send_metadata: Option<LifelineRequest<(), RequestMetadata>>,
@@ -10,8 +13,11 @@ pub struct AuthHandler {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthState {
+    /// The connection request was valid, and accepted.
     Ok,
+    /// The connection request was invalid, as it contained an Origin header (and thus came from a browser)
     RejectOrigin,
+    /// The connection request was invalid, as it did not contain the required authentication token.
     RejectAuth,
 }
 

@@ -2,7 +2,6 @@ use async_tungstenite::{
     tokio::{connect_async, TokioAdapter},
     WebSocketStream,
 };
-use futures::Future;
 use serde::{de::DeserializeOwned, Serialize};
 
 use tokio::net::TcpStream;
@@ -17,16 +16,17 @@ pub mod bus;
 mod common;
 pub mod message;
 pub mod resource;
-pub mod server;
 pub mod service;
 
 pub type WebsocketConnection = WebSocketStream<TokioAdapter<TcpStream>>;
 
+/// Connects to the provided URL, with no authentication token
 pub async fn connect(url: String) -> Result<WebsocketConnection, tungstenite::Error> {
     let tuple = connect_async(url).await?;
     Ok(tuple.0)
 }
 
+/// Connects to the provided URL, given an authentication token
 pub async fn connect_authorized(
     url: String,
     token: String,
@@ -40,6 +40,7 @@ pub async fn connect_authorized(
     Ok(stream)
 }
 
+/// Binds to the TCP stream as a server, requring the auth token, and capturing request metadata via a lifeline request.
 pub async fn bind(
     tcp: TcpStream,
     auth_token: WebsocketAuthToken,
@@ -49,6 +50,7 @@ pub async fn bind(
     async_tungstenite::tokio::accept_hdr_async(tcp, auth).await
 }
 
+/// Decodes the bincode-serialized message
 pub fn decode<T: DeserializeOwned>(
     message: Result<tungstenite::Message, tungstenite::Error>,
 ) -> anyhow::Result<T> {
@@ -57,31 +59,8 @@ pub fn decode<T: DeserializeOwned>(
     Ok(data)
 }
 
+/// Encodes the message into a bincode-serialized tungstenite message
 pub fn encode<T: Serialize>(message: T) -> anyhow::Result<tungstenite::Message> {
     let message = bincode::serialize(&message)?;
     Ok(Message::Binary(message))
-}
-
-pub fn encode_or_close<T: Serialize, F: FnOnce(&T) -> bool>(
-    message: T,
-    close_test: F,
-) -> anyhow::Result<tungstenite::Message> {
-    if close_test(&message) {
-        return Ok(Message::Close(None));
-    }
-
-    let message = bincode::serialize(&message)?;
-    Ok(Message::Binary(message))
-}
-
-pub fn encode_with<T: Serialize>(
-    message: T,
-) -> impl Future<Output = anyhow::Result<tungstenite::Message>> {
-    futures::future::ready(encode(message))
-}
-
-pub fn decode_with<T: DeserializeOwned>(
-    message: Result<tungstenite::Message, tungstenite::Error>,
-) -> impl Future<Output = anyhow::Result<T>> {
-    futures::future::ready(decode(message))
 }

@@ -64,6 +64,10 @@ impl Message<TabBus> for WorkspaceState {
     type Channel = watch::Sender<Self>;
 }
 
+/// Carries messages between the MainBus, and the TabBus
+///
+/// Forwards Request messages, propagates shutdowns, and translates Response messages.
+/// Forwards TabState, and handles some MainRecv event types.
 pub struct MainTabCarrier {
     pub(super) _main: Lifeline,
     pub(super) _tx_selected: Lifeline,

@@ -36,6 +36,10 @@ impl Message<TerminalBus> for TerminalShutdown {
     type Channel = mpsc::Sender<Self>;
 }
 
+/// Carries messages between the MainBus, and the TerminalBus.
+///
+/// Listens to MainRecv and sends TerminalMode,
+/// forwards TerminalShutdown, and carries Input, Output, and Resize events.
 pub struct MainTerminalCarrier {
     pub(super) _main: Lifeline,
     pub(super) _forward_shutdown: Lifeline,
