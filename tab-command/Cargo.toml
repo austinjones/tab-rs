@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 tab-api = "0.2.0"
 tab-websocket = "0.2.2"
-lifeline = "0.2.1"
+lifeline = "0.3"
 
 clap = "2.33.2"
 crossterm = "0.17"
