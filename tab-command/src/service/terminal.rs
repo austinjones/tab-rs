@@ -54,7 +54,7 @@ impl Service for TerminalService {
                             continue;
                         }
 
-                        debug!("TerminalService switching to echo mode");
+                        info!("TerminalService switching to echo mode");
 
                         let service = TerminalEchoService::spawn(&terminal_bus)?;
                         ServiceLifeline::Echo(service)
@@ -64,7 +64,7 @@ impl Service for TerminalService {
                             continue;
                         }
 
-                        debug!("TerminalService switching to crossterm mode");
+                        info!("TerminalService switching to crossterm mode");
 
                         let service = TerminalCrosstermService::spawn(&terminal_bus)?;
                         ServiceLifeline::Crossterm(service)
