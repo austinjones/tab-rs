@@ -39,7 +39,7 @@ pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
 
 async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     TermLogger::init(
-        LevelFilter::Debug,
+        LevelFilter::Warn,
         simplelog::ConfigBuilder::new()
             .set_time_format_str("%H:%M:%S%.3f CMD")
             .build(),

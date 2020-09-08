@@ -14,6 +14,7 @@ use tokio::{stream::StreamExt, time};
 /// Drives an active connection from the tab-command client, and forwards messages between the websocket and the daemon.
 /// Tracks the client tab subscriptions, and filters messages received from the daemon.
 pub struct CliService {
+    _init: Lifeline,
     _run: Lifeline,
 }
 
@@ -37,65 +38,74 @@ impl Service for CliService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let rx_websocket = bus
-            .rx::<Request>()?
-            .into_inner()
-            .filter(|r| r.is_ok())
-            .map(|r| r.unwrap())
-            .map(Event::websocket);
-        let rx_daemon = bus.rx::<CliRecv>()?.map(Event::daemon);
-        let mut rx = rx_websocket.merge(rx_daemon);
+        let _init = {
+            let mut tx_websocket = bus.tx::<Response>()?;
+            let mut rx_tabs_state = bus.rx::<TabsState>()?;
 
-        let mut tx_websocket = bus.tx::<Response>()?;
-        let mut tx_daemon = bus.tx::<CliSend>()?;
-        let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
-        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
-        let mut rx_tabs_state = bus.rx::<TabsState>()?;
+            Self::try_task("init", async move {
+                let tabs = rx_tabs_state
+                    .recv()
+                    .await
+                    .ok_or_else(|| anyhow::Error::msg("rx TabsState closed"))?;
 
-        let _run = Self::try_task("run", async move {
-            let mut subscription_index: HashMap<usize, usize> = HashMap::new();
+                let init = InitResponse {
+                    tabs: tabs.tabs.clone(),
+                };
+                let init = Response::Init(init);
+                tx_websocket.send(init).await?;
 
-            let tabs = rx_tabs_state
-                .recv()
-                .await
-                .ok_or_else(|| anyhow::Error::msg("rx TabsState closed"))?;
+                for tab in tabs.tabs.values() {
+                    debug!("notifying client of existing tab {}", &tab.name);
+                    let message = Response::TabUpdate(tab.clone());
+                    tx_websocket.send(message).await?;
+                }
 
-            let init = InitResponse {
-                tabs: tabs.tabs.clone(),
-            };
-            let init = Response::Init(init);
-            tx_websocket.send(init).await?;
+                Ok(())
+            })
+        };
 
-            for tab in tabs.tabs.values() {
-                debug!("notifying client of existing tab {}", &tab.name);
-                let message = Response::TabUpdate(tab.clone());
-                tx_websocket.send(message).await?;
-            }
+        let _run = {
+            let rx_websocket = bus
+                .rx::<Request>()?
+                .into_inner()
+                .filter(|r| r.is_ok())
+                .map(|r| r.unwrap())
+                .map(Event::websocket);
+            let rx_daemon = bus.rx::<CliRecv>()?.map(Event::daemon);
+            let mut rx = rx_websocket.merge(rx_daemon);
 
-            debug!("cli connection waiting for messages");
-            while let Some(event) = rx.next().await {
-                match event {
-                    Event::Websocket(msg) => {
-                        Self::recv_websocket(msg, &mut tx_subscription, &mut tx_daemon).await?
-                    }
-                    Event::Daemon(msg) => {
-                        Self::recv_daemon(
-                            msg,
-                            &rx_subscription,
-                            &mut tx_subscription,
-                            &mut tx_websocket,
-                            &mut tx_daemon,
-                            &mut subscription_index,
-                        )
-                        .await?
+            let mut tx_websocket = bus.tx::<Response>()?;
+            let mut tx_daemon = bus.tx::<CliSend>()?;
+            let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
+            let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
+            Self::try_task("run", async move {
+                let mut subscription_index: HashMap<usize, usize> = HashMap::new();
+
+                debug!("cli connection waiting for messages");
+                while let Some(event) = rx.next().await {
+                    match event {
+                        Event::Websocket(msg) => {
+                            Self::recv_websocket(msg, &mut tx_subscription, &mut tx_daemon).await?
+                        }
+                        Event::Daemon(msg) => {
+                            Self::recv_daemon(
+                                msg,
+                                &rx_subscription,
+                                &mut tx_subscription,
+                                &mut tx_websocket,
+                                &mut tx_daemon,
+                                &mut subscription_index,
+                            )
+                            .await?
+                        }
                     }
                 }
-            }
 
-            Ok(())
-        });
+                Ok(())
+            })
+        };
 
-        Ok(CliService { _run })
+        Ok(CliService { _init, _run })
     }
 }
 
@@ -537,7 +547,6 @@ mod recv_tests {
         tx.send(CliRecv::TabStarted(metadata.clone())).await?;
 
         assert_completes!(async move {
-            let _init_msg = rx.recv().await;
             let msg = rx.recv().await;
             assert_eq!(Some(Response::TabUpdate(metadata)), msg);
         });
@@ -576,7 +585,6 @@ mod recv_tests {
         tx.send(CliRecv::Scrollback(scrollback)).await?;
 
         assert_completes!(async move {
-            let _init_msg = rx.recv().await;
             let msg = rx.recv().await;
             assert_eq!(
                 Some(Response::Output(
@@ -610,10 +618,6 @@ mod recv_tests {
             .await;
 
         tx.send(CliRecv::Scrollback(scrollback)).await?;
-
-        assert_completes!(async {
-            let _init_msg = rx.recv().await;
-        });
 
         assert_times_out!(async {
             rx.recv().await;
@@ -650,7 +654,6 @@ mod recv_tests {
         tx.send(CliRecv::Output(TabId(0), output)).await?;
 
         assert_completes!(async move {
-            let _init_msg = rx.recv().await;
             let msg = rx.recv().await;
             assert_eq!(
                 Some(Response::Output(
@@ -682,10 +685,6 @@ mod recv_tests {
 
         tx.send(CliRecv::Output(TabId(0), output)).await?;
 
-        assert_completes!(async {
-            let _init_msg = rx.recv().await;
-        });
-
         assert_times_out!(async {
             rx.recv().await;
         });
@@ -704,7 +703,6 @@ mod recv_tests {
         tx.send(CliRecv::TabStopped(TabId(0))).await?;
 
         assert_completes!(async move {
-            let _init_msg = rx.recv().await;
             let msg = rx.recv().await;
             assert_eq!(Some(Response::TabTerminated(TabId(0))), msg);
         });
@@ -736,7 +734,6 @@ mod recv_tests {
         tx.send(CliRecv::Retask(TabId(0), TabId(1))).await?;
 
         assert_completes!(async {
-            let _init_msg = rx.recv().await;
             let msg = rx.recv().await;
             assert_eq!(Some(Response::Retask(TabId(1),)), msg);
         });

@@ -17,7 +17,7 @@ use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId}
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
-    sync::{broadcast, mpsc, watch},
+    sync::{broadcast, mpsc},
     time,
 };
 
