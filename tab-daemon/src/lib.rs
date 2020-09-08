@@ -61,17 +61,12 @@ pub async fn new_bus() -> anyhow::Result<DaemonBus> {
 async fn main_async() -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
+    let config = simplelog::ConfigBuilder::new()
+        .set_time_format_str("%H:%M:%S%.3f DAE")
+        .build();
     CombinedLogger::init(vec![
-        TermLogger::new(
-            LevelFilter::Info,
-            simplelog::Config::default(),
-            TerminalMode::Stderr,
-        ),
-        WriteLogger::new(
-            LevelFilter::Debug,
-            simplelog::Config::default(),
-            std::fs::File::create(log_file)?,
-        ),
+        TermLogger::new(LevelFilter::Info, config.clone(), TerminalMode::Stderr),
+        WriteLogger::new(LevelFilter::Debug, config, std::fs::File::create(log_file)?),
     ])
     .unwrap();
 
