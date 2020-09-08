@@ -229,8 +229,10 @@ impl TestSession {
     /// Constructs a new `tab` session, generating a temp directory for the tab daemon.
     /// When the TestSession value is dropped, the daemon & pty sessions shut down.
     pub fn new() -> anyhow::Result<Self> {
+        setup();
+
         let dir = tempdir().context("failed to create tempdir")?;
-        println!("launching tests in dir: {}", dir.path().to_string_lossy());
+        info!("launching tests in dir: {}", dir.path().to_string_lossy());
 
         let binary = assert_cmd::cargo::cargo_bin("tab");
 
