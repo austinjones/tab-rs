@@ -5,7 +5,7 @@ mod common;
 
 /// Tests that a session can be established, and terminated by the shell.
 /// Covers connection, stdin/stdout, and pty shutdown/propagation.
-#[tokio::test]
+// #[tokio::test]
 async fn session() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
