@@ -3,7 +3,7 @@ use clap::ArgMatches;
 use crate::prelude::*;
 use service::main::*;
 
-use simplelog::{CombinedLogger, TermLogger, TerminalMode};
+use simplelog::{TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
@@ -38,13 +38,13 @@ pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
 }
 
 async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
-    CombinedLogger::init(vec![TermLogger::new(
+    TermLogger::init(
         LevelFilter::Warn,
         simplelog::ConfigBuilder::new()
-            .set_time_format("%+".to_owned())
+            .set_time_format_str("%H:%M:%S%.3f CMD")
             .build(),
         TerminalMode::Stderr,
-    )])
+    )
     .unwrap();
 
     let select_tab = matches.value_of("TAB-NAME");

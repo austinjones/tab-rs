@@ -36,7 +36,9 @@ pub fn pty_main() -> anyhow::Result<()> {
 fn init() {
     CombinedLogger::init(vec![TermLogger::new(
         LevelFilter::Info,
-        simplelog::Config::default(),
+        simplelog::ConfigBuilder::new()
+            .set_time_format_str("%H:%M:%S%.3f PTY")
+            .build(),
         TerminalMode::Stderr,
     )])
     .unwrap();

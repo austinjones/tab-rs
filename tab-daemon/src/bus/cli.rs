@@ -17,7 +17,7 @@ use tab_api::{chunk::OutputChunk, client::Request, client::Response, tab::TabId}
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
-    sync::{broadcast, mpsc, watch},
+    sync::{broadcast, mpsc},
     time,
 };
 
@@ -47,8 +47,10 @@ impl Message<CliBus> for subscription::Subscription<TabId> {
     type Channel = subscription::Sender<TabId>;
 }
 
+/// This binding needs to be mpsc, as it is carried from the listener.
+/// If it is watch, receivers can see a temporary empty value
 impl Message<CliBus> for TabsState {
-    type Channel = watch::Sender<Self>;
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Resource<CliBus> for WebsocketResource {}

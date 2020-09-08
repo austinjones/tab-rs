@@ -24,13 +24,15 @@ clap = "2.33.2"
 anyhow = "1.0"
 
 [dev-dependencies]
-lifeline = "0.2.1"
+lifeline = "0.3"
 strip-ansi-escapes = "0.1.0"
 tokio-test = "0.2.1"
 tokio = { version = "0.2", features = ["process", "time", "rt-threaded"] } 
 insta = "0.16"
 assert_cmd = "1.0"
 tempfile = "3.1"
+log = "0.4"
+simplelog = "0.8"
 
 [build-dependencies]
 clap = "2.33"
