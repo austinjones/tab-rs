@@ -3,7 +3,7 @@ use clap::ArgMatches;
 use crate::prelude::*;
 use service::main::*;
 
-use simplelog::{CombinedLogger, TermLogger, TerminalMode};
+use simplelog::{TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};

@@ -143,13 +143,13 @@ impl<'s> TestCommand<'s> {
                         }
                         Action::AwaitStdout(match_target, timeout) => {
                             let string = std::str::from_utf8(match_target.as_slice()).unwrap_or("");
-                            println!("[test] awaiting stdout: '{}'", string);
+                            info!("[test] awaiting stdout: '{}'", string);
                             let start_search = stdout_buffer.len();
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
                                 if Instant::now().duration_since(start_time) > *timeout {
-                                    println!("[test] await timeout for stdin: '{}'", string.trim());
+                                    warn!("[test] await timeout for stdin: '{}'", string.trim());
                                     break;
                                 }
 
@@ -173,6 +173,7 @@ impl<'s> TestCommand<'s> {
                                     &stdout_buffer[start_search..],
                                     match_target.as_slice(),
                                 ) {
+                                    info!("stdout match found");
                                     break;
                                 }
                             }
