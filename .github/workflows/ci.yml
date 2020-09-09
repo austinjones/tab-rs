@@ -8,44 +8,8 @@ on:
 name: Continuous Integration
 
 jobs:
-  check:
-    name: cargo check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            target
-          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked
-
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-  
-  test-dependencies:
-    name: cargo test | dependencies
+  dependencies:
+    name: cargo build | dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -56,20 +20,22 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys:
+            - ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            - ${{ runner.os }}-cargo-
 
       - uses: actions-rs/cargo@v1
         if: steps.cargo-cache.outputs.cache-hit != 'true'
         with:
           command: build
           args: --locked --release
-
-  test:
-    name: cargo test
+        
+  check:
+    name: cargo check
+    needs: dependencies
     runs-on: ubuntu-latest
-    needs: test-dependencies
     steps:
       - uses: actions/checkout@v2
 
@@ -78,9 +44,38 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --release --locked
+
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions-rs/cargo@v1
         with:
