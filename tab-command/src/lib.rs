@@ -7,7 +7,6 @@ use simplelog::{TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
-use std::time::Duration;
 
 use lifeline::dyn_bus::DynBus;
 use tab_api::launch::*;

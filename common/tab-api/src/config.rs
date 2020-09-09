@@ -1,6 +1,5 @@
 use anyhow::Result;
 use lifeline::impl_storage_clone;
-use log::debug;
 use serde::Deserialize;
 use serde::Serialize;
 use std::{env, fs::File, io::BufReader, path::PathBuf};
