@@ -31,6 +31,12 @@ jobs:
         with:
           command: build
           args: --locked --release
+
+      - uses: actions-rs/cargo@v1
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        with:
+          command: test
+          args: --locked --release --no-run
         
   check:
     name: cargo check
@@ -77,9 +83,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: actions-rs/cargo@v1
         with:
