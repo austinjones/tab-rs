@@ -3,6 +3,7 @@
 
 pub mod cli;
 use cli::init;
+use tab_api::{config::history_path, tab::normalize_name};
 
 pub fn main() -> anyhow::Result<()> {
     let args = init();
@@ -26,6 +27,21 @@ pub fn main() -> anyhow::Result<()> {
             "zsh" => print!("{}", include_str!("completions/zsh/_tab")),
             _ => panic!("unsupported completion script: {}", completion_script),
         };
+
+        Ok(())
+    } else if let Some(shell) = args.value_of("HISTFILE-SHELL") {
+        let tab = args.value_of("TAB-NAME").ok_or_else(|| {
+            anyhow::format_err!("a tab name is required for the --_histfile command")
+        })?;
+
+        if shell == "fish" {
+            return Err(anyhow::format_err!(
+                "fish does not use a historyfile, and instead uses the fish_history env var"
+            ));
+        }
+
+        let histfile = history_path(shell, &normalize_name(tab))?;
+        print!("{}", histfile.to_string_lossy());
 
         Ok(())
     } else {

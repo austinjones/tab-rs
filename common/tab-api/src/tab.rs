@@ -4,6 +4,15 @@ use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
+pub fn normalize_name(name: &str) -> String {
+    let name = name.to_string().trim().to_string();
+    if name.ends_with("/") {
+        name
+    } else {
+        name + "/"
+    }
+}
+
 /// Identifies a running tab using a numeric index.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TabId(pub u16);

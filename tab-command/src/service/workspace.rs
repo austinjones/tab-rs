@@ -1,5 +1,4 @@
 use crate::{
-    normalize_name,
     prelude::*,
     state::workspace::{Config, Repo, Workspace, WorkspaceItem, WorkspaceState, WorkspaceTab},
 };
@@ -10,6 +9,7 @@ use std::{
     io::BufReader,
     path::{Path, PathBuf},
 };
+use tab_api::tab::normalize_name;
 use time::Duration;
 use tokio::time;
 

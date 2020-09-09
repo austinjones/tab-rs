@@ -38,6 +38,13 @@ fn app() -> App<'static, 'static> {
                 .help("autocompletes for the `tab -w <CLOSE>` command"),
         )
         .arg(
+            Arg::with_name("HISTFILE-SHELL")
+                .long("_histfile")
+                .hidden(true)
+                .takes_value(true)
+                .help("generates a histfile for the given shell, and the tab in argument 1"),
+        )
+        .arg(
             Arg::with_name("LIST")
                 .short("l")
                 .long("list")
