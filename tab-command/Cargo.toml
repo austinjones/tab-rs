@@ -24,8 +24,6 @@ tokio = { version = "0.2", features = ["time", "fs", "io-std", "io-util", "proce
 # logging
 log = "0.4"
 simplelog = "0.8"
-tracing-futures = "0.2"
-tracing = "0.1"
 
 # error management
 anyhow = "1.0"
