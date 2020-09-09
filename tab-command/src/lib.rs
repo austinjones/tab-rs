@@ -106,12 +106,3 @@ async fn spawn() -> anyhow::Result<(
 
     Ok((tx, main_shutdown, service))
 }
-
-pub fn normalize_name(name: &str) -> String {
-    let name = name.to_string().trim().to_string();
-    if name.ends_with("/") {
-        name
-    } else {
-        name + "/"
-    }
-}

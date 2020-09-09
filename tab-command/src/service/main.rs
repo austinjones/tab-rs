@@ -6,12 +6,11 @@ use crate::prelude::*;
 use crate::{
     bus::MainBus,
     message::main::{MainRecv, MainShutdown},
-    normalize_name,
 };
 
 use lifeline::dyn_bus::DynBus;
 
-use tab_api::tab::TabMetadata;
+use tab_api::tab::{normalize_name, TabMetadata};
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,

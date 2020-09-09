@@ -63,6 +63,8 @@ pub fn history_path(shell: &str, name: &str) -> Result<PathBuf> {
     let mut path = dotdir_path()?;
     path.push("history");
 
+    let name = name.replace("/", "_");
+
     let filename = format!("history-{}-{}.txt", shell, name);
     path.push(filename);
 

@@ -1,4 +1,3 @@
-use crate::normalize_name;
 use crate::{
     message::tabs::CreateTabRequest,
     prelude::*,
@@ -8,7 +7,7 @@ use crate::{
         workspace::{WorkspaceState, WorkspaceTab},
     },
 };
-use tab_api::tab::CreateTabMetadata;
+use tab_api::tab::{normalize_name, CreateTabMetadata};
 use time::Duration;
 use tokio::{sync::watch, time};
 

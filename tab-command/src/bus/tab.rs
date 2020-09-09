@@ -6,7 +6,6 @@ use crate::{
         main::{MainRecv, MainShutdown},
         tabs::{CreateTabRequest, TabShutdown, TabsRecv},
     },
-    normalize_name,
     prelude::*,
     state::{
         tab::{SelectTab, TabState},
@@ -17,7 +16,7 @@ use crate::{
 };
 use anyhow::Context;
 
-use tab_api::tab::{TabId, TabMetadata};
+use tab_api::tab::{normalize_name, TabId, TabMetadata};
 use tokio::{
     sync::{broadcast, mpsc, watch},
     time,
