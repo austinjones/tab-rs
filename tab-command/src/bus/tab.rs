@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     message::{
         client::TabTerminated,
@@ -16,7 +18,10 @@ use crate::{
 use anyhow::Context;
 
 use tab_api::tab::{TabId, TabMetadata};
-use tokio::sync::{broadcast, mpsc, watch};
+use tokio::{
+    sync::{broadcast, mpsc, watch},
+    time,
+};
 
 lifeline_bus!(pub struct TabBus);
 
@@ -141,6 +146,12 @@ impl CarryFrom<MainBus> for TabBus {
 
                             tx_tab_terminated.send(TabTerminated(id)).await?;
                             if rx_tab_state.borrow().is_selected(&id) {
+                                // wait just a few moments for messages to settle.
+                                // if we terminate immediately, there could be terminal I/O going on.
+                                // example:
+                                //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
+                                time::delay_for(Duration::from_millis(25)).await;
+
                                 tx_shutdown
                                     .send(MainShutdown {})
                                     .await
@@ -238,12 +249,16 @@ impl CarryFrom<MainBus> for TabBus {
                         }
                         MainRecv::AutocompleteTab => {
                             // the the list of available tabs, both running (ad-hoc), and from the workspace library
+                            debug!("waiting for tabs state");
                             let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+                            debug!("waiting for workspace state");
                             let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
+                            debug!("printing tabs");
                             let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
                             let tabs = tabs.into_iter().map(|(name, _doc)| name).collect();
                             Self::echo_completion(&tabs);
                             tx_shutdown.send(MainShutdown {}).await?;
+                            debug!("shutdown sent");
                         }
                         MainRecv::AutocompleteCloseTab => {
                             // get the list of tabs which are running on the daemon.
