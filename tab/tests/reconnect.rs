@@ -15,6 +15,7 @@ async fn reconnect() -> anyhow::Result<()> {
         .await_stdout("$", 5000)
         .stdin("echo foo\n")
         .await_stdout("echo foo", 1000)
+        .await_stdout("foo", 1000)
         .stdin_bytes(&[23u8])
         .run()
         .await?;

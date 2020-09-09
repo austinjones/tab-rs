@@ -80,8 +80,10 @@ impl CarryFrom<MainBus> for TerminalBus {
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
 
             Self::try_task("forward_shutdown", async move {
-                while let None = rx_shutdown.recv().await {}
-                tx_shutdown.send(MainShutdown {}).await?;
+                if let Some(_shutdown) = rx_shutdown.recv().await {
+                    tx_shutdown.send(MainShutdown {}).await?;
+                }
+
                 Ok(())
             })
         };
