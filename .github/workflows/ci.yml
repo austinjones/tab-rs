@@ -50,11 +50,12 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --release --locked
+          args: --release
 
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --release
 
       - name: rustfmt
         uses: actions-rs/cargo@v1
@@ -80,4 +81,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --release -- --nocapture
+          args: --release -- --nocapture
