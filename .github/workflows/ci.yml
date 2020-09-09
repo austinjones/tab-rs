@@ -72,7 +72,6 @@ jobs:
           args: --release
 
       - name: cargo fmt
-        name: rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
