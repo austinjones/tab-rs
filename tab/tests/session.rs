@@ -15,6 +15,7 @@ async fn session() -> anyhow::Result<()> {
         .await_stdout("$", 5000)
         .stdin("echo foo\n")
         .await_stdout("echo foo", 1000)
+        .await_stdout("$", 200)
         .stdin("exit\n")
         .run()
         .await?;

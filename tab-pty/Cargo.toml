@@ -24,7 +24,6 @@ tokio = { version = "0.2", features = ["macros", "stream", "sync", "time", "io-u
 tokio-io = "0.1"
 tab-pty-process = { version = "0.2", path = "../tab-pty-process"}
 futures = "0.3"
-async-stream = "0.3"
 
 async-trait = "0.1"
 

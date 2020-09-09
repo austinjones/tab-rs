@@ -124,6 +124,7 @@ impl<'s> TestCommand<'s> {
 
         assert_completes!(
             async {
+                let mut search_index = 0;
                 for action in &self.actions {
                     match action {
                         Action::Delay(duration) => {
@@ -144,7 +145,7 @@ impl<'s> TestCommand<'s> {
                         Action::AwaitStdout(match_target, timeout) => {
                             let string = std::str::from_utf8(match_target.as_slice()).unwrap_or("");
                             info!("[test] awaiting stdout: '{}'", string);
-                            let start_search = stdout_buffer.len();
+
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
@@ -169,10 +170,11 @@ impl<'s> TestCommand<'s> {
 
                                 stdout_buffer.extend_from_slice(&mut buf[0..read]);
 
-                                if let Some(_) = find_subsequence(
-                                    &stdout_buffer[start_search..],
+                                if let Some(index) = find_subsequence(
+                                    &stdout_buffer[search_index..],
                                     match_target.as_slice(),
                                 ) {
+                                    search_index += index + match_target.len();
                                     info!("stdout match found");
                                     break;
                                 }

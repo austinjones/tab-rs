@@ -3,7 +3,7 @@ use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
 use std::{env, fs::File, io::BufReader, path::PathBuf};
-use sysinfo::SystemExt;
+use sysinfo::{RefreshKind, SystemExt};
 
 /// Config created for each daemon process
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,15 +45,10 @@ pub fn daemon_file() -> Result<PathBuf> {
 
 /// Determines if there is an active daemon, by checking the pidfile and the active system processes.
 pub fn is_running(config: &DaemonConfig) -> bool {
-    let mut system = sysinfo::System::new_all();
+    let mut system = sysinfo::System::new_with_specifics(RefreshKind::new());
     system.refresh_process(config.pid);
 
-    let running = system.get_processes();
-    if running.contains_key(&config.pid) {
-        true
-    } else {
-        false
-    }
+    system.get_process(config.pid).is_some()
 }
 
 /// Returns the path to the daemon's logfile.

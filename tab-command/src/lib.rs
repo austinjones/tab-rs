@@ -7,7 +7,6 @@ use simplelog::{TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
-use std::time::Duration;
 
 use lifeline::dyn_bus::DynBus;
 use tab_api::launch::*;
@@ -21,23 +20,6 @@ mod service;
 mod state;
 
 pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
-    let mut runtime = tokio::runtime::Builder::new()
-        .threaded_scheduler()
-        .enable_io()
-        .enable_time()
-        .build()
-        .unwrap();
-
-    let result = runtime.block_on(async { main_async(args).await });
-
-    runtime.shutdown_timeout(Duration::from_millis(25));
-
-    result?;
-
-    Ok(())
-}
-
-async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     TermLogger::init(
         LevelFilter::Warn,
         simplelog::ConfigBuilder::new()
@@ -47,6 +29,27 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     )
     .unwrap();
 
+    info!("tab-command runtime starting");
+
+    let mut runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .enable_io()
+        .enable_time()
+        .build()
+        .unwrap();
+
+    let result = runtime.block_on(async { main_async(args).await });
+
+    runtime.shutdown_background();
+
+    result?;
+
+    info!("tab-command runtime stopped");
+
+    Ok(())
+}
+
+async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     let select_tab = matches.value_of("TAB-NAME");
     let close_tab = matches.value_of("CLOSE-TAB");
     let (mut tx, rx_shutdown, _service) = spawn().await?;
@@ -83,6 +86,8 @@ async fn spawn() -> anyhow::Result<(
 )> {
     let daemon_file = launch_daemon().await?;
     let ws_url = format!("ws://127.0.0.1:{}/cli", daemon_file.port);
+
+    debug!("daemon is ready");
 
     let bus = MainBus::default();
     bus.capacity::<Request>(128)?;

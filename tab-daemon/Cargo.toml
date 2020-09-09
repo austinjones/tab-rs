@@ -22,7 +22,6 @@ serde_yaml = "0.8"
 tokio = { version = "0.2", features = ["macros", "stream", "sync", "time", "io-util", "rt-threaded"] }
 tokio-io = "0.1"
 async-trait = "0.1"
-async-stream = "0.3"
 
 # authentication / tokens
 rand = "0.7"

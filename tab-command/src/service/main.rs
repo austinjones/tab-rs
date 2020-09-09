@@ -38,12 +38,12 @@ impl Service for MainService {
         let tab_bus = TabBus::default();
         tab_bus.capacity::<TabMetadata>(256)?;
 
+        let _main_tab = tab_bus.carry_from(main_bus)?;
+
         let websocket_bus = WebsocketConnectionBus::default();
         let websocket = main_bus.resource::<WebsocketResource>()?;
         websocket_bus.store_resource(websocket);
         let _main_websocket = websocket_bus.carry_from(main_bus)?;
-
-        let _main_tab = tab_bus.carry_from(main_bus)?;
 
         let mut rx_main = main_bus.rx::<MainRecv>()?;
 
