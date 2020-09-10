@@ -23,6 +23,11 @@ tab-pty = "0.2.2"
 clap = "2.33.2"
 anyhow = "1.0"
 
+# used for install command
+toml_edit = "0.2.0"
+dirs = "3.0"
+which = "4.0"
+
 [dev-dependencies]
 lifeline = "0.3"
 strip-ansi-escapes = "0.1.0"

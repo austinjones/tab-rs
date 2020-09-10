@@ -25,8 +25,10 @@ $ ctrl-W      > to disconnect the session
 
 Tab adds trailing slashes to tab names.  This makes autocomplete between `foo/` and it's children, `foo/bar/` work nicely.  You can type `tab foo` and tab will add the slashes for you.
 
-## Installation
-Tab currently supports OSX and Linux.
+# Installation
+Tab currently supports `MacOS` and `Linux`.  Tab supports the `bash`, `fish`, and `zsh` shells.
+
+## 1. Install the binary
 
 Using Homebrew: 
 ```
@@ -41,7 +43,38 @@ cargo install tab
 Or, from prebuilt-binaries: 
 [https://github.com/austinjones/tab-rs/releases/latest](https://github.com/austinjones/tab-rs/releases/latest)
 
-## Configuration
+## 2. Install autocompletions for your shell
+
+Tab works best when configured with shell autocompletions.  Tab will install completions for you:
+- `tab --install all` - will install completions for all supported shells which are installed on your system
+- `tab --install bash` - installs completions for bash
+- `tab --install fish` - installs completions for fish
+- `tab --install zsh` - installs completions for zsh
+
+## 3. Configure your statusline
+
+**(Starship)**
+
+Tab integrates with the [starship](https://starship.rs/) prompt, and can auto-configure the integration:
+- `tab install --starship`
+
+Additionally, if you want, you can customize your prompt order in `~/.config/starship.toml`.  This is what I have in my configuration.  It's cleaner than the default order:
+```
+prompt_order = ["custom.tab", "directory", "git_branch", "cmd_duration", "line_break", "character"]
+```
+
+**(Starship Alternatives)**
+
+You can configure any other statusline tool that supports environment variables.  The current tab name is available in the `$TAB` environment var.
+
+You can also add a handcrafted statusline snippet to your shell's rc configuration file, in
+[bash](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/bash/statusline.bash), 
+[fish](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/fish/statusline.fish),
+or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
+
+
+
+# Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
 - Workspace configurations, which are active within any subdirectory, and link to repositories.
 - Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching
@@ -78,93 +111,6 @@ Available tabs:
     proj/             (my project)
     proj/run/         (runs the project server)
     workspace-tab/    (this is a top-level workspace tab)
-```
-
-# Shell Configuration
-Tab works best when you configure your terminal with autocomplete, and a statusline.
-
-## Starship
-The best way to configure the command prompt is to use [starship](https://starship.rs/).
-
-In `~/.config/starship.toml`, add:
-```toml
-[env_var]
-variable = "TAB"
-prefix = "tab "
-style = "bold green"
-```
-
-## Bash
-`tab` supports dynamic autocompletion and a custom statusbar in bash.
-
-1. Install the the autocompletion script:
-```
-mkdir -p ~/.tab && tab --completion=bash > ~/.tab/_tab.bash
-```
-
-2. Source the completion script from `~/.bashrc`
-```bash
-source ~/.tab/_tab.bash
-```
-
-3. If you want to add a custom statusline, add to ~/.bashrc
-```
-PS1="tab ${TAB:-/} $ "
-```
-
-## Fish
-`tab` supports dynamic autocompletion and a custom statusbar in fish.
-
-1. Install the autocompletion script to your fish completions directory.
-```
-mkdir -p ~/.config/fish/completions && tab --completion=fish > ~/.config/fish/completions/tab.fish
-```
-
-2. If you want to use a custom command prompt, you can add to `~/.config/fish/config.fish`
-```bash
-function fish_prompt
-  if test -n "$TAB"
-    set_color $fish_color_cwd
-    printf 'tab %s' "$TAB" 
-    set_color normal
-    printf ' in '
-    set_color $fish_color_cwd
-    printf '%s' (basename $PWD)
-    set_color normal
-    echo " \$ "
-  else
-    set_color $fish_color_cwd
-    printf '%s' (basename $PWD)
-    set_color normal
-    echo " \$ "
-  end
-end
-```
-
-## Zsh
-`tab` supports dynamic autocompletion and a custom statusbar in zsh.
-
-1. Install OhMyZsh, and copy the TODO LINK `completions/zsh/_tab` script to `${ZSH_CUSTOM}/plugins/tab/_tab`.
-```
-mkdir -p "${ZSH_CUSTOM}/plugins/tab/" && tab --completion=zsh > "${ZSH_CUSTOM}/plugins/tab/_tab"
-```
-
-2. Add `tab` to your `plugins` list in `~/.zshrc`:
-```zsh
-# load the `tab` autocompletions
-plugins=(git tab)
-autoload -U compinit && compinit
-
-source $ZSH/oh-my-zsh.sh
-```
-
-3. If you want to use a custom prompt, add to `~/.zshrc`
-```zsh
-# add the selected tab to the prompt
-setopt prompt_subst
-if (($+TAB)); then
-  PROMPT="%{$fg[green]%}tab ${TAB}%{$reset_color%} $PROMPT"
-fi
 ```
 
 # Security

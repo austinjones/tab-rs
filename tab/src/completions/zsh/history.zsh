@@ -1,6 +1,6 @@
 if [ -n "$TAB" ] ; then
     # check that tab is installed.
-    tab -V 2>1 > /dev/null
+    tab -V 2>&1 > /dev/null
 
     if [ $? -ne 0 ]; then
         return;
