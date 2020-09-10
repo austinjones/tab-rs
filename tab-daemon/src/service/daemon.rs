@@ -7,6 +7,7 @@ use tokio::time;
 
 mod listener;
 mod retask;
+mod tab_assignment;
 mod tab_manager;
 
 /// The main service for a tab-daemon service.  Spawns websocket listeners, and manages shutdown.

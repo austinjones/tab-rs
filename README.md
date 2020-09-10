@@ -1,17 +1,20 @@
 # tab
 
-**tab, an intuitive, config-driven terminal multiplexer designed for software & systems engineers**
+**The intuitive, config-driven terminal multiplexer designed for software & systems engineers**
 
 - **Configuration-driven:**  `tab` provides persistent, configurable tabs which you can rely on to organize your daily context-switches.
 - **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab uses your terminal emulator's natural scrollback buffer.  Tab has first-class support for `bash`, `fish`, and `zsh`.
 - **State-agnostic:**  You can ask `tab` to do anything, from anywhere.  Tabs are selected & closed using the same interface, regardless of whether they are attached, running, terminated, etc.
 - **Rich & dynamic auto-complete:**  Your library of tabs are auto-completed when switching to a new tab with `tab <TAB>` .  Your running tabs are auto-completed when closing a tab with `tab -w <TAB>`.
-- **Low-latency & Efficient:**  Tab is written in Rust, and has an async message-based architecture to minimize latency.  Tab has a round-trip latency (stdin to stdout) of ~5ms.  The tab daemon uses 0.2% when idle, 1-2% CPU during normal usage, and 5% when a tab is throwing extreme amounts of stdout.
+- **Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Stdin/stdout latency is 5ms, and tab can throughput over 500k messages per second for each tab.
 
 ## Quickstart
 Quick installation & usage instructions:
 ```
+$ brew install austinjones/taps/tab  
+  OR
 $ cargo install tab
+
 $ tab foo/     > to open a tab.
 $ tab bar/     > to switch to another tab.  
                 works within an active session!
