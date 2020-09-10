@@ -4,25 +4,15 @@ use crate::{
         tab::TabRecv,
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
-    state::{
-        assignment::{assignment, Retraction},
-        tab::TabsState,
-    },
+    state::tab::TabsState,
 };
 use anyhow::Context;
 
-use mpsc::error::TryRecvError;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
-    time::Instant,
 };
-use tab_api::{
-    launch::launch_pty,
-    tab::{TabId, TabMetadata},
-};
-use tokio::{sync::mpsc, time};
+use tab_api::tab::{TabId, TabMetadata};
 
 /// Manages the currently running tabs.  This is a point-of-contact between the tab-command and tab-pty clients.
 ///

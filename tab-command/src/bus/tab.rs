@@ -278,7 +278,6 @@ impl CarryFrom<MainBus> for TabBus {
                         }
 
                         MainRecv::GlobalShutdown => {}
-                        MainRecv::SelectInteractive => {}
                         MainRecv::CloseTab(_) => {}
                     }
                 }
