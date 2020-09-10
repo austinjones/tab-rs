@@ -6,67 +6,88 @@
 - **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab uses your terminal emulator's natural scrollback buffer.  Tab has first-class support for `bash`, `fish`, and `zsh`.
 - **State-agnostic:**  You can ask `tab` to do anything, from anywhere.  Tabs are selected & closed using the same interface, regardless of whether they are attached, running, terminated, etc.
 - **Rich & dynamic auto-complete:**  Your library of tabs are auto-completed when switching to a new tab with `tab <TAB>` .  Your running tabs are auto-completed when closing a tab with `tab -w <TAB>`.
-- **Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Stdin/stdout latency is 5ms, and tab can throughput over 500k messages per second for each tab.
+- **Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
 ## Quickstart
 Quick installation & usage instructions:
 ```
-$ brew install austinjones/taps/tab  
+$ brew install austinjones/taps/tab
   OR
 $ cargo install tab
+  THEN
+$ tab --install all 
+  # installs shell autocompletion scripts and statusline integrations
 
-$ tab foo/     > to open a tab.
-$ tab bar/     > to switch to another tab.  
-                works within an active session!
-$ echo $TAB   > to view the active tab.  
-                put this in your promptline, 
-                or get https://starship.rs/
-$ tab -w foo  > to close a tab.
-$ tab -l      > to view the tabs
-$ ctrl-W      > to disconnect the session
+$ tab foo/     # to open a tab.
+$ tab bar/     # to switch to another tab.  
+                 works within an active session!
+$ echo $TAB    # to view the active tab.  
+                 put this in your promptline, 
+                 or get https://starship.rs/
+$ tab -w foo   # to close a tab.
+$ tab -l       # to view the tabs
+$ ctrl-W       # to disconnect the session
 ```
 
-Tab adds trailing slashes to tab names.  This makes autocomplete between `foo/` and it's children, `foo/bar/` work nicely.  You can type `tab foo` and tab will add the slashes for you.
+Tab adds trailing slashes to tab names.  This improves autocomplete between tabs and subtabs (e.g. `tab/` and `tab/child/`).
 
 # Installation
 Tab currently supports `MacOS` and `Linux`.  Tab supports the `bash`, `fish`, and `zsh` shells.
 
 ## 1. Install the binary
 
-Using Homebrew: 
+The `tab` binary can be installed using Homebrew, Cargo, or from binaries.
+
+**(Homebrew)**
 ```
 brew install austinjones/taps/tab
 ```
 
-Using cargo: 
+**(Cargo)**
 ```
 cargo install tab
 ```
 
-Or, from prebuilt-binaries: 
+**(Binaries)**
+
+Download binaries from:
 [https://github.com/austinjones/tab-rs/releases/latest](https://github.com/austinjones/tab-rs/releases/latest)
 
 ## 2. Install autocompletions for your shell
+Tab works best when configured with shell autocompletions.
 
-Tab works best when configured with shell autocompletions.  Tab will install completions for you:
-- `tab --install all` - will install completions for all supported shells which are installed on your system
-- `tab --install bash` - installs completions for bash
-- `tab --install fish` - installs completions for fish
-- `tab --install zsh` - installs completions for zsh
+**(All)**
+
+Tab can install completions for all shells & supported integration which are present on your system
+```
+tab install --all
+```
+
+**(Bash | Fish | Zsh)**
+
+Tab can also install completions for a specific shell.
+```
+tab --install bash
+tab --install fish
+tab --install zsh
+```
 
 ## 3. Configure your statusline
 
 **(Starship)**
 
 Tab integrates with the [starship](https://starship.rs/) prompt, and can auto-configure the integration:
-- `tab install --starship`
 
-Additionally, if you want, you can customize your prompt order in `~/.config/starship.toml`.  This is what I have in my configuration.  It's cleaner than the default order:
+```
+tab install --starship
+```
+
+You can optionally set a prompt order in `~/.config/starship.toml`.  This is how I've configured my own shell:
 ```
 prompt_order = ["custom.tab", "directory", "git_branch", "cmd_duration", "line_break", "character"]
 ```
 
-**(Starship Alternatives)**
+**(Other)**
 
 You can configure any other statusline tool that supports environment variables.  The current tab name is available in the `$TAB` environment var.
 
