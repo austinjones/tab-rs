@@ -1,27 +1,18 @@
-use crate::prelude::*;
+use crate::{message::tab_assignment::AssignTab, prelude::*};
 use crate::{
     message::{
         tab::TabRecv,
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
-    state::{
-        assignment::{assignment, Retraction},
-        tab::TabsState,
-    },
+    state::tab::TabsState,
 };
 use anyhow::Context;
 
-use mpsc::error::TryRecvError;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
 };
-use tab_api::{
-    launch::launch_pty,
-    tab::{TabId, TabMetadata},
-};
-use tokio::{sync::mpsc, time};
+use tab_api::tab::{TabId, TabMetadata};
 
 /// Manages the currently running tabs.  This is a point-of-contact between the tab-command and tab-pty clients.
 ///
@@ -30,7 +21,6 @@ use tokio::{sync::mpsc, time};
 /// - Terminates tabs when requested by the tab-command client.
 pub struct TabManagerService {
     _recv: Lifeline,
-    _retractions: Lifeline,
 }
 
 static TAB_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -40,70 +30,13 @@ impl Service for TabManagerService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut tx_tabs = bus.tx::<TabRecv>()?;
-        let mut rx_retractions = bus.rx::<Retraction<TabMetadata>>()?.into_inner();
-        let _retractions = {
-            Self::try_task("retractions", async move {
-                let mut retractions: VecDeque<Retraction<TabMetadata>> = VecDeque::new();
-                let mut terminate = false;
-                'monitor: loop {
-                    'recv: loop {
-                        match rx_retractions.try_recv() {
-                            Ok(ret) => retractions.push_back(ret),
-                            Err(TryRecvError::Empty) => {
-                                break 'recv;
-                            }
-                            Err(TryRecvError::Closed) => {
-                                terminate = true;
-                                break 'recv;
-                            }
-                        }
-                    }
-
-                    let mut new_retractions = VecDeque::new();
-                    while let Some(retraction) = retractions.pop_back() {
-                        if retraction.is_taken() {
-                            continue;
-                        }
-
-                        if let Some(metadata) =
-                            retraction.retract_if_expired(Duration::from_millis(500))
-                        {
-                            debug!("regenerating assignment for tab {:?}", metadata.id);
-
-                            let (ret, assign) = assignment(metadata);
-                            let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).await.ok();
-                            new_retractions.push_back(ret);
-                        } else {
-                            new_retractions.push_back(retraction);
-                        }
-                    }
-
-                    retractions.append(&mut new_retractions);
-                    if terminate && retractions.is_empty() {
-                        break 'monitor;
-                    }
-
-                    for _ in 0..retractions.len() {
-                        // launches a new PTY process, using the current executible.
-                        launch_pty()?;
-                    }
-
-                    time::delay_for(Duration::from_millis(250)).await;
-                }
-
-                Ok(())
-            })
-        };
-
         let _recv = {
             let mut rx = bus.rx::<TabManagerRecv>()?;
 
             let mut tx = bus.tx::<TabManagerSend>()?;
             let mut tx_tabs = bus.tx::<TabRecv>()?;
-            let mut tx_tab_retraction = bus.tx::<Retraction<TabMetadata>>()?;
             let mut tx_tabs_state = bus.tx::<TabsState>()?;
+            let mut tx_assign_tab = bus.tx::<AssignTab>()?;
 
             let mut tabs: HashMap<TabId, TabMetadata> = HashMap::new();
 
@@ -122,13 +55,7 @@ impl Service for TabManagerService {
                             let tab_id = TabId(id);
                             let tab_metadata = TabMetadata::create(tab_id, create);
 
-                            let (ret, assign) = assignment(tab_metadata.clone());
-                            let message = TabRecv::Assign(assign);
-                            tx_tabs.send(message).await.ok();
-                            tx_tab_retraction
-                                .send(ret)
-                                .await
-                                .context("tx_tab_retraction send message")?;
+                            tx_assign_tab.send(AssignTab(tab_metadata.clone())).await?;
 
                             tabs.insert(tab_id, tab_metadata);
                             tx_tabs_state.send(TabsState::new(&tabs)).await?;
@@ -162,10 +89,7 @@ impl Service for TabManagerService {
             })
         };
 
-        Ok(Self {
-            _retractions,
-            _recv,
-        })
+        Ok(Self { _recv })
     }
 }
 

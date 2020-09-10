@@ -1,4 +1,6 @@
-use super::{retask::RetaskService, tab_manager::TabManagerService};
+use super::{
+    retask::RetaskService, tab_assignment::TabAssignmentService, tab_manager::TabManagerService,
+};
 use crate::prelude::*;
 use crate::{
     message::{
@@ -32,6 +34,7 @@ pub struct ListenerService {
     _listener: WebsocketListenerService,
     _new_session: Lifeline,
     _tabs: TabManagerService,
+    _tab_assignments: TabAssignmentService,
     _retask: RetaskService,
     _connection_carrier: ConnectionMessageCarrier,
     _daemon_carrier: ListenerDaemonCarrier,
@@ -59,6 +62,7 @@ impl Service for ListenerService {
         let _daemon_carrier = listener_bus.carry_from(bus)?;
         let _connection_carrier = listener_bus.carry_from(&websocket_bus)?;
 
+        let _tab_assignments = TabAssignmentService::spawn(&listener_bus)?;
         let _tabs = TabManagerService::spawn(&listener_bus)?;
         let _retask = RetaskService::spawn(&listener_bus)?;
 
@@ -71,6 +75,7 @@ impl Service for ListenerService {
             _daemon_carrier,
             _retask,
             _tabs,
+            _tab_assignments,
         })
     }
 }

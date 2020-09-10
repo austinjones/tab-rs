@@ -4,12 +4,13 @@ use crate::{
         daemon::DaemonShutdown,
         listener::ListenerShutdown,
         tab::{TabRecv, TabSend},
+        tab_assignment::{AssignTab, TabAssignmentRetraction},
         tab_manager::{TabManagerRecv, TabManagerSend},
     },
-    state::{assignment::Retraction, tab::TabsState},
+    state::tab::TabsState,
 };
 use lifeline::error::into_msg;
-use tab_api::tab::TabMetadata;
+
 use tab_websocket::{bus::WebsocketListenerBus, message::listener::WebsocketConnectionMessage};
 use tokio::sync::{broadcast, mpsc, watch};
 
@@ -39,8 +40,12 @@ impl Message<ListenerBus> for TabManagerRecv {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<ListenerBus> for Retraction<TabMetadata> {
+impl Message<ListenerBus> for AssignTab {
     type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<ListenerBus> for TabAssignmentRetraction {
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<ListenerBus> for TabsState {
