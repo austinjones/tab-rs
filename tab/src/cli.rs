@@ -45,6 +45,21 @@ fn app() -> App<'static, 'static> {
                 .help("generates a histfile for the given shell, and the tab in argument 1"),
         )
         .arg(
+            Arg::with_name("STARSHIP")
+                .long("starship")
+                .takes_value(false)
+                .hidden(true)
+        )
+        .arg(
+            Arg::with_name("INSTALL")
+                .long("install")
+                .required(false)
+                .min_values(1)
+                .multiple(true)
+                .possible_values(&["all", "bash", "fish", "starship", "zsh"])
+                .help("automatically installs completions & statusline integrations."),
+        )
+        .arg(
             Arg::with_name("LIST")
                 .short("l")
                 .long("list")

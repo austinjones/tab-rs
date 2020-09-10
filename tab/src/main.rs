@@ -2,6 +2,7 @@
 //!
 
 pub mod cli;
+mod install;
 use cli::init;
 use tab_api::{config::history_path, tab::normalize_name};
 
@@ -42,6 +43,19 @@ pub fn main() -> anyhow::Result<()> {
 
         let histfile = history_path(shell, &normalize_name(tab))?;
         print!("{}", histfile.to_string_lossy());
+
+        Ok(())
+    } else if let Some(args) = args.values_of("INSTALL") {
+        install::run(args)
+    } else if args.is_present("STARSHIP") {
+        // used for the starship prompt
+        let tab = std::env::var("TAB");
+
+        if let Err(_) = tab {
+            std::process::exit(1);
+        }
+
+        print!("tab {}", tab.unwrap());
 
         Ok(())
     } else {
