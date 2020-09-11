@@ -36,12 +36,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}          
           restore-keys: |
             ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo-release-
             ${{ runner.os }}-cargo-
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
 
       - name: Setup | musl tools
         if: steps.cargo-cache.outputs.cache-hit != 'true' && matrix.target == 'x86_64-unknown-linux-musl'
@@ -90,12 +98,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}          
           restore-keys: |
             ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo-release-
             ${{ runner.os }}-cargo-
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: ${{ matrix.target }}
 
       - name: Setup | musl tools
         if: matrix.target == 'x86_64-unknown-linux-musl'
