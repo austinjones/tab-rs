@@ -10,7 +10,7 @@
 
 **- State-agnostic:**  Tab provides a simple, consistent interface that works anywhere, in any state.
 
-**- Autocompleted:**  Tab provides dynamic autocompletion, so you can get oriented, and context switch fast.
+**- Autocompleted:**  Tab provides dynamic autocomplete, so you can get oriented, and context switch fast.
 
 **- Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
