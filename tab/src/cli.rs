@@ -6,9 +6,11 @@ pub fn init() -> ArgMatches<'static> {
     app().get_matches()
 }
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn app() -> App<'static, 'static> {
     App::new("Terminal Multiplexer")
-        .version("v0.2")
+        .version(VERSION)
         .name("tab")
         .author("Austin Jones <implAustin@gmail.com>")
         .about("`tab`, a modern terminal multiplexer designed for overwhelmed software & systems engineers.")
