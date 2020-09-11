@@ -4,7 +4,7 @@
 
 <img align="right" width=400 height=400 src="./readme/tab-vectr.svg">
 
-**- Intuitive:**  Tabs are listed, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
+**- Intuitive:**  Tabs are discovered, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
 
 **- Config-driven:**  `tab` provides persistent, configurable tabs with unique command history, working directories, and docstrings.
 
