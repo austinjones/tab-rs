@@ -4,13 +4,13 @@
 
 <img align="right" width=400 height=400 src="./readme/tab-vectr.svg">
 
-**- Configuration-driven:**  `tab` provides persistent, configurable tabs with unique command history and working directories.
+**- Intuitive:**  Tabs are listed, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
 
-**- Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
+**- Config-driven:**  `tab` provides persistent, configurable tabs with unique command history, working directories, and docstrings.
 
-**- State-agnostic:**  Tab provides a simple, consistent interface that works with any existing state.
+**- State-agnostic:**  Tab provides a simple, consistent interface that works anywhere, in any state.
 
-**- Rich & dynamic auto-complete:**  Tab provides dynamic autocompletion, so you can get oriented, and context switch fast.
+**- Autocompleted:**  Tab provides dynamic autocompletion, so you can get oriented, and context switch fast.
 
 **- Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
