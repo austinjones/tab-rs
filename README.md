@@ -2,13 +2,15 @@
 
 **The intuitive, config-driven terminal multiplexer designed for software & systems engineers**
 
+<img align="right" width=400 height=400 src="./readme/tab-vectr.svg">
+
 - **Configuration-driven:**  `tab` provides persistent, configurable tabs which you can rely on to organize your daily context-switches.
 - **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab uses your terminal emulator's natural scrollback buffer.  Tab has first-class support for `bash`, `fish`, and `zsh`.
 - **State-agnostic:**  You can ask `tab` to do anything, from anywhere.  Tabs are selected & closed using the same interface, regardless of whether they are attached, running, terminated, etc.
 - **Rich & dynamic auto-complete:**  Your library of tabs are auto-completed when switching to a new tab with `tab <TAB>` .  Your running tabs are auto-completed when closing a tab with `tab -w <TAB>`.
 - **Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
-## Quickstart
+# Quickstart
 Quick installation & usage instructions:
 ```
 $ brew install austinjones/taps/tab
