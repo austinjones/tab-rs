@@ -4,10 +4,10 @@
 
 <img align="right" width=400 height=400 src="./readme/tab-vectr.svg">
 
-- **Configuration-driven:**  `tab` provides persistent, configurable tabs which you can rely on to organize your daily context-switches.
-- **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`.  Tab has _one_ disconnect escape sequence, `ctrl-W`.  Tab uses your terminal emulator's natural scrollback buffer.  Tab has first-class support for `bash`, `fish`, and `zsh`.
-- **State-agnostic:**  You can ask `tab` to do anything, from anywhere.  Tabs are selected & closed using the same interface, regardless of whether they are attached, running, terminated, etc.
-- **Rich & dynamic auto-complete:**  Your library of tabs are auto-completed when switching to a new tab with `tab <TAB>` .  Your running tabs are auto-completed when closing a tab with `tab -w <TAB>`.
+- **Configuration-driven:**  `tab` provides persistent, configurable tabs with unique command history and working directories.
+- **Intuitive and shell-oriented:**.  Tabs are listed, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
+- **State-agnostic:**  Tab provides a simple, consistent interface that works with any existing state.
+- **Rich & dynamic auto-complete:**  Tab provides dynamic autocompletion, so you can get oriented, and context switch fast.
 - **Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
 # Quickstart
@@ -145,4 +145,4 @@ Tab can execute commands in a terminal, so I take security seriously.  This is h
 The `tab` daemon requires the following to accept any websocket connection:
 - The request must include a 128 byte auth token, stored in the file: `~/.tab/daemon-pid.yml`.  On unix operating systems, the file is assigned the permissions `600`.
 - The `Origin` header must not be present in the request.  This prevents any connection from a browser.
-- The daemon binds to `127.0.0.1` on a random port.  This should prevent any attempted connections from the local network.
+- The daemon binds to `127.0.0.1`.  This should prevent any attempted connections from the local network.
