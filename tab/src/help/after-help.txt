@@ -1,8 +1,8 @@
 CONFIG:
-    If provided configuration, tab will provide a list of permanent tabs, print docstrings, and 
+    Tab can be configured with `tab.yml` files in your workspace and repository roots.
+
+    Using these configs, tab will provide a permanent list of tabs, print docstrings, and 
       automatically set your working directory.
-    
-    Create a `tab.yml` in your workspace root, and one more for each repo you wish to customize.
 
     Examples are available at: https://github.com/austinjones/tab-rs/tree/master/examples
 
@@ -19,5 +19,7 @@ SECURITY:
           On unix operating systems, the file is assigned the permissions `600`.
       - The `Origin` header must not be present in the request.  
           This prevents any connection from your browser.
-      - Websocket listeners bind to `127.0.0.1` on a random port.  
+      - Websocket listeners bind to `127.0.0.1`.  
           This should prevent any attempted connections from the local network.
+
+(c) 2020 Austin Jones, under the MIT license

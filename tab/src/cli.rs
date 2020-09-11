@@ -21,28 +21,28 @@ fn app() -> App<'static, 'static> {
                 .hidden(true)
                 .takes_value(true)
                 .possible_values(&["daemon", "pty"])
-                .help("launches the daemon or a new pty process with `tab --_launch [daemon|pty]"),
+                .help("Launches the daemon or a new pty process with `tab --_launch [daemon|pty]"),
         )
         .arg(
             Arg::with_name("AUTOCOMPLETE-TAB")
                 .long("_autocomplete_tab")
                 .hidden(true)
                 .takes_value(false)
-                .help("autocompletes for the `tab <SELECT>` command"),
+                .help("Autocompletes for the `tab <SELECT>` command"),
         )
         .arg(
             Arg::with_name("AUTOCOMPLETE-CLOSE-TAB")
                 .long("_autocomplete_close_tab")
                 .hidden(true)
                 .takes_value(false)
-                .help("autocompletes for the `tab -w <CLOSE>` command"),
+                .help("Autocompletes for the `tab -w <CLOSE>` command"),
         )
         .arg(
             Arg::with_name("HISTFILE-SHELL")
                 .long("_histfile")
                 .hidden(true)
                 .takes_value(true)
-                .help("generates a histfile for the given shell, and the tab in argument 1"),
+                .help("Generates a histfile for the given shell, and the tab in argument 1"),
         )
         .arg(
             Arg::with_name("STARSHIP")
@@ -57,14 +57,14 @@ fn app() -> App<'static, 'static> {
                 .min_values(1)
                 .multiple(true)
                 .possible_values(&["all", "bash", "fish", "starship", "zsh"])
-                .help("automatically installs completions & statusline integrations."),
+                .help("Automatically installs completions & statusline integrations."),
         )
         .arg(
             Arg::with_name("LIST")
                 .short("l")
                 .long("list")
                 .display_order(0)
-                .help("lists the active tabs"),
+                .help("Lists the active tabs"),
         )
         .arg(
             Arg::with_name("SHUTDOWN")
@@ -72,7 +72,7 @@ fn app() -> App<'static, 'static> {
                 .long("shutdown")
                 .takes_value(false)
                 .display_order(2)
-                .help("terminates the tab daemon and all active pty sessions"),
+                .help("Terminates the tab daemon and all active pty sessions"),
         )
         .arg(
             Arg::with_name("CLOSE-TAB")
@@ -81,7 +81,7 @@ fn app() -> App<'static, 'static> {
                 .takes_value(true)
                 .value_name("TAB")
                 .validator(validate_tab_name)
-                .help("closes the tab with the given name")
+                .help("Closes the tab with the given name")
         )
         .arg(
             Arg::with_name("COMPLETION")
@@ -89,11 +89,11 @@ fn app() -> App<'static, 'static> {
                 .required(false)
                 .takes_value(true)
                 .possible_values(&["bash", "elvish", "fish", "powershell", "zsh"])
-                .help("prints the raw tab completion script"),
+                .help("Prints the raw tab completion script"),
         )
         .arg(
             Arg::with_name("TAB-NAME")
-                .help("switches to the provided tab")
+                .help("Switches to the provided tab")
                 .required(false)
                 .value_name("TAB")
                 .conflicts_with_all(&["CLOSE-TAB", "LIST", "SHUTDOWN"])
