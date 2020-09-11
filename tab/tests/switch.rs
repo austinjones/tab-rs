@@ -46,6 +46,7 @@ async fn switch() -> anyhow::Result<()> {
         .await_stdout("echo b", 1000)
         .await_stdout("b", 100)
         .stdin("exit\n")
+        .await_stdout("exit", 200)
         .run()
         .await?;
 
