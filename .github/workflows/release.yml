@@ -29,7 +29,8 @@ jobs:
       - name: Setup | Checkout
         uses: actions/checkout@v2
 
-      - name: Setup | Cache Cargo
+      - id: cargo-cache
+        name: Setup | Cache Cargo
         uses: actions/cache@v2
         with:
           path: |
@@ -43,13 +44,15 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Setup | musl tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
+        if: steps.cargo-cache.outputs.cache-hit != 'true' && matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt install -y musl-tools
 
       - name: Build | Dependencies
+        if: steps.cargo-cache.outputs.cache-hit != 'true' 
         run: cargo build --release --bin tab --target ${{ matrix.target }}
 
       - name: Build | Dev Dependencies
+        if: steps.cargo-cache.outputs.cache-hit != 'true' 
         run: cargo test --release --target ${{ matrix.target }} --no-run
 
   binaries:
