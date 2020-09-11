@@ -11,8 +11,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tab-api = "0.2.0"
-tab-websocket = "0.2.2"
+tab-api = "0.3.0"
+tab-websocket = "0.3.0"
 lifeline = "0.3"
 
 dirs = "3.0"
