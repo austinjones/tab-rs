@@ -4,8 +4,57 @@ on:
     types: [published]
 
 jobs:
+  dependencies:
+    name: cargo build --dependencies
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - x86_64-apple-darwin
+          # - x86_64-pc-windows-msvc
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
+          #   name: tab-x86_64-pc-windows-msvc.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}          
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo-release-
+            ${{ runner.os }}-cargo-
+
+      - name: Setup | musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt install -y musl-tools
+
+      - name: Build | Dependencies
+        run: cargo build --release --bin tab --target ${{ matrix.target }}
+
+      - name: Build | Dev Dependencies
+        run: cargo test --release --target ${{ matrix.target }} --no-run
+
   binaries:
-    name: cargo build
+    name: cargo build --bin tab
+    needs: dependencies
     strategy:
       fail-fast: false
       matrix:
@@ -38,20 +87,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             target
           key: ${{ runner.os }}-cargo-release-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}          
           restore-keys: |
             ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo-release-
             ${{ runner.os }}-cargo-
-
-      - name: Setup | Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          target: ${{ matrix.target }}
 
       - name: Setup | musl tools
         if: matrix.target == 'x86_64-unknown-linux-musl'
