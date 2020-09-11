@@ -1,6 +1,6 @@
 [package]
 name = "tab"
-version = "0.2.2"
+version = "0.3.0"
 description = "a modern terminal multiplexer designed for software & systems engineers"
 keywords = ["cli", "terminal", "tool"]
 categories = ["command-line-utilities"]
