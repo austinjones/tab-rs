@@ -1141,7 +1141,7 @@ dependencies = [
  "simplelog 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "strip-ansi-escapes 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-api 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-command 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-command 0.3.0",
  "tab-daemon 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1199,25 +1199,6 @@ dependencies = [
  "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-test 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tab-command"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
- "clap 2.33.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "crossterm 0.17.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "lifeline 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_yaml 0.8.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "simplelog 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-api 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror 1.0.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1846,7 +1827,6 @@ dependencies = [
 "checksum syn 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)" = "963f7d3cc59b59b9325165add223142bbf1df27655d07789f109896d353d8350"
 "checksum sysinfo 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)" = "13816d558f404113dfdf855ed982f160cf697b3e573a68b2b798062032182212"
 "checksum tab-api 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b42316d196336c28c19c0c4de9aa442b2f23fcc565e24595b94be6457dd9db91"
-"checksum tab-command 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dc10d891103d6e86a60f914b1bcaf7a82083cc159f6a34cb03b48607627041ee"
 "checksum tab-daemon 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e7db8e5e303a731b225cffe29d8211ba0f5d713354b79db2da2d451ee6cd14bf"
 "checksum tab-pty 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "69b47c831d7658ee591799273714ce6dfe325b1cfc9baeeef9a2a30626599f79"
 "checksum tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f4b92455283e9992144259f518c09f80f15493329d0a3dc6700d15bd3547ab2d"

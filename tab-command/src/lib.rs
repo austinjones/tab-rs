@@ -1,7 +1,7 @@
 use clap::ArgMatches;
 
 use crate::prelude::*;
-use service::main::*;
+use service::{main::*, terminal::disable_raw_mode};
 
 use simplelog::{TermLogger, TerminalMode};
 
@@ -21,7 +21,7 @@ mod state;
 
 pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
     TermLogger::init(
-        LevelFilter::Warn,
+        LevelFilter::Debug,
         simplelog::ConfigBuilder::new()
             .set_time_format_str("%H:%M:%S%.3f CMD")
             .build(),
@@ -75,6 +75,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     }
 
     wait_for_shutdown(rx_shutdown).await;
+    disable_raw_mode();
 
     Ok(())
 }
