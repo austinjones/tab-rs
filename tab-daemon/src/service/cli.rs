@@ -680,6 +680,69 @@ mod recv_tests {
     }
 
     #[tokio::test]
+    async fn output_repairs_overlap() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx_subscription = bus.tx::<Subscription<TabId>>()?;
+        let rx_subscription = bus.rx::<Subscription<TabId>>()?.into_inner();
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        tx_subscription
+            .send(Subscription::Subscribe(TabId(0)))
+            .await?;
+
+        assert_completes!(async {
+            while !rx_subscription.contains(&TabId(0)) {
+                time::delay_for(Duration::from_millis(5)).await;
+            }
+        });
+
+        let output = OutputChunk {
+            index: 1,
+            data: vec![1, 2],
+        };
+
+        tx.send(CliRecv::Output(TabId(0), output)).await?;
+
+        let output = OutputChunk {
+            index: 2,
+            data: vec![2, 3, 4],
+        };
+
+        tx.send(CliRecv::Output(TabId(0), output)).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(Response::Output(
+                    TabId(0),
+                    OutputChunk {
+                        index: 1,
+                        data: vec![1, 2]
+                    }
+                )),
+                msg
+            );
+
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(Response::Output(
+                    TabId(0),
+                    OutputChunk {
+                        index: 3,
+                        data: vec![3, 4]
+                    }
+                )),
+                msg
+            );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn output_ignores_unsubscribed() -> anyhow::Result<()> {
         let bus = CliBus::default();
         let _service = CliService::spawn(&bus)?;
