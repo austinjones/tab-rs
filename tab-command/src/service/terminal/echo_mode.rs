@@ -1,8 +1,8 @@
 use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tab_api::env::is_raw_mode;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub fn enable_raw_mode() {
     if is_raw_mode() {

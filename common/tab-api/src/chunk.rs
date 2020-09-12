@@ -21,7 +21,7 @@ impl OutputChunk {
     }
 
     /// Returns true if this chunk's data contains the given index
-    pub fn contains(&self, index: usize) -> bool {  
+    pub fn contains(&self, index: usize) -> bool {
         index >= self.start() && index < self.end()
     }
 
