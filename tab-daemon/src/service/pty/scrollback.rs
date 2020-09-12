@@ -111,12 +111,19 @@ impl ScrollbackBuffer {
             if back.len() + chunk.len() < MAX_CHUNK_LEN {
                 self.size += chunk.len();
 
+                debug!("scrollback appending stdin chunk {}..{} to existing chunk {}..{}", 
+                    chunk.start(), chunk.end(),
+                    back.start(), back.end()
+                );
                 back.data.append(&mut chunk.data);
-                back.index = chunk.index;
 
                 return;
             }
         }
+
+        debug!("scrollback pushing new chunk {}..{}", 
+            chunk.start(), chunk.end()
+        );
 
         self.size += chunk.len();
         self.queue.push_back(chunk);

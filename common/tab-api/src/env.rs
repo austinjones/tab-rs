@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 use tokio::process::Command;
 
 /// Instructs the command module that it should interact with the terminal in raw mode
@@ -23,7 +23,7 @@ pub const FORWARD_ENV_VARS: &[&str] = &[
 pub fn forward_env(child: &mut Command) {
     for var in crate::env::FORWARD_ENV_VARS.iter().copied() {
         if let Ok(value) = std::env::var(var) {
-            info!("forwarding env {} as {}", var, &value);
+            debug!("forwarding env {} as {}", var, &value);
             child.env(var, value);
         }
     }
@@ -34,7 +34,7 @@ pub fn forward_env(child: &mut Command) {
 pub fn forward_env_std(child: &mut std::process::Command) {
     for var in crate::env::FORWARD_ENV_VARS.iter().copied() {
         if let Ok(value) = std::env::var(var) {
-            info!("forwarding env {} as {}", var, &value);
+            debug!("forwarding env {} as {}", var, &value);
             child.env(var, value);
         }
     }

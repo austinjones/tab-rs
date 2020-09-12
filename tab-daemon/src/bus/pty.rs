@@ -90,7 +90,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                             }
 
                             if let Some(assignment) = offer.accept() {
-                                info!("accepted offer for service on tab {}", assignment.id);
+                                info!("New PTY connected on tab {}", assignment.id);
 
                                 tx_pty_state.send(PtyState::Assigned(assignment.id)).await?;
                                 tx_pty.send(PtyRecv::Init(assignment)).await?;

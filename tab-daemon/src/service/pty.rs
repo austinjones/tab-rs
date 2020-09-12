@@ -43,7 +43,7 @@ impl Service for PtyService {
                             tx_daemon.send(PtySend::Output(output)).await?;
                         }
                         PtyWebsocketResponse::Stopped => {
-                            info!("received pty shutdown notification");
+                            debug!("received pty shutdown notification");
                             tx_daemon.send(PtySend::Stopped).await?;
                             time::delay_for(Duration::from_millis(100)).await;
                             tx_shutdown.send(PtyShutdown {}).await?;
@@ -65,7 +65,7 @@ impl Service for PtyService {
                 while let Some(msg) = rx_daemon.recv().await {
                     match msg {
                         PtyRecv::Init(init) => {
-                            info!("pty initialized on tab {}", init.id);
+                            info!("PTY initialized on tab {}", init.id);
                             let message = PtyWebsocketRequest::Init(init);
                             tx_websocket.send(message).await?;
                         }
@@ -79,7 +79,7 @@ impl Service for PtyService {
                             tx_websocket.send(message).await?;
                         }
                         PtyRecv::Terminate => {
-                            info!("pty process notified daemon of shutdown");
+                            info!("PTY process terminating due to shell process shutdown");
                             tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
 
                             time::delay_for(Duration::from_millis(50)).await;

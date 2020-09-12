@@ -66,6 +66,10 @@ async fn forward_stdin(
 
         // this is ctrl-w
         if buf.contains(&23u8) {
+            // write a newline.
+            // this prevents a situation like this:
+            // $ child terminal <ctrl-W> $ parent terminal
+            tokio::io::stdout().write("\r\n".as_bytes()).await?;
             tx_shutdown.send(TerminalShutdown {}).await?;
             break;
         }

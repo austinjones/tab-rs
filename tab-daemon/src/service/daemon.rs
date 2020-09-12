@@ -46,7 +46,7 @@ impl Service for TabdirShutdownService {
                 let config_dir = dotdir_path()?;
                 if !config_dir.is_dir() {
                     info!(
-                        "shutdown triggered - tabdir was removed: {}",
+                        "Daemon shutdown triggered by removed runtime directory: {}",
                         config_dir.as_path().to_string_lossy()
                     );
                     tx.send(DaemonShutdown {}).await.ok();

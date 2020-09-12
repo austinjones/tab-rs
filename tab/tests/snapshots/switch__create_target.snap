@@ -1,0 +1,8 @@
+---
+source: tab/tests/switch.rs
+expression: result.stdout
+---
+$ echo target
+target
+$ 
+

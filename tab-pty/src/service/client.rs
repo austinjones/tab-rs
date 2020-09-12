@@ -65,7 +65,7 @@ impl ClientService {
                     env.insert("TAB_ID".to_string(), create.id.0.to_string());
 
                     let shell = resolve_shell(create.shell.as_str());
-                    info!("shell detection: {:?}", shell);
+                    debug!("shell detection: {:?}", shell);
                     match shell {
                         Shell::Sh => {
                             let home = history_path("sh", create.name.as_str())?;
@@ -107,11 +107,12 @@ impl ClientService {
 
                     if !is_raw_mode() {
                         // if we are in test mode, try to make the terminal as predictable as possible
-                        info!("setting debug PS1 line");
+                        info!("Raw mode is disabled.  Launching in non-interactive debug mode.");
                         env.insert("PS1".into(), "$ ".into());
                         if let Shell::Bash = shell {
                             args.push("--noprofile".into());
                             args.push("--norc".into());
+                            args.push("--noediting".into());
                             env.insert("BASH_SILENCE_DEPRECATION_WARNING".into(), "1".into());
                         }
                     }
@@ -129,7 +130,7 @@ impl ClientService {
                     let session = ClientSessionService::spawn(&pty_bus)?;
                     _session = Some(session);
 
-                    info!("tab initialized, name {}", name);
+                    debug!("tab initialized, name {}", name);
                     tx.send(PtyWebsocketResponse::Started(create)).await?;
                 }
                 PtyWebsocketRequest::Input(_) => {}
@@ -201,7 +202,7 @@ impl ClientSessionService {
                     tx_pty.send(message).await.ok();
                 }
                 PtyWebsocketRequest::Terminate => {
-                    info!("received termination request over websocket. terminating.");
+                    info!("Terminating due to command request.");
 
                     tx_pty.send(PtyRequest::Shutdown).await.ok();
 
@@ -231,9 +232,11 @@ impl ClientSessionService {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
                 PtyResponse::Terminated(code) => {
-                    info!("pty child process terminated with status: {:?}", &code);
+                    debug!("pty child process terminated with status: {:?}", &code);
+
                     tx.send(PtyWebsocketResponse::Stopped).await?;
-                    time::delay_for(Duration::from_millis(100)).await;
+
+                    time::delay_for(Duration::from_millis(500)).await;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }

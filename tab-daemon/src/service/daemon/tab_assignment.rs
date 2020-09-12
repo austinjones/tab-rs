@@ -74,16 +74,15 @@ impl Service for TabAssignmentService {
             Self::try_task("spawn_pty", async move {
                 let mut last_spawn: Option<Instant> = None;
                 while let Some(_) = rx.recv().await {
-                    info!("got tabassign retract");
                     if last_spawn
                         .map(|inst| Instant::now().duration_since(inst) > SPAWN_DELAY)
                         .unwrap_or(true)
                     {
-                        info!("launching pty process");
+                        debug!("launching pty process");
                         launch_pty()?;
 
                         while let Ok(_) = rx.inner_mut().try_recv() {
-                            info!("launching pty process");
+                            debug!("launching pty process");
                             launch_pty()?;
                         }
 

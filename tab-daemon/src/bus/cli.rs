@@ -85,7 +85,7 @@ impl CarryFrom<ListenerBus> for CliBus {
         let _reverse = {
             let rx_conn = self.rx::<CliSend>()?;
 
-            let tx_tab = from.tx::<TabRecv>()?;
+            let tx_tab = from.tx::<TabRecv>()?.log();
             let tx_manager = from.tx::<TabManagerRecv>()?;
             let tx_shutdown = self.tx::<CliShutdown>()?;
             let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
@@ -112,7 +112,7 @@ impl CarryFrom<ListenerBus> for CliBus {
             let mut tx_tabs_state = self.tx::<TabsState>()?;
             Self::try_task("forward_tabs_state", async move {
                 while let Some(msg) = rx_tabs_state.recv().await {
-                    tx_tabs_state.send(msg).await?;
+                    tx_tabs_state.send(msg).await.ok();
                 }
 
                 Ok(())
@@ -180,7 +180,7 @@ impl CliBus {
                     tx.send(message).await?;
                 }
                 CliSend::GlobalShutdown => {
-                    info!("global shutdown received");
+                    info!("Daemon receieved a global shutdown.");
                     tx.send(TabRecv::TerminateAll).await?;
                     tx_listener_shutdown.send(ListenerShutdown {}).await?;
                     time::delay_for(Duration::from_millis(50)).await;
@@ -188,10 +188,7 @@ impl CliBus {
             }
         }
 
-        tx_shutdown
-            .send(CliShutdown {})
-            .await
-            .context("tx ConnectionShutdown closed")?;
+        tx_shutdown.send(CliShutdown {}).await.ok();
 
         Ok(())
     }
@@ -219,7 +216,7 @@ impl CliBus {
         match msg {
             TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
             TabSend::Stopped(id) => {
-                info!("notifying client of terminated tab {}", id);
+                info!("Disconnecting client due to closed tab {}", id);
                 tx.send(CliRecv::TabStopped(id)).await?;
             }
             TabSend::Scrollback(scrollback) => {
@@ -241,7 +238,7 @@ impl CliBus {
                     return Ok(());
                 }
 
-                info!("retasking client from {:?} to {:?}", from, to);
+                info!("Retasking client from {:?} to {:?}", from, to);
                 tx.send(CliRecv::Retask(from, to)).await?;
             }
         };
@@ -333,7 +330,7 @@ mod forward_tests {
             data: vec![0, 1],
         });
         buffer.push(OutputChunk {
-            index: 1,
+            index: 2,
             data: vec![1, 2],
         });
         let scrollback = PtyScrollback::new(Arc::new(Mutex::new(buffer)));
@@ -350,7 +347,7 @@ mod forward_tests {
                 let mut iter = scroll.scrollback().await;
                 assert_eq!(
                     Some(OutputChunk {
-                        index: 1,
+                        index: 0,
                         data: vec![0, 1, 1, 2]
                     }),
                     iter.next()
