@@ -1302,7 +1302,7 @@ dependencies = [
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api 0.3.0",
+ "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-command",
  "tab-daemon",
  "tab-pty",
@@ -1311,23 +1311,6 @@ dependencies = [
  "tokio-test",
  "toml_edit",
  "which",
-]
-
-[[package]]
-name = "tab-api"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b42316d196336c28c19c0c4de9aa442b2f23fcc565e24595b94be6457dd9db91"
-dependencies = [
- "anyhow",
- "dirs",
- "lifeline",
- "log",
- "serde",
- "serde_yaml",
- "sysinfo",
- "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -1347,8 +1330,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "tab-api"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1287e3cfd102bd03e4c1a0ed50394d39ed862b6a08fb0d0daa89854f460209a8"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lifeline",
+ "log",
+ "serde",
+ "serde_yaml",
+ "snailquote",
+ "sysinfo",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "tab-command"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -1358,7 +1359,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.0",
+ "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1367,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "tab-daemon"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1380,7 +1381,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.0",
+ "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1391,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "tab-pty"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1404,7 +1405,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.0",
+ "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty-process",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
