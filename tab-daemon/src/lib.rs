@@ -8,9 +8,12 @@ use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
-use tab_api::config::{daemon_log, DaemonConfig};
+use tab_api::{
+    config::{daemon_log, DaemonConfig},
+    launch::wait_for_shutdown,
+};
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
-use tokio::{net::TcpListener, select, signal::ctrl_c};
+use tokio::net::TcpListener;
 
 mod auth;
 mod bus;
@@ -66,7 +69,7 @@ async fn main_async() -> anyhow::Result<()> {
         .build();
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Info, config.clone(), TerminalMode::Stderr),
-        WriteLogger::new(LevelFilter::Debug, config, std::fs::File::create(log_file)?),
+        WriteLogger::new(LevelFilter::Info, config, std::fs::File::create(log_file)?),
     ])
     .unwrap();
 
@@ -79,22 +82,11 @@ async fn main_async() -> anyhow::Result<()> {
     info!("Daemon port: {}", config.port);
 
     let _service = DaemonService::spawn(&bus)?;
-    let mut shutdown = bus.rx::<DaemonShutdown>()?;
+    let shutdown = bus.rx::<DaemonShutdown>()?;
 
-    info!("Waiting for termination");
-    loop {
-        select! {
-            _ = ctrl_c() => {
-                break;
-            },
-            _ = shutdown.recv() => {
-                info!("daemon shutdown received");
-                break;
-            }
-        }
-    }
+    wait_for_shutdown(shutdown).await;
 
-    info!("tab daemon shutting down...");
+    info!("Daemon shutdown.");
     drop(daemon_file);
 
     Ok(())

@@ -57,7 +57,7 @@ impl Service for TabdirShutdownService {
                 let config_dir = dotdir_path()?;
                 if !config_dir.is_dir() {
                     info!(
-                        "shutdown triggered - tabdir was removed: {}",
+                        "PTY shutdown triggered by removed runtime directory: {}",
                         config_dir.as_path().to_string_lossy()
                     );
 

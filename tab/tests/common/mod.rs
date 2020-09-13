@@ -101,7 +101,8 @@ impl<'s> TestCommand<'s> {
     pub async fn run(&mut self) -> anyhow::Result<TestResult> {
         setup();
 
-        info!("connecting to tab: {}", self.tab.as_str());
+        info!("");
+        info!("Tab command initalizing: {}", self.tab.as_str());
 
         let mut run = tokio::process::Command::new(self.session.binary());
         run.arg(self.tab.as_str())
@@ -128,13 +129,15 @@ impl<'s> TestCommand<'s> {
                 for action in &self.actions {
                     match action {
                         Action::Delay(duration) => {
-                            info!("[test] sleeping for {:?}", &duration);
+                            info!("Sleeping for {:?}", &duration);
                             time::delay_for(duration.clone()).await
                         }
                         Action::Stdin(input) => {
                             info!(
-                                "[test] writing stdin: '{}'",
-                                std::str::from_utf8(input.as_slice()).unwrap_or("").trim()
+                                "Writing stdin: {}",
+                                snailquote::escape(
+                                    std::str::from_utf8(input.as_slice()).unwrap_or("")
+                                )
                             );
                             stdin
                                 .write_all(input.as_slice())
@@ -143,18 +146,20 @@ impl<'s> TestCommand<'s> {
                             stdin.flush().await.expect("failed to flush stdin");
                         }
                         Action::AwaitStdout(match_target, timeout) => {
-                            let string = std::str::from_utf8(match_target.as_slice()).unwrap_or("");
-                            info!("[test] awaiting stdout: '{}'", string);
+                            let string = snailquote::escape(
+                                std::str::from_utf8(match_target.as_slice()).unwrap_or(""),
+                            );
+                            debug!("Awaiting stdout: {}", string);
 
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
                                 if Instant::now().duration_since(start_time) > *timeout {
-                                    warn!("[test] await timeout for stdin: '{}'", string.trim());
+                                    error!("Await timeout for stdout: {}", string);
                                     break;
                                 }
 
-                                let timeout = time::timeout(Duration::from_millis(500), async {
+                                let timeout = time::timeout(Duration::from_millis(1000), async {
                                     stdout
                                         .read_buf(&mut buf.as_mut_slice())
                                         .await
@@ -163,6 +168,7 @@ impl<'s> TestCommand<'s> {
                                 .await;
 
                                 if let Err(_e) = timeout {
+                                    warn!("test read timeout");
                                     continue;
                                 }
 
@@ -175,7 +181,7 @@ impl<'s> TestCommand<'s> {
                                     match_target.as_slice(),
                                 ) {
                                     search_index += index + match_target.len();
-                                    info!("stdout match found");
+                                    debug!("stdout match found");
                                     break;
                                 }
                             }
@@ -201,13 +207,17 @@ impl<'s> TestCommand<'s> {
         let stdout_buffer =
             strip_ansi_escapes::strip(&stdout_buffer).expect("couldn't strip escape sequences");
         let stdout = std::str::from_utf8(stdout_buffer.as_slice())?.to_string();
+        // the PTY sometimes cannot forward the final exit message before it quits
+        // adding sleeps was not an option, as users are waiting for the exit to occur so they can context switch
+        // we strip this message here, so it doesn't appear in the snapshot
+        let stdout = stdout.replace("\nexit\n", "\n");
 
         let result = TestResult {
             exit_status: code?,
             stdout,
         };
 
-        info!("disconnected/terminated tab: {}", self.tab.as_str());
+        info!("Tab command terminated: {}", self.tab.as_str());
 
         Ok(result)
     }
@@ -234,7 +244,12 @@ impl TestSession {
         setup();
 
         let dir = tempdir().context("failed to create tempdir")?;
-        info!("launching tests in dir: {}", dir.path().to_string_lossy());
+        info!("");
+        info!("--------------------------------------------------------");
+        info!(
+            "Created test session in tempdir: {}",
+            dir.path().to_string_lossy()
+        );
 
         let binary = assert_cmd::cargo::cargo_bin("tab");
 

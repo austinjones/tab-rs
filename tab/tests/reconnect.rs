@@ -9,9 +9,18 @@ use common::*;
 async fn reconnect() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
+    for i in 0..5 {
+        reconnect_iter(&mut session, i).await?;
+    }
+
+    Ok(())
+}
+
+async fn reconnect_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<()> {
+    let tab = format!("reconnect/{}/", iter);
     let result = session
         .command()
-        .tab("reconnect/")
+        .tab(tab.as_str())
         .await_stdout("$", 5000)
         .stdin("echo foo\n")
         .await_stdout("echo foo", 1000)
@@ -25,7 +34,7 @@ async fn reconnect() -> anyhow::Result<()> {
 
     let result = session
         .command()
-        .tab("reconnect/")
+        .tab(tab.as_str())
         .await_stdout("foo", 5000)
         .stdin("exit\n")
         .await_stdout("exit", 200)

@@ -224,6 +224,11 @@ impl CarryFrom<MainBus> for TabBus {
                                     debug!("retask - sending retask to tab {}", id);
                                     let request = Request::Retask(id, metadata.id);
                                     tx_websocket.send(request).await?;
+
+                                    // if we quit too early, the carrier is cancelled and our message doesn't get through.
+                                    // this sleep is not visible to the user, as the outer terminal session will emit new stdout
+                                    time::delay_for(Duration::from_millis(250)).await;
+
                                     tx_shutdown.send(MainShutdown {}).await?;
                                     continue;
                                 }

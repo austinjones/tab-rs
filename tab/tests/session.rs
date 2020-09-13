@@ -9,9 +9,19 @@ mod common;
 async fn session() -> anyhow::Result<()> {
     let mut session = TestSession::new()?;
 
+    for i in 0..10 {
+        session_iter(&mut session, i).await?;
+    }
+
+    Ok(())
+}
+
+async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<()> {
+    let tab = format!("session/{}/", iter);
+
     let result = session
         .command()
-        .tab("session/")
+        .tab(tab)
         .await_stdout("$", 5000)
         .stdin("echo foo\n")
         .await_stdout("echo foo", 1000)

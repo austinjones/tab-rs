@@ -1,0 +1,11 @@
+---
+source: tab/tests/switch.rs
+expression: result.stdout
+---
+$ echo from
+from
+$ $TAB_BIN target/
+$ echo target
+target
+$ 
+

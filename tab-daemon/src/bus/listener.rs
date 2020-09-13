@@ -66,7 +66,7 @@ impl CarryFrom<DaemonBus> for ListenerBus {
 
             Self::task("forward_shutdown", async move {
                 if let Some(_shutdown) = rx.recv().await {
-                    info!("listener shutdown");
+                    debug!("listener shutdown");
                     tx.send(DaemonShutdown {}).await.ok();
                 }
             })

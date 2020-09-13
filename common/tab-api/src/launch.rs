@@ -101,8 +101,6 @@ pub fn launch_pty() -> anyhow::Result<()> {
 ///
 /// Useful in main() functions.
 pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
-    info!("Waiting for termination");
-
     loop {
         select! {
             _ = ctrl_c() => {
@@ -113,6 +111,4 @@ pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
             }
         }
     }
-
-    info!("Complete.  Shutting down");
 }

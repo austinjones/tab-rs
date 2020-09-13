@@ -120,7 +120,7 @@ impl PtyService {
                 continue;
             }
 
-            info!("Read {} bytes", read);
+            trace!("Read {} bytes", read);
 
             let mut buf = vec![0; read];
             buf.copy_from_slice(&buffer[0..read]);
@@ -129,7 +129,7 @@ impl PtyService {
             let response = PtyResponse::Output(chunk);
 
             tx.send(response).await.ok();
-            index += 1;
+            index += read;
 
             // a very short delay allows things to batch up
             // without any buffering, the message rate can get very high
@@ -145,21 +145,21 @@ impl PtyService {
                         error!("failed to resize pty: {:?}", e);
                     }
 
-                    info!("resized to dimensions: {:?}", &dimensions);
+                    debug!("resized to dimensions: {:?}", &dimensions);
                 }
                 PtyRequest::Input(chunk) => Self::write_stdin(&mut stdin, chunk).await,
                 PtyRequest::Shutdown => {
-                    info!("terminating pty");
+                    debug!("terminating pty");
                     stdin.shutdown();
                 }
             }
         }
 
-        info!("stdin loop terminated");
+        debug!("stdin loop terminated");
     }
 
     async fn write_stdin(mut stdin: impl AsyncWriteExt + Unpin, mut chunk: InputChunk) {
-        info!("writing stdin chunk: {:?}", &chunk);
+        debug!("writing stdin chunk: {:?}", &chunk);
 
         // TODO: deal with error handling
         stdin

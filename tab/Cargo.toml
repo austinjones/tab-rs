@@ -18,7 +18,7 @@ path = "src/main.rs"
 [dependencies]
 tab-api = "0.3.0"
 tab-command = "0.3.0"
-tab-daemon = "0.3.0"
+tab-daemon =  { path = "../tab-daemon" }
 tab-pty = "0.3.0"
 clap = "2.33.2"
 anyhow = "1.0"
@@ -38,6 +38,7 @@ assert_cmd = "1.0"
 tempfile = "3.1"
 log = "0.4"
 simplelog = "0.8"
+snailquote = "0.3"
 
 [build-dependencies]
 clap = "2.33"
