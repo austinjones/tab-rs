@@ -8,7 +8,7 @@ jobs:
     name: homebrew publish
     runs-on: ubuntu-latest
     steps:
-      - uses: uses: dawidd6/action-homebrew-bump-formula@v3
+      - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           formula: tab
           tap: austinjones/taps
