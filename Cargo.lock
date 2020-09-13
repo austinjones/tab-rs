@@ -1126,18 +1126,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
+checksum = "96fe57af81d28386a513cbc6858332abc6117cfdb5999647c6444b8f43a370a5"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "609feed1d0a73cc36a0182a840a9b37b4a82f0b1150369f0536a9e3f2a31dc48"
+checksum = "f630a6370fd8e457873b4bd2ffdae75408bc291ba72be773772a4c2a065d9ae8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1302,7 +1302,7 @@ dependencies = [
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api",
+ "tab-api 0.3.0",
  "tab-command",
  "tab-daemon",
  "tab-pty",
@@ -1316,6 +1316,23 @@ dependencies = [
 [[package]]
 name = "tab-api"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b42316d196336c28c19c0c4de9aa442b2f23fcc565e24595b94be6457dd9db91"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lifeline",
+ "log",
+ "serde",
+ "serde_yaml",
+ "sysinfo",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "tab-api"
+version = "0.3.2"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1341,7 +1358,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.3.0",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1363,7 +1380,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.3.0",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1387,7 +1404,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.3.0",
  "tab-pty-process",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
