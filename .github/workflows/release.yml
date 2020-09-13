@@ -8,12 +8,11 @@ jobs:
     name: homebrew publish
     runs-on: ubuntu-latest
     steps:
-      - uses: mislav/bump-homebrew-formula-action@v1.6
+      - uses: uses: dawidd6/action-homebrew-bump-formula@v3
         with:
-          formula-name: tab
-          homebrew-tap: austinjones/taps
-        env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+          formula: tab
+          tap: austinjones/taps
+          token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
 
   dependencies:
     name: cargo build --dependencies
