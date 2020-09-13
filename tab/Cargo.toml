@@ -16,10 +16,11 @@ name = "tab"
 path = "src/main.rs"
 
 [dependencies]
-tab-api = "0.3.0"
-tab-command = "0.3.0"
-tab-daemon =  { path = "../tab-daemon" }
-tab-pty = "0.3.0"
+tab-api = "0.3.2"
+tab-command = "0.3.2"
+tab-daemon =  "0.3.2"
+tab-pty = "0.3.2"
+
 clap = "2.33.2"
 anyhow = "1.0"
 
