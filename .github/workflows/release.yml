@@ -4,8 +4,23 @@ on:
     types: [published]
 
 jobs:
+  homebrew:
+    name: homebrew publish
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mislav/bump-homebrew-formula-action@v1.6
+        with:
+          formula-name: tab
+          homebrew-tap: austinjones/taps
+          commit-message: {{formulaName}} {{version}}
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+
   dependencies:
     name: cargo build --dependencies
+    # FIXME REMOVE NEEDS
+    needs: homebrew
     strategy:
       fail-fast: false
       matrix:
@@ -170,14 +185,3 @@ jobs:
 
       - name: cargo publish
         run: cargo publish --manifest-path ./tab/Cargo.toml --token ${{ secrets.CRATES_IO_TOKEN }}
-
-  # update_brew_formula:
-  #   name: homebrew publish
-  #   needs: checksums
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: mislav/bump-homebrew-formula-action@v1.6
-  #       with:
-  #         formula-name: tab
-  #       env:
-  #         COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
