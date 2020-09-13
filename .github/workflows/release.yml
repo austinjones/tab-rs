@@ -12,7 +12,7 @@ jobs:
         with:
           formula: tab
           tap: austinjones/taps
-          token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+          token: ${{secrets.HOMEBREW_GITHUB_TOKEN}}
 
   dependencies:
     name: cargo build --dependencies
