@@ -6,7 +6,6 @@ on:
 jobs:
   homebrew:
     name: homebrew publish
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: mislav/bump-homebrew-formula-action@v1.6
