@@ -44,10 +44,6 @@ impl Service for PtyService {
         let rx_shutdown = bus.rx::<PtyShutdown>()?;
         let tx_response = bus.tx::<PtyResponse>()?;
 
-        // let (tx_response, _rx_response) =
-        //     tokio::sync::broadcast::channel::<PtyResponse>(OUTPUT_CHANNEL_SIZE);
-        // let (tx_request, rx_request) = tokio::sync::mpsc::channel::<PtyRequest>(STDIN_CHANNEL_SIZE);
-
         let _run = Self::try_task(
             "run",
             Self::run(options, rx_request, rx_shutdown, tx_response),
