@@ -13,7 +13,6 @@ jobs:
         with:
           formula-name: tab
           homebrew-tap: austinjones/taps
-          commit-message: {{formulaName}} {{version}}
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
 
