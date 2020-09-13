@@ -24,6 +24,8 @@ clap = "2.33.2"
 anyhow = "1.0"
 
 # used for install command
+tempfile = "3.1"
+dialoguer = "0.6"
 toml_edit = "0.2.0"
 dirs = "3.0"
 which = "4.0"
@@ -35,7 +37,6 @@ tokio-test = "0.2.1"
 tokio = { version = "0.2", features = ["process", "time", "rt-threaded"] } 
 insta = "0.16"
 assert_cmd = "1.0"
-tempfile = "3.1"
 log = "0.4"
 simplelog = "0.8"
 snailquote = "0.3"
