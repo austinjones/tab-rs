@@ -1,6 +1,6 @@
 [package]
 name = "tab"
-version = "0.3.1"
+version = "0.3.2"
 description = "The intuitive, config-driven terminal multiplexer"
 keywords = ["cli", "terminal", "tool"]
 categories = ["command-line-utilities"]
