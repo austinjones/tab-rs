@@ -12,6 +12,7 @@ jobs:
         with:
           formula: tab
           tap: austinjones/taps
+          tag: ${{github.event.release.tag_name}}
           token: ${{secrets.HOMEBREW_GITHUB_TOKEN}}
 
   dependencies:
