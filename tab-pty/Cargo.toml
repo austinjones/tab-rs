@@ -23,7 +23,7 @@ bincode = "1.3"
 tokio = { version = "0.2", features = ["macros", "stream", "sync", "time", "io-util", "rt-threaded"] }
 tokio-io = "0.1"
 tab-pty-process = { version = "0.2", path = "../tab-pty-process"}
-futures = "0.3"
+futures = { version = "0.3", features = [] }
 
 async-trait = "0.1"
 

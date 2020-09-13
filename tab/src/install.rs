@@ -1,100 +1,455 @@
-use std::{
-    fs::File,
-    io::BufWriter,
-    io::Write,
-    path::{Path, PathBuf},
-};
-
+use anyhow::{anyhow, bail};
 use clap::Values;
+use dialoguer::Confirm;
+use std::{fs::File, io::BufReader, io::BufWriter, io::Read, io::Write, path::Path, path::PathBuf};
 
-enum Config {
-    Edit(PathBuf),
-    Create(PathBuf),
-}
+mod bash;
+mod fish;
+mod starship;
+mod zsh;
 
-impl Config {
-    pub fn update<F>(&self, edit: F) -> anyhow::Result<()>
-    where
-        F: FnOnce(&str) -> anyhow::Result<String>,
-    {
-        let edited = match self {
-            Self::Edit(path) => {
-                println!("Editing {}...", path.to_string_lossy());
-                let data = std::fs::read_to_string(path.as_path())?;
-                edit(data.as_str())?
-            }
-            Self::Create(path) => {
-                println!("Creating {}...", path.to_string_lossy());
-                edit("")?
-            }
+pub fn run<'a>(commands: Values<'a>) -> anyhow::Result<()> {
+    let env = PackageEnv::new()?;
+
+    for command in commands {
+        let mut packages = match command {
+            "all" => package_all(&env)?,
+            "bash" => vec![bash::bash_package(&env)],
+            "fish" => vec![fish::fish_package(&env)],
+            "starship" => vec![starship::starship_package(&env)],
+            "zsh" => vec![zsh::zsh_package(&env)?],
+            _ => anyhow::bail!("unsupported install command: {}", command),
         };
 
-        self.replace(edited.as_str(), false)?;
+        for package in packages.iter_mut() {
+            package.sort();
+        }
 
-        Ok(())
+        // print packages
+        let package_len = packages.len();
+        eprintln!("Found {} installable packages.", package_len);
+        eprintln!("");
+
+        for package in &packages {
+            eprint!("{}", package.to_string());
+        }
+
+        if !Confirm::new()
+            .with_prompt("Do you wish to apply the modifications?")
+            .interact()?
+        {
+            eprintln!("");
+            eprintln!("Aborted.");
+            return Ok(());
+        }
+
+        eprintln!("");
+
+        // apply packages
+        for package in packages {
+            eprintln!("Installing {}...", package.name.as_str());
+            install_package(package)?;
+        }
+
+        eprintln!("");
+
+        eprintln!("Installed {} packages.", package_len)
+    }
+    Ok(())
+}
+
+fn package_all(env: &PackageEnv) -> anyhow::Result<Vec<Package>> {
+    let mut packages = Vec::new();
+    if which::which("bash").is_ok() {
+        packages.push(bash::bash_package(env));
     }
 
-    pub fn path(&self) -> &Path {
-        match self {
-            Self::Edit(path) => path.as_path(),
-            Self::Create(path) => path.as_path(),
+    if which::which("fish").is_ok() {
+        packages.push(fish::fish_package(env));
+    }
+
+    if which::which("starship").is_ok() {
+        packages.push(starship::starship_package(env));
+    }
+
+    if which::which("zsh").is_ok() {
+        packages.push(zsh::zsh_package(env)?);
+    }
+
+    Ok(packages)
+}
+
+fn install_package(package: Package) -> anyhow::Result<()> {
+    for pre in package.pre_actions {
+        (pre.apply)()?;
+    }
+
+    for clean in package.clean_files {
+        if clean.is_file() {
+            std::fs::remove_file(clean)?;
+        } else if clean.is_dir() {
+            eprintln!("WARN: directory removal is unsupported");
         }
     }
 
-    pub fn replace(&self, data: &str, log: bool) -> anyhow::Result<()> {
-        let path = self.path();
+    for write in package.write_files {
+        safe_write(write.path, write.contents)?;
+    }
 
-        if log {
-            println!("Replacing {}...", path.to_string_lossy());
+    for edit in package.edit_files {
+        let contents = read_file(edit.path.as_path())?;
+        let edited = (edit.apply)(contents);
+        safe_write(edit.path, edited)?;
+    }
+
+    for post in package.post_actions {
+        (post.apply)()?;
+    }
+
+    Ok(())
+}
+
+fn read_file(path: &Path) -> anyhow::Result<Option<String>> {
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+    let mut string = "".to_string();
+    reader.read_to_string(&mut string)?;
+
+    Ok(Some(string))
+}
+
+/// Writes the contents to the target path, using a tempfile and a filesystem copy
+fn safe_write(path: PathBuf, contents: String) -> anyhow::Result<()> {
+    if path.is_dir() {
+        bail!(format!(
+            "tab needs to write a file to {}, but it is a directory",
+            path.to_string_lossy()
+        ))
+    }
+
+    let mut temp_path = path.clone();
+    if !temp_path.set_extension("tabtmp") {
+        bail!(format!(
+            "failed to set file extension for: {}",
+            path.to_string_lossy()
+        ));
+    }
+
+    match unsafe_write_file(temp_path.as_path(), contents) {
+        Ok(_) => {}
+        Err(e) => {
+            if temp_path.is_file() {
+                if let Err(e) = std::fs::remove_file(temp_path.as_path()) {
+                    eprintln!(
+                        "failed to remove tempfile: {}, {}",
+                        e,
+                        temp_path.to_string_lossy()
+                    );
+                }
+                return Err(e);
+            }
         }
+    }
 
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+    if path.is_file() {
+        let permissions = File::open(path.as_path())?.metadata()?.permissions();
+        std::fs::set_permissions(temp_path.as_path(), permissions)?;
+    }
 
-        let file = File::create(path)?;
-        let mut writer = BufWriter::new(file);
-        writer.write(data.as_bytes())?;
+    std::fs::copy(temp_path.as_path(), path)?;
+    std::fs::remove_file(temp_path)?;
 
-        Ok(())
+    Ok(())
+}
+
+fn unsafe_write_file(path: &Path, contents: String) -> anyhow::Result<()> {
+    let tempfile = File::create(path)?;
+    let mut writer = BufWriter::new(tempfile);
+    writer.write_all(contents.as_bytes())?;
+
+    Ok(())
+}
+
+/// Environment information for package construction
+pub struct PackageEnv {
+    pub home: PathBuf,
+}
+
+impl PackageEnv {
+    pub fn new() -> anyhow::Result<Self> {
+        let home = dirs::home_dir().ok_or(anyhow!(
+            "A home directory is required for package installation, and none could be found."
+        ))?;
+
+        Ok(Self { home })
     }
 }
 
-impl From<String> for Config {
-    fn from(path: String) -> Self {
-        let path: PathBuf = path.into();
+pub struct PackageBuilder {
+    pub(super) package: Package,
+}
 
-        Self::from(path.as_path())
+impl PackageBuilder {
+    pub fn new<T: ToString>(name: T) -> Self {
+        Self {
+            package: Package {
+                name: name.to_string(),
+                pre_actions: Vec::new(),
+                clean_files: Vec::new(),
+                edit_files: Vec::new(),
+                write_files: Vec::new(),
+                post_actions: Vec::new(),
+            },
+        }
+    }
+
+    /// Executes an action before any file modifications have been made
+    #[allow(dead_code)]
+    pub fn preinstall_action<F, Desc>(&mut self, apply: F, description: Desc)
+    where
+        F: FnOnce() -> anyhow::Result<()> + 'static,
+        Desc: ToString,
+    {
+        let action = PackageInstallAction {
+            apply: Box::new(apply),
+            description: description.to_string(),
+        };
+
+        self.package.pre_actions.push(action);
+    }
+
+    /// Removes a file, if it exists.  Useful for cleaning up files which are conditionally written.
+    pub fn clean_file(&mut self, path: PathBuf) -> &mut Self {
+        self.package.clean_files.push(path);
+        self
+    }
+
+    /// Writes a file, creating or replacing it with the given contents.
+    pub fn write_file<T: ToString, D: ToString>(
+        &mut self,
+        path: PathBuf,
+        contents: T,
+        description: D,
+    ) -> &mut Self {
+        let write = PackageWrite {
+            path,
+            contents: contents.to_string(),
+            description: description.to_string(),
+        };
+
+        self.package.write_files.push(write);
+        self
+    }
+
+    /// Edits a file.  Reads the file if it exists, then uses the provided apply function, and writes it to disk.
+    pub fn edit<F, Desc>(&mut self, path: PathBuf, apply: F, description: Desc) -> &mut Self
+    where
+        F: FnOnce(Option<String>) -> String + 'static,
+        Desc: ToString,
+    {
+        let edit = PackageEdit {
+            path,
+            apply: Box::new(apply),
+            description: description.to_string(),
+        };
+
+        self.package.edit_files.push(edit);
+        self
+    }
+
+    /// Edits a shell script (e.g. .bashrc or .zshrc), given a shell variant
+    pub fn script<Desc>(&mut self, shell: Shell, path: PathBuf, description: Desc) -> ScriptBuilder
+    where
+        Desc: ToString,
+    {
+        ScriptBuilder::new(self, shell, path, description.to_string())
+    }
+
+    /// Applies an action after all other steps have completed successfully
+    pub fn postinstall_action<F, Desc>(&mut self, apply: F, description: Desc)
+    where
+        F: FnOnce() -> anyhow::Result<()> + 'static,
+        Desc: ToString,
+    {
+        let action = PackageInstallAction {
+            apply: Box::new(apply),
+            description: description.to_string(),
+        };
+
+        self.package.post_actions.push(action);
+    }
+
+    /// Builds the package description
+    pub fn build(&mut self) -> Package {
+        let package = std::mem::replace(&mut self.package, Package::new(""));
+        package
     }
 }
 
-impl From<PathBuf> for Config {
-    fn from(path: PathBuf) -> Self {
-        if path.exists() {
-            Self::Edit(path)
-        } else {
-            Self::Create(path)
+pub struct ScriptBuilder<'b> {
+    package_builder: &'b mut PackageBuilder,
+    path: PathBuf,
+    script: ScriptConfig,
+    description: String,
+}
+
+impl<'b> ScriptBuilder<'b> {
+    /// Constructs a new shell script builder
+    pub(super) fn new(
+        package_builder: &'b mut PackageBuilder,
+        shell: Shell,
+        path: PathBuf,
+        description: String,
+    ) -> Self {
+        Self {
+            package_builder,
+            path,
+            description,
+            script: ScriptConfig::new(shell),
+        }
+    }
+
+    pub fn action(&mut self, action: ScriptAction) -> &mut Self {
+        self.script.actions.push(action);
+        self
+    }
+
+    pub fn build(&'b mut self) -> &'b mut PackageBuilder {
+        let script = std::mem::replace(&mut self.script, ScriptConfig::new(Shell::Bash));
+        let description = std::mem::take(&mut self.description);
+        let apply = move |string| script.apply(string);
+
+        let edit = PackageEdit {
+            path: self.path.clone(),
+            apply: Box::new(apply),
+            description,
+        };
+
+        self.package_builder.package.edit_files.push(edit);
+        &mut self.package_builder
+    }
+}
+
+pub struct PackageEdit {
+    pub path: PathBuf,
+    pub apply: Box<dyn FnOnce(Option<String>) -> String>,
+    pub description: String,
+}
+
+pub struct PackageWrite {
+    pub path: PathBuf,
+    pub contents: String,
+    pub description: String,
+}
+
+pub struct PackageInstallAction {
+    pub description: String,
+    pub apply: Box<dyn FnOnce() -> anyhow::Result<()>>,
+}
+
+/// An installable package of files and script modifications
+pub struct Package {
+    /// The user-facing display name for this package
+    pub name: String,
+
+    /// Pre-installation hooks
+    pub pre_actions: Vec<PackageInstallAction>,
+
+    /// All file paths known to this installer, which may have been created on a previous run
+    /// Paths that appear in `files` are required.
+    /// .bashrc and other dotfiles should not be provided
+    pub clean_files: Vec<PathBuf>,
+
+    /// Edits the TOML
+    pub edit_files: Vec<PackageEdit>,
+
+    /// All files which should be created, with the given contents
+    pub write_files: Vec<PackageWrite>,
+
+    /// Pre-installation hooks
+    pub post_actions: Vec<PackageInstallAction>,
+}
+
+impl Package {
+    pub fn new<T: ToString>(name: T) -> Self {
+        Self {
+            name: name.to_string(),
+            pre_actions: Vec::new(),
+            clean_files: Vec::new(),
+            edit_files: Vec::new(),
+            write_files: Vec::new(),
+            post_actions: Vec::new(),
         }
     }
 }
 
-impl From<&Path> for Config {
-    fn from(path: &Path) -> Self {
-        Self::from(path.to_path_buf())
+impl Package {
+    pub fn sort(&mut self) {
+        self.clean_files.sort();
+        self.edit_files.sort_by(|a, b| a.path.cmp(&b.path));
+        self.write_files.sort_by(|a, b| a.path.cmp(&b.path));
+    }
+}
+
+impl ToString for Package {
+    fn to_string(&self) -> String {
+        let mut string = "".to_string();
+
+        string += format!("[Tab Package: {}]\n", self.name).as_str();
+
+        for preinstall in &self.pre_actions {
+            string += format!("{}\n", preinstall.description).as_str();
+        }
+
+        for path in self.clean_files.iter() {
+            if path.is_file() {
+                string += format!("Remove {}\n", path.to_string_lossy()).as_str();
+            }
+        }
+
+        for write in self.write_files.iter() {
+            string += format!(
+                "Create {} ({})\n",
+                write.path.to_string_lossy(),
+                write.description.as_str()
+            )
+            .as_str();
+        }
+
+        for edit in self.edit_files.iter() {
+            string += format!(
+                "Edit {} ({})\n",
+                edit.path.to_string_lossy(),
+                edit.description.as_str()
+            )
+            .as_str();
+        }
+
+        for postinstall in &self.post_actions {
+            string += format!("{}\n", postinstall.description).as_str();
+        }
+
+        string += "\n";
+
+        string
     }
 }
 
 struct ScriptConfig {
-    path: PathBuf,
-    shell: Shell,
+    pub shell: Shell,
+    pub actions: Vec<ScriptAction>,
 }
 
-enum Shell {
+pub enum Shell {
     Bash,
     Zsh,
 }
 
-enum ScriptAction {
+pub enum ScriptAction {
     SourceFile(PathBuf),
 }
 
@@ -111,341 +466,110 @@ impl ScriptAction {
     }
 }
 
+enum ScanState {
+    AwaitingComment,
+    Cleaning,
+    Complete,
+}
+
 impl ScriptConfig {
-    pub fn new(path: PathBuf, shell: Shell) -> Self {
-        Self { path, shell }
+    pub fn new(shell: Shell) -> Self {
+        Self {
+            shell,
+            actions: Vec::new(),
+        }
     }
 
-    pub fn write_actions(&self, actions: &[ScriptAction]) -> anyhow::Result<()> {
-        let mut data = if self.path.is_file() {
-            std::fs::read_to_string(self.path.as_path())?
-        } else {
-            "".to_string()
-        };
+    pub fn apply(self, source: Option<String>) -> String {
+        let data = source.unwrap_or("".to_string());
+        let mut output_data = "".to_string();
 
-        let mut first_action = true;
-        for action in actions {
-            let action_string = action.to_string(&self.shell);
-            let mut action_exists = false;
-            let mut output_data = "".to_string();
+        let mut state = ScanState::AwaitingComment;
+        let action_strings: Vec<String> = self
+            .actions
+            .iter()
+            .map(|action| action.to_string(&self.shell))
+            .collect();
 
-            for line in data.lines() {
-                if line.trim() == action_string {
-                    action_exists = true;
+        'line: for line in data.lines() {
+            match state {
+                ScanState::AwaitingComment => {
+                    if line.contains("#") && line.contains("tab multiplexer configuration") {
+                        state = ScanState::Cleaning;
+
+                        output_data += line;
+                        output_data += "\n";
+
+                        for action in &action_strings {
+                            output_data += action;
+                            output_data += "\n";
+                        }
+
+                        continue 'line;
+                    }
                 }
+                ScanState::Cleaning => {
+                    // while the line has visible text which isn't a comment, skip it
+                    if !line.contains("#") && line.trim().len() > 0 {
+                        continue 'line;
+                    }
 
-                output_data += line;
+                    state = ScanState::Complete;
+                }
+                ScanState::Complete => {}
+            }
+
+            match state {
+                ScanState::AwaitingComment | ScanState::Complete => {
+                    for action in &action_strings {
+                        // if we unexpectedly find one of our commands in the text, strip it from the output
+                        if line.trim() == action.as_str() {
+                            continue 'line;
+                        }
+                    }
+
+                    if line.contains("#") && line.contains("tab multiplexer configuration") {
+                        continue 'line;
+                    }
+                }
+                _ => {}
+            }
+
+            output_data += line;
+            output_data += "\n";
+        }
+
+        if let ScanState::AwaitingComment = state {
+            if data.ends_with("\n\n") {
+            } else if data.ends_with("\n") {
+                output_data += "\n"
+            } else {
+                output_data += "\n\n"
+            }
+
+            output_data +=
+                "# tab multiplexer configuration: https://github.com/austinjones/tab-rs/\n";
+
+            for action in action_strings {
+                output_data += action.as_str();
                 output_data += "\n";
             }
 
-            if !action_exists {
-                println!(
-                    "Adding action to {}: {}",
-                    self.path.to_string_lossy(),
-                    action_string
-                );
-
-                if first_action && !output_data.ends_with("\n\n") {
-                    output_data += "\n";
-                }
-
-                output_data += action_string.as_str();
-                output_data += "\n";
-                first_action = false;
-            }
-
-            data = output_data;
+            output_data += "# end tab configuration\n\n";
         }
 
-        if let Some(parent) = self.path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let file = File::create(self.path.as_path())?;
-        let mut writer = BufWriter::new(file);
-        writer.write(data.as_bytes())?;
-
-        Ok(())
+        output_data
     }
 }
 
-pub fn run<'a>(commands: Values<'a>) -> anyhow::Result<()> {
-    for command in commands {
-        match command {
-            "all" => install_all()?,
-            "bash" => bash::install_bash()?,
-            "fish" => fish::install_fish()?,
-            "starship" => starship::install_starship()?,
-            "zsh" => zsh::install_zsh()?,
-            _ => anyhow::bail!("unsupported install command: {}", command),
-        }
-    }
-    Ok(())
-}
+impl ToString for ScriptConfig {
+    fn to_string(&self) -> String {
+        let mut string = "".to_string();
 
-fn install_all() -> anyhow::Result<()> {
-    if which::which("bash").is_ok() {
-        bash::install_bash()?;
-    }
-
-    if which::which("fish").is_ok() {
-        fish::install_fish()?;
-    }
-
-    if which::which("starship").is_ok() {
-        starship::install_starship()?;
-    }
-
-    if which::which("zsh").is_ok() {
-        zsh::install_zsh()?;
-    }
-
-    Ok(())
-}
-
-mod bash {
-    use anyhow::anyhow;
-    use std::path::PathBuf;
-
-    use super::{Config, ScriptAction, ScriptConfig, Shell};
-
-    pub fn install_bash() -> anyhow::Result<()> {
-        println!("Installing Bash integration...");
-
-        let bashrc = bashrc()?;
-        let completion = install_completion_script()?;
-
-        let script = ScriptConfig::new(bashrc, Shell::Bash);
-        script.write_actions(&[ScriptAction::SourceFile(completion)])?;
-
-        println!("Done.");
-        println!("");
-
-        Ok(())
-    }
-
-    fn install_completion_script() -> anyhow::Result<PathBuf> {
-        let mut path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("failed to resolve home directory for zshrc resolution"))?;
-
-        path.push(".tab");
-        path.push("completion");
-        path.push("tab.bash");
-
-        let config: Config = path.as_path().into();
-        config.replace(include_str!("completions/bash/tab.bash"), true)?;
-
-        Ok(path)
-    }
-
-    fn bashrc() -> anyhow::Result<PathBuf> {
-        let mut path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("failed to resolve home directory for zshrc resolution"))?;
-
-        path.push(".bashrc");
-
-        Ok(path)
-    }
-}
-
-mod fish {
-    use std::path::PathBuf;
-
-    use super::Config;
-    use anyhow::anyhow;
-
-    pub fn install_fish() -> anyhow::Result<()> {
-        println!("Installing Fish integration...");
-
-        let tab_fish = include_str!("completions/fish/tab.fish");
-        let path = path()?;
-        let config: Config = path.into();
-        config.replace(tab_fish, true)?;
-
-        println!("Done.");
-        println!("");
-
-        Ok(())
-    }
-
-    fn path() -> anyhow::Result<PathBuf> {
-        let mut path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("failed to resolve home directory for fish installation"))?;
-
-        path.push(".config");
-        path.push("fish");
-        path.push("completions");
-        path.push("tab.fish");
-
-        Ok(path)
-    }
-}
-
-mod starship {
-    use toml_edit::{table, value, Document};
-
-    use super::Config;
-
-    pub fn install_starship() -> anyhow::Result<()> {
-        println!("Installing Starship integration...");
-
-        let config = config_file()?;
-        config.update(edit)?;
-
-        println!("Done.");
-        println!("");
-
-        Ok(())
-    }
-
-    fn config_file() -> anyhow::Result<Config> {
-        if let Ok(path) = std::env::var("STARSHIP_CONFIG") {
-            return Ok(path.into());
+        for action in &self.actions {
+            string += format!("+ {}\n", action.to_string(&self.shell)).as_str();
         }
 
-        let path = dirs::home_dir();
-        if let Some(mut path) = path {
-            path.push(".config");
-            path.push("starship.toml");
-
-            return Ok(path.into());
-        }
-
-        anyhow::bail!("could not resolve home directory for starship install")
-    }
-
-    fn edit(string: &str) -> anyhow::Result<String> {
-        let mut toml = string.parse::<Document>()?;
-
-        if toml["custom"].is_none() {
-            toml["custom"] = table();
-        }
-
-        if toml["custom"]["tab"].is_none() {
-            toml["custom"]["tab"] = table();
-        }
-
-        toml["custom"]["tab"] = table();
-        toml["custom"]["tab"]["command"] = value("tab --starship");
-        toml["custom"]["tab"]["when"] = value("tab --starship");
-        toml["custom"]["tab"]["style"] = value("bold blue");
-        toml["custom"]["tab"]["prefix"] = value("in ");
-        toml["custom"]["tab"].as_inline_table();
-
-        Ok(toml.to_string_in_original_order())
-    }
-}
-
-mod zsh {
-    use std::{path::PathBuf, process::Command};
-
-    use anyhow::anyhow;
-    use anyhow::bail;
-
-    use super::{Config, ScriptAction, ScriptConfig, Shell};
-
-    pub fn install_zsh() -> anyhow::Result<()> {
-        println!("Installing Zsh integration...");
-
-        install_completions()?;
-        install_history()?;
-        run_compinit()?;
-
-        println!("Done.");
-        println!("");
-
-        Ok(())
-    }
-
-    fn run_compinit() -> anyhow::Result<()> {
-        println!("Running compinit...");
-
-        Command::new("zsh")
-            .args(&["-i", "-c", "rm ~/.zcompdump*; compinit"])
-            .spawn()?
-            .wait()?;
-
-        Ok(())
-    }
-
-    fn install_completions() -> anyhow::Result<()> {
-        let tab_completions = include_str!("completions/zsh/_tab");
-        if let Some(path) = completion_ohmyzsh() {
-            let config: Config = path.into();
-            config.replace(tab_completions, true)?;
-            Ok(())
-        } else if let Some(path) = completion_usr_local_share() {
-            let config: Config = path.into();
-            config.replace(tab_completions, true)?;
-            Ok(())
-        } else {
-            bail!("failed to resolve a writable completion location: supported paths are '~/.oh-my-zsh/completions' and '/usr/local/share/zsh/site-functions'")
-        }
-    }
-
-    fn install_history() -> anyhow::Result<()> {
-        let zshrc = zshrc()?;
-        let history_script = install_history_script()?;
-        let script = ScriptConfig::new(zshrc, Shell::Zsh);
-
-        script.write_actions(&[ScriptAction::SourceFile(history_script)])?;
-
-        Ok(())
-    }
-
-    fn install_history_script() -> anyhow::Result<PathBuf> {
-        let mut path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("failed to resolve home directory for zshrc resolution"))?;
-
-        path.push(".tab");
-        path.push("completion");
-        path.push("zsh-history.zsh");
-
-        let config: Config = path.as_path().into();
-        config.replace(include_str!("completions/zsh/history.zsh"), true)?;
-
-        Ok(path)
-    }
-
-    fn zshrc() -> anyhow::Result<PathBuf> {
-        let mut path = dirs::home_dir()
-            .ok_or_else(|| anyhow!("failed to resolve home directory for zshrc resolution"))?;
-
-        path.push(".zshrc");
-
-        Ok(path)
-    }
-
-    fn completion_ohmyzsh() -> Option<PathBuf> {
-        let path = dirs::home_dir();
-        if let Some(mut path) = path {
-            path.push(".oh-my-zsh");
-            if !path.exists() {
-                return None;
-            }
-
-            path.push("completions");
-            path.push("_tab");
-
-            return Some(path);
-        }
-
-        return None;
-    }
-
-    fn completion_usr_local_share() -> Option<PathBuf> {
-        let mut path = PathBuf::from("/");
-        path.push("usr");
-        path.push("local");
-        path.push("share");
-        path.push("zsh");
-        path.push("site-functions");
-
-        if !path.exists() {
-            return None;
-        }
-
-        path.push("_tab");
-        return Some(path);
+        string
     }
 }
