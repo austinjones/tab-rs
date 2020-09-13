@@ -16,4 +16,4 @@ members = [
 # tab-websocket = { path = './common/tab-websocket/' }
 # tab-command = { path = './tab-command/' }
 # tab-daemon = { path = './tab-daemon/' }
-tab-pty = { path = './tab-pty/' }
+# tab-pty = { path = './tab-pty/' }
