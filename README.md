@@ -60,11 +60,13 @@ Download binaries from:
 [https://github.com/austinjones/tab-rs/releases/latest](https://github.com/austinjones/tab-rs/releases/latest)
 
 ## 2. Install autocompletions for your shell
-Tab works best when configured with shell autocompletions.
+Tab works best when configured with shell autocompletions.  
+
+Tab has a built-in script installer which provides a detailed explanation of the changes, and prompts for your confirmation.
 
 **(All)**
 
-Tab can install completions for all shells & supported integration which are present on your system
+Tab can install completions for all shells & supported integration which are present on your system.
 ```
 tab install --all
 ```
