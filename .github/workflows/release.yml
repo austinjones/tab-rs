@@ -4,21 +4,8 @@ on:
     types: [published]
 
 jobs:
-  homebrew:
-    name: homebrew publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: dawidd6/action-homebrew-bump-formula@v3
-        with:
-          formula: tab
-          tap: austinjones/taps
-          tag: ${{github.event.release.tag_name}}
-          token: ${{secrets.HOMEBREW_GITHUB_TOKEN}}
-
   dependencies:
     name: cargo build --dependencies
-    # FIXME REMOVE NEEDS
-    needs: homebrew
     strategy:
       fail-fast: false
       matrix:
@@ -183,3 +170,15 @@ jobs:
 
       - name: cargo publish
         run: cargo publish --manifest-path ./tab/Cargo.toml --token ${{ secrets.CRATES_IO_TOKEN }}
+
+  homebrew:
+    name: homebrew publish
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          formula: tab
+          tap: austinjones/taps
+          tag: ${{github.event.release.tag_name}}
+          token: ${{secrets.HOMEBREW_GITHUB_TOKEN}}
