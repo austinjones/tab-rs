@@ -3,7 +3,7 @@ use crate::prelude::*;
 use message::pty::MainShutdown;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode};
 use std::time::Duration;
-use tab_api::{launch::*, pty::PtyWebsocketRequest};
+use tab_api::{launch::*, log::get_level, pty::PtyWebsocketRequest};
 
 use lifeline::dyn_bus::DynBus;
 use service::main::MainService;
@@ -34,8 +34,10 @@ pub fn pty_main() -> anyhow::Result<()> {
 }
 
 fn init() {
+    let level = get_level().unwrap_or(LevelFilter::Info);
+
     CombinedLogger::init(vec![TermLogger::new(
-        LevelFilter::Info,
+        level,
         simplelog::ConfigBuilder::new()
             .set_time_format_str("%H:%M:%S%.3f PTY")
             .build(),

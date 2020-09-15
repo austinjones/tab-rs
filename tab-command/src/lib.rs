@@ -9,7 +9,7 @@ use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
 
 use lifeline::dyn_bus::DynBus;
-use tab_api::launch::*;
+use tab_api::{launch::*, log::get_level};
 use tab_websocket::resource::connection::WebsocketResource;
 
 mod bus;
@@ -21,7 +21,7 @@ mod state;
 
 pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
     TermLogger::init(
-        LevelFilter::Warn,
+        get_level().unwrap_or(LevelFilter::Warn),
         simplelog::ConfigBuilder::new()
             .set_time_format_str("%H:%M:%S%.3f CMD")
             .build(),

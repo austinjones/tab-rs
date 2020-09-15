@@ -1263,9 +1263,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "syn"
-version = "1.0.40"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "963f7d3cc59b59b9325165add223142bbf1df27655d07789f109896d353d8350"
+checksum = "6690e3e9f692504b941dc6c3b188fd28df054f7fb8469ab40680df52fdcc842b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1302,10 +1302,10 @@ dependencies = [
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-command 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-daemon 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-command",
+ "tab-daemon",
+ "tab-pty",
  "tempfile",
  "tokio",
  "tokio-test",
@@ -1330,24 +1330,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-api"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1287e3cfd102bd03e4c1a0ed50394d39ed862b6a08fb0d0daa89854f460209a8"
-dependencies = [
- "anyhow",
- "dirs",
- "lifeline",
- "log",
- "serde",
- "serde_yaml",
- "snailquote",
- "sysinfo",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "tab-command"
 version = "0.3.2"
 dependencies = [
@@ -1359,31 +1341,11 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-test",
-]
-
-[[package]]
-name = "tab-command"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54f4cda16e90c769fc3b56eb13567cde9d49d96259ada427f3fa5b2ee39a605"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "lifeline",
- "log",
- "serde",
- "serde_yaml",
- "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -1401,7 +1363,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1411,28 +1373,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-daemon"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5949ded028e2d8caf95fa9b1132c3721c366477bf3c1a4e64eb3003c2e458717"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "dirs",
- "lifeline",
- "log",
- "rand",
- "serde_yaml",
- "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
- "tokio-io",
-]
-
-[[package]]
 name = "tab-pty"
 version = "0.3.2"
 dependencies = [
@@ -1447,33 +1387,8 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty-process 0.2.0",
- "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
- "tokio-io",
-]
-
-[[package]]
-name = "tab-pty"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "686178d31bcfe903aa9e345884c7b26f3a2f84d987f3da7ae8a6b26a498de603"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "bincode",
- "dirs",
- "futures 0.3.5",
- "lifeline",
- "log",
- "rand",
- "serde_yaml",
- "simplelog",
- "tab-api 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-pty-process",
  "tab-websocket 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1487,20 +1402,6 @@ dependencies = [
  "async-trait",
  "bytes 0.4.12",
  "errno",
- "futures 0.3.5",
- "libc",
- "mio 0.6.22",
- "tokio",
-]
-
-[[package]]
-name = "tab-pty-process"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4b92455283e9992144259f518c09f80f15493329d0a3dc6700d15bd3547ab2d"
-dependencies = [
- "async-trait",
- "bytes 0.4.12",
  "futures 0.3.5",
  "libc",
  "mio 0.6.22",

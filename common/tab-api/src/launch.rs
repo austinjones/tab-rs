@@ -5,6 +5,7 @@
 use crate::{
     config::{is_running, load_daemon_file, DaemonConfig},
     env::is_raw_mode,
+    log::get_level_str,
 };
 use lifeline::prelude::*;
 use log::*;
@@ -31,7 +32,12 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
         let mut child = Command::new(exec);
 
         child
-            .args(&["--_launch", "daemon"])
+            .args(&[
+                "--_launch",
+                "daemon",
+                "--log",
+                get_level_str().unwrap_or("info"),
+            ])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .kill_on_drop(false);
@@ -79,16 +85,16 @@ pub fn launch_pty() -> anyhow::Result<()> {
 
     let mut child = Command::new(exec);
     child
-        .args(&["--_launch", "pty"])
+        .args(&[
+            "--_launch",
+            "pty",
+            "--log",
+            get_level_str().unwrap_or("info"),
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
+        .stderr(Stdio::inherit())
         .kill_on_drop(false);
-
-    if is_raw_mode() {
-        child.stderr(Stdio::null());
-    } else {
-        child.stderr(Stdio::inherit());
-    }
 
     crate::env::forward_env(&mut child);
 

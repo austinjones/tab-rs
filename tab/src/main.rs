@@ -3,8 +3,10 @@
 
 pub mod cli;
 mod install;
+
+use anyhow::Context;
 use cli::init;
-use tab_api::{config::history_path, tab::normalize_name};
+use tab_api::{config::history_path, log::set_level, tab::normalize_name};
 
 pub fn main() -> anyhow::Result<()> {
     let args = init();
@@ -12,6 +14,15 @@ pub fn main() -> anyhow::Result<()> {
     // create the dotdir path, so the modules don't need to worry about it.
     tab_api::config::mkdir()?;
     std::env::set_var("TAB_BIN", std::env::current_exe()?);
+
+    // log level should always be available due to the clap default
+    // however, if the parse fails, we should return an error and alert the user.
+    if let Some(level) = args.value_of("LOG") {
+        let level = level
+            .parse()
+            .context("failed to parse the value provided to --log <level>")?;
+        set_level(level);
+    }
 
     if let Some(launch) = args.value_of("LAUNCH") {
         match launch {

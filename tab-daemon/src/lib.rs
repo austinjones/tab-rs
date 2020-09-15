@@ -11,6 +11,7 @@ use std::time::Duration;
 use tab_api::{
     config::{daemon_log, DaemonConfig},
     launch::wait_for_shutdown,
+    log::get_level,
 };
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
 use tokio::net::TcpListener;
@@ -67,9 +68,12 @@ async fn main_async() -> anyhow::Result<()> {
     let config = simplelog::ConfigBuilder::new()
         .set_time_format_str("%H:%M:%S%.3f DAE")
         .build();
+
+    let level = get_level().unwrap_or(LevelFilter::Info);
+    println!("got level: {:?}", level);
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Info, config.clone(), TerminalMode::Stderr),
-        WriteLogger::new(LevelFilter::Info, config, std::fs::File::create(log_file)?),
+        TermLogger::new(level, config.clone(), TerminalMode::Stderr),
+        WriteLogger::new(level, config, std::fs::File::create(log_file)?),
     ])
     .unwrap();
 
