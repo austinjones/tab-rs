@@ -62,6 +62,14 @@ fn app() -> App<'static, 'static> {
                 .help("Automatically installs completions & statusline integrations."),
         )
         .arg(
+            Arg::with_name("LOG")
+                .long("log")
+                .required(false)
+                .takes_value(true)
+                .possible_values(&["trace", "debug", "info", "warn", "error", "off"])
+                .help("Sets the log level.  Transitive to the daemon & pty, if launched."),
+        )
+        .arg(
             Arg::with_name("LIST")
                 .short("l")
                 .long("list")

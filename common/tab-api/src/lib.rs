@@ -7,5 +7,6 @@ pub mod client;
 pub mod config;
 pub mod env;
 pub mod launch;
+pub mod log;
 pub mod pty;
 pub mod tab;

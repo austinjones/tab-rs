@@ -23,6 +23,7 @@ tab-pty = "0.3.2"
 
 clap = "2.33.2"
 anyhow = "1.0"
+log = "0.4"
 
 # used for install command
 tempfile = "3.1"
