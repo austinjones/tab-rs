@@ -112,7 +112,7 @@ impl ScrollbackBuffer {
                 self.size += chunk.len();
 
                 debug!(
-                    "scrollback appending stdin chunk {}..{} to existing chunk {}..{}",
+                    "scrollback appending stdout chunk {}..{} to existing chunk {}..{}",
                     chunk.start(),
                     chunk.end(),
                     back.start(),

@@ -41,6 +41,16 @@ pub struct TabOutput {
     pub stdout: Arc<OutputChunk>,
 }
 
+impl PartialEq for TabOutput {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && *self.stdout == *other.stdout
+    }
+}
+
+impl Eq for TabOutput {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
 /// A message transmitted to a tab, used as a broadcast adapter between CLI and PTY connections.
 ///
 /// Carried over the ListenerBus.

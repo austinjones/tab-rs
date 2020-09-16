@@ -1,7 +1,6 @@
 use super::{
     retask::RetaskService, tab_assignment::TabAssignmentService, tab_manager::TabManagerService,
 };
-use crate::prelude::*;
 use crate::{
     message::{
         cli::CliShutdown,
@@ -10,6 +9,7 @@ use crate::{
     },
     service::{cli::CliService, pty::PtyService},
 };
+use crate::{prelude::*, service::cli::subscription::CliSubscriptionService};
 use anyhow::Context;
 
 use lifeline::dyn_bus::DynBus;
@@ -152,6 +152,7 @@ impl ListenerService {
 
         // keep service alive until we get a shutdown signal
         let _service = CliService::spawn(&bus)?;
+        let _subscription = CliSubscriptionService::spawn(&bus)?;
         drop(bus);
 
         shutdown

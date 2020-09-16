@@ -70,7 +70,6 @@ async fn main_async() -> anyhow::Result<()> {
         .build();
 
     let level = get_level().unwrap_or(LevelFilter::Info);
-    println!("got level: {:?}", level);
     CombinedLogger::init(vec![
         TermLogger::new(level, config.clone(), TerminalMode::Stderr),
         WriteLogger::new(level, config, std::fs::File::create(log_file)?),
