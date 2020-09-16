@@ -1315,7 +1315,7 @@ dependencies = [
 
 [[package]]
 name = "tab-api"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "tab-websocket"
-version = "0.3.0"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "async-tungstenite",
