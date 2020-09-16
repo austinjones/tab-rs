@@ -1,6 +1,6 @@
 [package]
 name = "tab-pty"
-version = "0.3.2"
+version = "0.3.4"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the pty module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
@@ -11,8 +11,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tab-api = "0.3.2"
-tab-websocket = "0.3.0"
+tab-api = "0.3.4"
+tab-websocket = "0.3.4"
 lifeline = "0.3"
 
 dirs = "3.0"
