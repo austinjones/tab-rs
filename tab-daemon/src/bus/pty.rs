@@ -98,6 +98,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                         }
                         TabRecv::Scrollback(id) => {
                             if !rx_id.borrow().has_assigned(id) {
+                                debug!("got ignored scrollback request on id: {:?}", id);
                                 continue;
                             }
 
@@ -148,7 +149,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                     match msg {
                         PtySend::Started(metadata) => {
                             let message = TabSend::Started(metadata);
-                            tx_tab.send(message).await?;
+                            tx_tab.send(message).await.ok();
                         }
                         PtySend::Output(chunk) => {
                             let id = rx_id.borrow().unwrap();
@@ -159,20 +160,20 @@ impl CarryFrom<ListenerBus> for PtyBus {
                             };
 
                             let send = TabSend::Output(output);
-                            tx_tab.send(send).await?;
+                            tx_tab.send(send).await.ok();
                         }
                         PtySend::Scrollback(scrollback) => {
                             let id = rx_id.borrow().unwrap();
                             let scrollback = TabScrollback { id, scrollback };
                             let message = TabSend::Scrollback(scrollback);
-                            tx_tab.send(message).await?;
+                            tx_tab.send(message).await.ok();
                         }
                         PtySend::Stopped => {
                             let id = rx_id.borrow().unwrap();
                             // todo - this should be a notification, not an action
                             // serious bugs were going on because this was missing, though.
                             tx_tab_manager.send(TabManagerRecv::CloseTab(id)).await?;
-                            tx_tab.send(TabSend::Stopped(id)).await?;
+                            tx_tab.send(TabSend::Stopped(id)).await.ok();
                         }
                     }
                 }

@@ -15,6 +15,7 @@ impl Drop for WebsocketResource {
                 tungstenite::Error::ConnectionClosed => {}
                 tungstenite::Error::AlreadyClosed => {}
                 tungstenite::Error::Protocol(_) => {}
+                tungstenite::Error::Io(_) => {}
                 _ => error!("failed to close websocket: {}", err),
             },
         }

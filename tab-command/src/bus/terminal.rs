@@ -89,20 +89,17 @@ impl CarryFrom<MainBus> for TerminalBus {
         };
 
         let _echo_output = {
-            let rx_tab_state = from.rx::<TabState>()?.into_inner();
             let mut rx_response = from.rx::<Response>()?;
             let mut tx_output = self.tx::<TerminalRecv>()?;
 
             Self::try_task("main_recv", async move {
                 while let Some(response) = rx_response.recv().await {
                     match response {
-                        Response::Output(tab_id, stdout) => {
-                            if rx_tab_state.borrow().is_selected(&tab_id) {
-                                tx_output
-                                    .send(TerminalRecv::Stdout(stdout.data))
-                                    .await
-                                    .context("tx TerminalRecv::Stdout")?;
-                            }
+                        Response::Output(_id, stdout) => {
+                            tx_output
+                                .send(TerminalRecv::Stdout(stdout.data))
+                                .await
+                                .context("tx TerminalRecv::Stdout")?;
                         }
                         _ => {}
                     }

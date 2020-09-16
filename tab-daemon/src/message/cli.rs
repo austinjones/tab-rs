@@ -1,4 +1,4 @@
-use super::tab::TabScrollback;
+use super::tab::{TabOutput, TabScrollback};
 
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
@@ -46,14 +46,30 @@ pub enum CliSend {
 pub enum CliRecv {
     /// A notification that a tab with the given metadata has started, and is ready for subscriptions.
     TabStarted(TabMetadata),
+    /// A notification that a tab has been terminated.
+    TabStopped(TabId),
+}
+
+/// A message sent to the command client's tab subscription service
+/// Maintains subscription state, buffers, and filters messages based on their byte position
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CliSubscriptionRecv {
+    Subscribe(TabId),
+    Unsubscribe(TabId),
     /// A notification that scrollback is available for the given tab.
     /// Receivers can clone the scrollback buffer with TabScrollback::scrollback
     Scrollback(TabScrollback),
+    /// An indexed stdout chunk, for the given tab
+    Output(TabOutput),
     /// A notification that a tab has been retasked.  The client may need to request scrollback and change their subscriptions.
     Retask(TabId, TabId),
-    /// A notification that a tab has been terminated.
-    TabStopped(TabId),
-    /// An indexed stdout chunk, for the given tab
+}
+
+/// A message sent by the client's subscription state service
+/// Represented with the current state of the subscription, contains tab updates and output chunks
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CliSubscriptionSend {
+    Retask(TabId),
     Output(TabId, OutputChunk),
 }
 
