@@ -1302,7 +1302,7 @@ dependencies = [
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api",
+ "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-command",
  "tab-daemon",
  "tab-pty",
@@ -1330,8 +1330,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "tab-api"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b425e780497bfc3f09bd4fc9a9694d9e9805fef24998c06b92f1cbad5e7cd45"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lifeline",
+ "log",
+ "serde",
+ "serde_yaml",
+ "snailquote",
+ "sysinfo",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "tab-command"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -1341,8 +1359,8 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api",
- "tab-websocket",
+ "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-test",
@@ -1350,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "tab-daemon"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1363,8 +1381,8 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
- "tab-websocket",
+ "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-io",
@@ -1374,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "tab-pty"
-version = "0.3.2"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1387,9 +1405,9 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty-process",
- "tab-websocket",
+ "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-io",
@@ -1422,6 +1440,24 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-test",
+ "tungstenite",
+]
+
+[[package]]
+name = "tab-websocket"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52cc3b88f37ffec522bdbe6ff1b2b671cdce0ef270014ea0a2fd4dbfb9f0085b"
+dependencies = [
+ "anyhow",
+ "async-tungstenite",
+ "bincode",
+ "futures 0.3.5",
+ "lifeline",
+ "log",
+ "serde",
+ "thiserror",
+ "tokio",
  "tungstenite",
 ]
 
