@@ -18,6 +18,14 @@ pub fn disable_raw_mode() {
     }
 }
 
+pub fn reset_cursor() {
+    if is_raw_mode() {
+        println!("{}", crossterm::cursor::Show {});
+        println!("{}", crossterm::cursor::DisableBlinking {});
+        debug!("cursor enabled");
+    }
+}
+
 pub struct TerminalEchoService {
     _input: Lifeline,
     _output: Lifeline,

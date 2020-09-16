@@ -1,7 +1,7 @@
 use clap::ArgMatches;
 
 use crate::prelude::*;
-use service::{main::*, terminal::disable_raw_mode};
+use service::{main::*, terminal::disable_raw_mode, terminal::reset_cursor};
 
 use simplelog::{TermLogger, TerminalMode};
 
@@ -76,6 +76,7 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
 
     wait_for_shutdown(rx_shutdown).await;
     disable_raw_mode();
+    reset_cursor();
 
     Ok(())
 }
