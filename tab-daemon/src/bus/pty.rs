@@ -98,7 +98,6 @@ impl CarryFrom<ListenerBus> for PtyBus {
                         }
                         TabRecv::Scrollback(id) => {
                             if !rx_id.borrow().has_assigned(id) {
-                                debug!("got ignored scrollback request on id: {:?}", id);
                                 continue;
                             }
 
