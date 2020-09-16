@@ -18,6 +18,7 @@ mod echo_mode;
 mod terminal_event;
 
 pub use echo_mode::disable_raw_mode;
+pub use echo_mode::reset_cursor;
 
 /// Reads TerminalMode, and launches/cancels the TerminalEchoService / TerminalCrosstermService
 pub struct TerminalService {

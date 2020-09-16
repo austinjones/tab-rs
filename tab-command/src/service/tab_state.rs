@@ -1,14 +1,14 @@
-use crate::prelude::*;
 use crate::{
     message::{client::TabTerminated, tabs::TabShutdown},
     state::tab::{SelectTab, TabState},
 };
+use crate::{prelude::*, state::terminal::TerminalSizeState};
 
 use anyhow::Context;
 
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
-use tokio::stream::StreamExt;
+use tokio::{stream::StreamExt, sync::watch};
 
 /// Tracks the current tab state, and updates TabState.
 pub struct TabStateService {
@@ -33,6 +33,7 @@ impl Service for TabStateService {
             .filter(|r| r.is_ok())
             .map(|r| r.unwrap());
         let rx_tab_terminated = bus.rx::<TabTerminated>()?;
+        let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
 
         let mut tx = bus.tx::<TabState>()?;
         let mut tx_websocket = bus.tx::<Request>()?;
@@ -61,12 +62,8 @@ impl Service for TabStateService {
                             state = if let Some(id) = tabs.get(&name.to_string()) {
                                 info!("selected tab {}", name);
 
-                                if let TabState::Selected(id) = state {
-                                    tx_websocket.send(Request::Unsubscribe(id)).await?;
-                                }
-
-                                tx_websocket.send(Request::Subscribe(*id)).await?;
-                                TabState::Selected(*id)
+                                Self::select_tab(*id, &rx_terminal_size, &mut tx, &mut tx_websocket)
+                                    .await?
                             } else {
                                 info!("awaiting tab {}", name);
                                 TabState::Awaiting(name.to_string())
@@ -78,25 +75,22 @@ impl Service for TabStateService {
                             if state.is_selected(&id) {
                                 continue;
                             }
-
-                            if let TabState::Selected(id) = state {
-                                tx_websocket.send(Request::Unsubscribe(id)).await?;
-                            }
-
-                            tx_websocket.send(Request::Subscribe(id)).await?;
-                            state = TabState::Selected(id);
-
-                            tx.send(state.clone()).await?;
+                            state =
+                                Self::select_tab(id, &rx_terminal_size, &mut tx, &mut tx_websocket)
+                                    .await?;
                         }
                     },
                     Event::Metadata(metadata) => {
                         if state.is_awaiting(metadata.name.as_str()) {
                             info!("tab active {}", metadata.name.as_str());
 
-                            state = TabState::Selected(metadata.id);
-                            tx.send(state.clone()).await?;
-
-                            tx_websocket.send(Request::Subscribe(metadata.id)).await?;
+                            state = Self::select_tab(
+                                metadata.id,
+                                &rx_terminal_size,
+                                &mut tx,
+                                &mut tx_websocket,
+                            )
+                            .await?;
                         }
 
                         let id = metadata.id;
@@ -132,5 +126,27 @@ impl Service for TabStateService {
         });
 
         Ok(Self { _lifeline })
+    }
+}
+
+impl TabStateService {
+    pub async fn select_tab(
+        id: TabId,
+        rx_terminal_size: &watch::Receiver<TerminalSizeState>,
+        tx_state: &mut impl Sender<TabState>,
+        tx_websocket: &mut impl Sender<Request>,
+    ) -> anyhow::Result<TabState> {
+        tx_websocket.send(Request::Subscribe(id)).await?;
+
+        let terminal_size = rx_terminal_size.borrow().clone();
+        tx_websocket
+            .send(Request::ResizeTab(id, terminal_size.0))
+            .await?;
+
+        let state = TabState::Selected(id);
+
+        tx_state.send(state.clone()).await?;
+
+        Ok(state)
     }
 }
