@@ -68,7 +68,7 @@ Tab has a built-in script installer which provides a detailed explanation of the
 
 Tab can install completions for all shells & supported integration which are present on your system.
 ```
-tab --install --all
+tab --install all
 ```
 
 **(Bash | Fish | Zsh)**
@@ -87,7 +87,7 @@ tab --install zsh
 Tab integrates with the [starship](https://starship.rs/) prompt, and can auto-configure the integration:
 
 ```
-tab --install --starship
+tab --install starship
 ```
 
 You can optionally set a prompt order in `~/.config/starship.toml`.  This is how I've configured my own shell:
