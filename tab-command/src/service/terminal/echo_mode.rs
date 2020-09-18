@@ -1,25 +1,30 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+static RAW_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
+
 pub fn enable_raw_mode() {
     if is_raw_mode() {
         crossterm::terminal::enable_raw_mode().expect("failed to enable raw mode");
+        RAW_MODE_ENABLED.store(true, Ordering::SeqCst);
         debug!("raw mode enabled");
     }
 }
 
 pub fn disable_raw_mode() {
-    if is_raw_mode() {
+    if is_raw_mode() && RAW_MODE_ENABLED.load(Ordering::SeqCst) {
         crossterm::terminal::disable_raw_mode().expect("failed to disable raw mode");
         debug!("raw mode disabled");
     }
 }
 
 pub fn reset_cursor() {
-    if is_raw_mode() {
+    if is_raw_mode() && RAW_MODE_ENABLED.load(Ordering::SeqCst) {
         println!("{}", crossterm::cursor::Show {});
         println!("{}", crossterm::cursor::DisableBlinking {});
         debug!("cursor enabled");
