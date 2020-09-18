@@ -1,12 +1,17 @@
 use crate::{
     prelude::*,
-    state::workspace::{Config, Repo, Workspace, WorkspaceItem, WorkspaceState, WorkspaceTab},
+    state::workspace::{
+        Config, Repo, Workspace, WorkspaceIndex, WorkspaceItem, WorkspaceState, WorkspaceTab,
+    },
 };
+use anyhow::anyhow;
 use anyhow::Context;
 use lifeline::Service;
+use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::File,
     io::BufReader,
+    io::BufWriter,
     path::{Path, PathBuf},
 };
 use tab_api::tab::normalize_name;
@@ -55,6 +60,23 @@ struct LoaderState {
     pub workspace: Option<Workspace>,
 }
 
+// An index of known workspace roots
+fn load_index() -> anyhow::Result<WorkspaceIndex> {
+    let path = tab_api::config::workspace_index()?;
+    if !path.is_file() {
+        return Ok(WorkspaceIndex { workspaces: vec![] });
+    }
+
+    load_file(path.as_path())
+}
+
+fn save_index(index: &WorkspaceIndex) -> anyhow::Result<()> {
+    let path = tab_api::config::workspace_index()?;
+    save_file(path.as_path(), index)?;
+
+    Ok(())
+}
+
 fn load_state() -> anyhow::Result<LoaderState> {
     let mut loader_state = LoaderState {
         repos: Vec::new(),
@@ -65,6 +87,8 @@ fn load_state() -> anyhow::Result<LoaderState> {
     let init_dir = std::env::current_dir()?;
     let mut working_dir: Option<&Path> = Some(init_dir.as_path());
 
+    load_workspace_tabs(&mut loader_state)?;
+
     while let Some(dir) = working_dir {
         let config = load_yml(dir);
         if let Some(config) = config {
@@ -73,6 +97,7 @@ fn load_state() -> anyhow::Result<LoaderState> {
                 Config::Workspace(workspace) => {
                     load_items(dir, &workspace, &mut loader_state)?;
                     loader_state.workspace = Some(workspace);
+                    save_workspace_index(dir)?;
                     break;
                 }
                 Config::Repo(repo) => {
@@ -106,12 +131,85 @@ fn load_yml(dir: &Path) -> Option<anyhow::Result<Config>> {
     None
 }
 
-fn load_file(path: &Path) -> anyhow::Result<Config> {
+fn load_workspace_tabs(loader_state: &mut LoaderState) -> anyhow::Result<()> {
+    let workspace_index = load_index()?;
+    for str_path in workspace_index.workspaces {
+        let path: &Path = &Path::new(str_path.as_str());
+
+        let config = load_yml(path);
+
+        if !config.is_some() {
+            continue;
+        }
+
+        let config = config.unwrap();
+
+        if !config.is_ok() {
+            warn!("Failed to parse indexed workspace at path: {}", str_path);
+            continue;
+        }
+
+        let config = config.unwrap();
+
+        if let Config::Workspace(workspace) = config {
+            if let Some(tab) = workspace.tab {
+                let tab = WorkspaceTab {
+                    name: normalize_name(tab.as_str()),
+                    directory: path.to_owned(),
+                    doc: workspace.doc.unwrap_or("".to_owned()),
+                };
+
+                loader_state.tabs.push(tab);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn save_workspace_index(dir: &Path) -> anyhow::Result<()> {
+    let mut workspace_index = load_index()?;
+    let string = dir
+        .to_str()
+        .ok_or_else(|| {
+            anyhow!(format!(
+                "workspace path is not a valid rust string: {}",
+                dir.to_string_lossy()
+            ))
+        })?
+        .to_owned();
+
+    if workspace_index.workspaces.contains(&string) {
+        return Ok(());
+    }
+
+    workspace_index.workspaces.push(string);
+    save_index(&workspace_index)?;
+
+    Ok(())
+}
+
+fn load_file<T>(path: &Path) -> anyhow::Result<T>
+where
+    T: DeserializeOwned,
+{
     // TODO: figure out how to get rid fo the blocking IO
     let reader = File::open(path)?;
     let buf_reader = BufReader::new(reader);
     let config = serde_yaml::from_reader(buf_reader)?;
     Ok(config)
+}
+
+fn save_file<T>(path: &Path, data: &T) -> anyhow::Result<()>
+where
+    T: Serialize,
+{
+    // TODO: figure out how to get rid fo the blocking IO
+    let reader = File::create(path)?;
+    let buf_writer = BufWriter::new(reader);
+    serde_yaml::to_writer(buf_writer, data)?;
+
+    Ok(())
 }
 
 fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> anyhow::Result<()> {

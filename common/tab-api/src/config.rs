@@ -43,6 +43,14 @@ pub fn daemon_file() -> Result<PathBuf> {
     Ok(dir)
 }
 
+/// The full path to the workspace index.  This is a top-level listing of known tab workspaces.
+/// Not all entries are guaranteed to be valid, as the user may delete workspace configurations.
+pub fn workspace_index() -> Result<PathBuf> {
+    let mut dir = dotdir_path()?;
+    dir.push("workspaces.yml");
+    Ok(dir)
+}
+
 /// Determines if there is an active daemon, by checking the pidfile and the active system processes.
 pub fn is_running(config: &DaemonConfig) -> bool {
     let mut system = sysinfo::System::new_with_specifics(RefreshKind::new());

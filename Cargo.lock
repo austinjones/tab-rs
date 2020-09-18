@@ -1336,24 +1336,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-api"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b425e780497bfc3f09bd4fc9a9694d9e9805fef24998c06b92f1cbad5e7cd45"
-dependencies = [
- "anyhow",
- "dirs",
- "lifeline",
- "log",
- "serde",
- "serde_yaml",
- "snailquote",
- "sysinfo",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "tab-command"
 version = "0.3.6"
 dependencies = [
@@ -1365,7 +1347,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1373,6 +1355,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "tab-command"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1393,6 +1376,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> Add a workspace index, and allow global workspace tabs
 name = "tab-daemon"
 version = "0.3.9"
 dependencies = [
@@ -1407,7 +1392,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1431,7 +1416,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1453,7 +1438,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-pty-process 0.2.0",
  "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
@@ -1478,7 +1463,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",

@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+#[derive(Deserialize, Serialize)]
+pub struct WorkspaceIndex {
+    pub workspaces: Vec<String>,
+}
+
 /// The client's view of the workspace configuration
 #[derive(Debug, Clone)]
 pub enum WorkspaceState {
@@ -37,6 +42,7 @@ pub enum Config {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Workspace {
     pub workspace: Vec<WorkspaceItem>,
+    pub tab: Option<String>,
     pub doc: Option<String>,
 }
 
