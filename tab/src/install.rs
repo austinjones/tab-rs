@@ -131,6 +131,10 @@ fn safe_write(path: PathBuf, contents: String) -> anyhow::Result<()> {
         ))
     }
 
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
     let mut temp_path = path.clone();
     if !temp_path.set_extension("tabtmp") {
         bail!(format!(
