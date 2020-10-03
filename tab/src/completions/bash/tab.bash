@@ -15,18 +15,16 @@ _tab() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     case "$prev" in
     -w)
-        echo "case w" >> cur.txt
         TABS=$(tab --_autocomplete_close_tab)
-        COMPREPLY=( $(compgen -W "${TABS}") )
+        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
         return 0
         ;;
     --close)
         TABS=$(tab --_autocomplete_close_tab)
-        COMPREPLY=( $(compgen -W "${TABS}") )
+        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
         return 0
         ;;
     --completion)
-        TABS=$(tab --_autocomplete_close_tab)
         COMPREPLY=( $(compgen -W "bash elvish fish powershell zsh") )
         return 0
         ;;
@@ -39,14 +37,13 @@ _tab() {
         return 0
         ;;
     -*)
-        echo "case -*" >> cur.txt
         opts=" -h --help -l --list -w --close -W --shutdown -V --version --completion <TAB> "
         COMPREPLY=( $(compgen -W "${opts}") )
         return 0
         ;;
     *)
         TABS=$(tab --_autocomplete_tab)
-        COMPREPLY=( $(compgen -W "${TABS}") )
+        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
         return 0
         ;;
     esac
