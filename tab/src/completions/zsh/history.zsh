@@ -4,7 +4,6 @@ if [ -n "$TAB" ] ; then
 
     if [ $? -ne 0 ]; then
         return;
-        export HISTFILE="$HIST"
     fi
 
     # try to retrieve the histfile location, this time echoing stderr if there is an issue
