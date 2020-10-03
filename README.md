@@ -80,6 +80,10 @@ tab --install fish
 tab --install zsh
 ```
 
+**(Known Issues)**
+
+If you get the message `tab: unsupported terminal app`, you fix it by removing the `osx` plugin from your `~/.zshrc`.  See [#156](https://github.com/austinjones/tab-rs/issues/156).
+
 ## 3. Configure your statusline
 
 **(Starship)**
@@ -90,9 +94,9 @@ Tab integrates with the [starship](https://starship.rs/) prompt, and can auto-co
 tab --install starship
 ```
 
-You can optionally set a prompt order in `~/.config/starship.toml`.  This is how I've configured my own shell:
+You can also put the current tab before the directory in `~/.config/starship.toml`.  This is how I've configured my own shell:
 ```
-prompt_order = ["custom.tab", "directory", "git_branch", "cmd_duration", "line_break", "character"]
+format = "${custom.tab} $all"
 ```
 
 **(Other)**
@@ -103,8 +107,6 @@ You can also add a handcrafted statusline snippet to your shell's rc configurati
 [bash](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/bash/statusline.bash), 
 [fish](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/fish/statusline.fish),
 or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
-
-
 
 # Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
