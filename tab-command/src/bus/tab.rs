@@ -144,7 +144,7 @@ impl CarryFrom<MainBus> for TabBus {
                             tx_tabs.send(TabsRecv::Terminated(id)).await?;
 
                             tx_tab_terminated.send(TabTerminated(id)).await?;
-                            if rx_tab_state.borrow().is_selected(&id) {
+                            if rx_tab_state.borrow().is_selected(id) {
                                 // wait just a few moments for messages to settle.
                                 // if we terminate immediately, there could be terminal I/O going on.
                                 // example:

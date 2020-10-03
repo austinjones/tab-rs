@@ -1,6 +1,6 @@
 use super::{
-    create_tab::CreateTabService, tab_state::TabStateService, tabs::TabsStateService,
-    terminal::TerminalService, workspace::WorkspaceService,
+    create_tab::CreateTabService, tab_state::TabStateService, tab_title::TabTitleService,
+    tabs::TabsStateService, terminal::TerminalService, workspace::WorkspaceService,
 };
 use crate::prelude::*;
 use crate::{
@@ -25,6 +25,7 @@ pub struct MainService {
     _create_tab: CreateTabService,
     _tab_state: TabStateService,
     _tabs_state: TabsStateService,
+    _tab_title: TabTitleService,
     _terminal: TerminalService,
     _close_tab: CloseTabService,
 }
@@ -65,6 +66,7 @@ impl Service for MainService {
         let _workspace = WorkspaceService::spawn(&tab_bus)?;
         let _create_tab = CreateTabService::spawn(&tab_bus)?;
         let _tabs_state = TabsStateService::spawn(&tab_bus)?;
+        let _tab_title = TabTitleService::spawn(&tab_bus)?;
         let _terminal = TerminalService::spawn(&main_bus)?;
         let _close_tab = CloseTabService::spawn(&main_bus)?;
 
@@ -76,6 +78,7 @@ impl Service for MainService {
             _create_tab,
             _tab_state,
             _tabs_state,
+            _tab_title,
             _terminal,
             _close_tab,
         })

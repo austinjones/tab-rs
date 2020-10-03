@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
+use crossterm::execute;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -29,6 +30,17 @@ pub fn reset_cursor() {
         println!("{}", crossterm::cursor::DisableBlinking {});
         debug!("cursor enabled");
     }
+}
+
+pub fn set_title(name: &str) -> anyhow::Result<()> {
+    use std::io::Write;
+
+    if is_raw_mode() {
+        execute!(std::io::stdout(), crossterm::terminal::SetTitle(name))?;
+        info!("set window title to: {}", name);
+    }
+
+    Ok(())
 }
 
 pub struct TerminalEchoService {

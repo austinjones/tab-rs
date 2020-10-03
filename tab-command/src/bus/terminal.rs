@@ -120,17 +120,17 @@ impl CarryFrom<MainBus> for TerminalBus {
                         TerminalSend::Stdin(data) => {
                             let tab = rx_tab_state.borrow().clone();
 
-                            if let TabState::Selected(id) = tab {
+                            if let TabState::Selected(tab) = tab {
                                 let chunk = InputChunk { data };
-                                tx_request.send(Request::Input(id, chunk)).await?;
+                                tx_request.send(Request::Input(tab.id, chunk)).await?;
                             }
                         }
                         TerminalSend::Resize(size) => {
                             let tab = rx_tab_state.borrow().clone();
 
-                            if let TabState::Selected(id) = tab {
-                                debug!("setting size: {} {:?}", &id.0, &size);
-                                tx_request.send(Request::ResizeTab(id, size)).await?;
+                            if let TabState::Selected(tab) = tab {
+                                debug!("setting size: {} {:?}", tab.id.0, &size);
+                                tx_request.send(Request::ResizeTab(tab.id, size)).await?;
                             }
                         }
                     }

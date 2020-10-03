@@ -49,7 +49,7 @@ impl Service for TabStateService {
                 tabs.merge(tab_metadatas).merge(tab_terminated)
             };
 
-            let mut tabs: HashMap<String, TabId> = HashMap::new();
+            let mut tabs: HashMap<String, TabMetadata> = HashMap::new();
 
             while let Some(event) = events.next().await {
                 match event {
@@ -59,11 +59,16 @@ impl Service for TabStateService {
                                 continue;
                             }
 
-                            state = if let Some(id) = tabs.get(&name.to_string()) {
+                            state = if let Some(metadata) = tabs.get(&name.to_string()) {
                                 info!("selected tab {}", name);
 
-                                Self::select_tab(*id, &rx_terminal_size, &mut tx, &mut tx_websocket)
-                                    .await?
+                                Self::select_tab(
+                                    &metadata,
+                                    &rx_terminal_size,
+                                    &mut tx,
+                                    &mut tx_websocket,
+                                )
+                                .await?
                             } else {
                                 info!("awaiting tab {}", name);
                                 TabState::Awaiting(name.to_string())
@@ -72,20 +77,22 @@ impl Service for TabStateService {
                             tx.send(state.clone()).await?;
                         }
                         SelectTab::Tab(id) => {
-                            if state.is_selected(&id) {
+                            if state.is_selected(id) {
                                 continue;
                             }
-                            state =
-                                Self::select_tab(id, &rx_terminal_size, &mut tx, &mut tx_websocket)
-                                    .await?;
+
+                            state = TabState::AwaitingId(id);
+                            tx.send(state.clone()).await?;
                         }
                     },
                     Event::Metadata(metadata) => {
-                        if state.is_awaiting(metadata.name.as_str()) {
+                        if state.is_awaiting_id(metadata.id)
+                            || state.is_awaiting(metadata.name.as_str())
+                        {
                             info!("tab active {}", metadata.name.as_str());
 
                             state = Self::select_tab(
-                                metadata.id,
+                                &metadata,
                                 &rx_terminal_size,
                                 &mut tx,
                                 &mut tx_websocket,
@@ -93,13 +100,12 @@ impl Service for TabStateService {
                             .await?;
                         }
 
-                        let id = metadata.id;
-                        let name = metadata.name;
-                        tabs.insert(name, id);
+                        let name = metadata.name.clone();
+                        tabs.insert(name, metadata);
                     }
                     Event::Terminated(terminated_id) => {
-                        if let TabState::Selected(selected_id) = state {
-                            if terminated_id == selected_id {
+                        if let TabState::Selected(ref tab) = state {
+                            if terminated_id == tab.id {
                                 state = TabState::None;
                                 tx.send(state.clone()).await?;
                                 tx_shutdown
@@ -111,7 +117,7 @@ impl Service for TabStateService {
 
                         let remove: Vec<String> = tabs
                             .iter()
-                            .filter(|(_, id)| **id == terminated_id)
+                            .filter(|(_, tab)| tab.id == terminated_id)
                             .map(|(name, _)| name.clone())
                             .collect();
 
@@ -131,11 +137,13 @@ impl Service for TabStateService {
 
 impl TabStateService {
     pub async fn select_tab(
-        id: TabId,
+        metadata: &TabMetadata,
         rx_terminal_size: &watch::Receiver<TerminalSizeState>,
         tx_state: &mut impl Sender<TabState>,
         tx_websocket: &mut impl Sender<Request>,
     ) -> anyhow::Result<TabState> {
+        let id = metadata.id;
+
         tx_websocket.send(Request::Subscribe(id)).await?;
 
         let terminal_size = rx_terminal_size.borrow().clone();
@@ -143,7 +151,7 @@ impl TabStateService {
             .send(Request::ResizeTab(id, terminal_size.0))
             .await?;
 
-        let state = TabState::Selected(id);
+        let state = TabState::Selected(metadata.clone());
 
         tx_state.send(state.clone()).await?;
 

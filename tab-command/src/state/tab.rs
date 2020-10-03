@@ -1,4 +1,4 @@
-use tab_api::tab::TabId;
+use tab_api::tab::{TabId, TabMetadata};
 
 /// The select tab action, either by name or id
 #[derive(Debug, Clone, PartialEq)]
@@ -12,23 +12,29 @@ pub enum SelectTab {
 pub enum TabState {
     None,
     Awaiting(String),
-    Selected(TabId),
+    AwaitingId(TabId),
+    Selected(TabMetadata),
 }
 
 impl TabState {
     pub fn is_awaiting(&self, target_name: &str) -> bool {
         match self {
-            TabState::None => false,
             TabState::Awaiting(name) => name.as_str() == target_name,
-            TabState::Selected(_) => false,
+            _ => false,
         }
     }
 
-    pub fn is_selected(&self, target_id: &TabId) -> bool {
+    pub fn is_awaiting_id(&self, target: TabId) -> bool {
         match self {
-            TabState::None => false,
-            TabState::Awaiting(_) => false,
-            TabState::Selected(id) => id == target_id,
+            TabState::AwaitingId(id) => *id == target,
+            _ => false,
+        }
+    }
+
+    pub fn is_selected(&self, target_id: TabId) -> bool {
+        match self {
+            TabState::Selected(ref metadata) => metadata.id == target_id,
+            _ => false,
         }
     }
 }
