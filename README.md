@@ -96,7 +96,7 @@ tab --install starship
 
 You can also put the current tab before the directory in `~/.config/starship.toml`.  This is how I've configured my own shell:
 ```
-format = "${custom.tab} $all"
+format = "${custom.tab}$all"
 ```
 
 **(Other)**
