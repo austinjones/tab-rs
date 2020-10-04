@@ -59,6 +59,12 @@ cargo install tab
 Download binaries from:
 [https://github.com/austinjones/tab-rs/releases/latest](https://github.com/austinjones/tab-rs/releases/latest)
 
+**(Known Issues)**
+
+After you upgrade tab or move the tab binary, you may want to run the `tab --shutdown` command to restart the daemon.  See [#163](https://github.com/austinjones/tab-rs/issues/163).
+
+If you get the message `tab: unsupported terminal app`, you fix it by removing the `osx` plugin from your `~/.zshrc`.  See [#156](https://github.com/austinjones/tab-rs/issues/156).
+
 ## 2. Install autocompletions for your shell
 Tab works best when configured with shell autocompletions.  
 
@@ -80,9 +86,6 @@ tab --install fish
 tab --install zsh
 ```
 
-**(Known Issues)**
-
-If you get the message `tab: unsupported terminal app`, you fix it by removing the `osx` plugin from your `~/.zshrc`.  See [#156](https://github.com/austinjones/tab-rs/issues/156).
 
 ## 3. Configure your statusline
 
