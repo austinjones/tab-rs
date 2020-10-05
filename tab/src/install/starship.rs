@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use toml_edit::{table, value, Document};
+use toml_edit::{table, value, Array, Document};
 
 use super::{Package, PackageBuilder, PackageEnv};
 
@@ -51,10 +51,16 @@ fn edit(string: Option<String>) -> String {
     }
 
     toml["custom"]["tab"] = table();
+    toml["custom"]["tab"]["description"] = value("The current tab in the tab terminal multiplexer");
     toml["custom"]["tab"]["command"] = value("tab --starship");
     toml["custom"]["tab"]["when"] = value("tab --starship");
+
+    let mut array = Array::default();
+    array.push("sh").ok();
+    toml["custom"]["tab"]["shell"] = value(array);
+
+    toml["custom"]["tab"]["format"] = value("[$output]($style) ");
     toml["custom"]["tab"]["style"] = value("bold blue");
-    toml["custom"]["tab"]["prefix"] = value("in ");
     toml["custom"]["tab"].as_inline_table();
 
     toml.to_string_in_original_order()
