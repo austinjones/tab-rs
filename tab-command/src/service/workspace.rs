@@ -160,6 +160,16 @@ fn load_workspace_tabs(loader_state: &mut LoaderState) -> anyhow::Result<()> {
                 };
 
                 loader_state.tabs.push(tab);
+            } else if let Some(dir_name) = path.file_name() {
+                let name = dir_name.to_string_lossy().to_string();
+
+                let tab = WorkspaceTab {
+                    name: normalize_name(name.as_str()),
+                    directory: path.to_owned(),
+                    doc: format!("workspace tab for {}", name),
+                };
+
+                loader_state.tabs.push(tab);
             }
         }
     }
