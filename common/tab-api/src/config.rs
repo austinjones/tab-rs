@@ -22,7 +22,7 @@ pub fn mkdir() -> Result<()> {
     Ok(())
 }
 
-/// The full path to tab's dotdir directory, that can be used to store state for the user.
+/// The full path to tab's data directory, which can be used to store state for the user.
 pub fn data_path() -> Result<PathBuf> {
     if let Ok(var) = env::var("TAB_RUNTIME_DIR") {
         return Ok(PathBuf::from(var));
