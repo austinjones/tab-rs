@@ -36,16 +36,24 @@ pub enum Config {
 /// The workspace root configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Workspace {
-    pub workspace: Vec<WorkspaceItem>,
+    pub tab: Option<String>,
     pub doc: Option<String>,
+    pub workspace: Vec<WorkspaceItem>,
 }
 
 /// An item within the workspace configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WorkspaceItem {
+    Workspace(WorkspaceLink),
     Repo(WorkspaceRepoLink),
     Tab(Tab),
+}
+
+/// A link to a child workspace, from the workspace root.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceLink {
+    pub workspace: String,
 }
 
 /// A link to a repository within the workspace, from the workspace root.

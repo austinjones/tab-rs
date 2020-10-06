@@ -51,15 +51,19 @@ impl Service for WorkspaceService {
 
 struct LoaderState {
     pub repos: Vec<(PathBuf, Repo)>,
+
+    /// The list of compiled tabs
     pub tabs: Vec<WorkspaceTab>,
-    pub workspace: Option<Workspace>,
+
+    /// The hierarchy of workspaces, starting with the innermost
+    pub workspaces: Vec<Workspace>,
 }
 
 fn load_state() -> anyhow::Result<LoaderState> {
     let mut loader_state = LoaderState {
         repos: Vec::new(),
         tabs: Vec::new(),
-        workspace: None,
+        workspaces: Vec::new(),
     };
 
     let init_dir = std::env::current_dir()?;
@@ -72,8 +76,7 @@ fn load_state() -> anyhow::Result<LoaderState> {
             match config {
                 Config::Workspace(workspace) => {
                     load_items(dir, &workspace, &mut loader_state)?;
-                    loader_state.workspace = Some(workspace);
-                    break;
+                    loader_state.workspaces.push(workspace);
                 }
                 Config::Repo(repo) => {
                     let repo_path = dir.to_path_buf();
@@ -115,8 +118,26 @@ fn load_file(path: &Path) -> anyhow::Result<Config> {
 }
 
 fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> anyhow::Result<()> {
+    if let Some(tab) = workspace_tab(path, workspace) {
+        target.tabs.push(tab);
+    }
+
     for item in workspace.workspace.iter() {
         match item {
+            WorkspaceItem::Workspace(link) => {
+                let mut workspace_path = path.to_path_buf();
+                workspace_path.push(link.workspace.as_str());
+
+                if let Some(workspace) = load_yml(workspace_path.as_path()) {
+                    let workspace = workspace?;
+                    if let Config::Workspace(workspace) = workspace {
+                        if let Some(tab) = workspace_tab(workspace_path.as_path(), &workspace) {
+                            target.tabs.push(tab);
+                        }
+                    }
+                }
+            }
+
             WorkspaceItem::Repo(repo) => {
                 let mut repo_path = path.to_path_buf();
                 repo_path.push(repo.repo.as_str());
@@ -150,6 +171,35 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
     Ok(())
 }
 
+fn workspace_tab(path: &Path, workspace: &Workspace) -> Option<WorkspaceTab> {
+    workspace_tab_name(path, &workspace).map(|name| WorkspaceTab {
+        name: normalize_name(name.as_str()),
+        directory: path.to_owned(),
+        doc: workspace_tab_doc(path, workspace),
+    })
+}
+
+fn workspace_tab_name(path: &Path, workspace: &Workspace) -> Option<String> {
+    if let Some(ref tab) = workspace.tab {
+        return Some(tab.clone());
+    }
+
+    path.file_name()
+        .map(|name| name.to_string_lossy().to_string())
+}
+
+fn workspace_tab_doc(path: &Path, workspace: &Workspace) -> String {
+    if let Some(ref doc) = workspace.doc {
+        return doc.clone();
+    }
+
+    if let Some(name) = path.file_name() {
+        format!("workspace tab for {}", name.to_string_lossy())
+    } else {
+        format!("workspace tab")
+    }
+}
+
 fn tabs(mut loader: LoaderState) -> Vec<WorkspaceTab> {
     let mut tabs = Vec::new();
     tabs.append(&mut loader.tabs);
@@ -162,7 +212,6 @@ fn tabs(mut loader: LoaderState) -> Vec<WorkspaceTab> {
             name: repo_name.clone(),
             directory: path.clone(),
             doc: repo.doc.unwrap_or("".to_string()),
-            // command: None,
         };
         tabs.push(tab);
 
