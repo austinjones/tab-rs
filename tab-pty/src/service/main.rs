@@ -3,7 +3,7 @@ use crate::{message::pty::MainShutdown, prelude::*};
 use super::client::ClientService;
 use lifeline::dyn_bus::DynBus;
 
-use tab_api::config::dotdir_path;
+use tab_api::config::data_path;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
@@ -54,7 +54,7 @@ impl Service for TabdirShutdownService {
         let mut tx = bus.tx::<MainShutdown>()?;
         let _monitor = Self::try_task("monitor", async move {
             loop {
-                let config_dir = dotdir_path()?;
+                let config_dir = data_path()?;
                 if !config_dir.is_dir() {
                     info!(
                         "PTY shutdown triggered by removed runtime directory: {}",
