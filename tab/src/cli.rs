@@ -113,6 +113,10 @@ fn app() -> App<'static, 'static> {
 }
 
 fn validate_tab_name(name: String) -> Result<(), String> {
+    if name.starts_with('-') {
+        return Err("tab name may not begin with a dash".into());
+    }
+
     if name.contains(' ') || name.contains('\t') {
         return Err("tab name may not contain whitespace".into());
     }
