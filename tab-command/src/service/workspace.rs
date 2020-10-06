@@ -146,6 +146,14 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
                     if let Config::Repo(repo) = repo {
                         target.repos.push((repo_path, repo));
                     }
+                } else if repo_path.exists() {
+                    let tab = WorkspaceTab {
+                        name: normalize_name(repo.repo.as_str()),
+                        directory: repo_path,
+                        doc: "".to_string(),
+                    };
+
+                    target.tabs.push(tab);
                 }
             }
 
@@ -160,7 +168,6 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
                     name: normalize_name(tab.tab.as_str()),
                     directory,
                     doc: tab.doc.as_ref().unwrap_or(&"".to_string()).clone(),
-                    // command: tab.command.clone(),
                 };
 
                 target.tabs.push(tab);
