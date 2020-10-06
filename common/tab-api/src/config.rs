@@ -28,7 +28,9 @@ pub fn dotdir_path() -> Result<PathBuf> {
         return Ok(PathBuf::from(var));
     }
 
-    let mut dir = dirs::home_dir().ok_or_else(|| anyhow::Error::msg("home_dir not found"))?;
+    let mut dir = dirs::data_dir()
+        .or(dirs::home_dir())
+        .ok_or_else(|| anyhow::Error::msg("tab dotdir not found"))?;
 
     dir.push(".tab");
 
@@ -93,7 +95,7 @@ mod tests {
 
     #[test]
     fn dotdir_path_matches() {
-        let mut expected = dirs::home_dir().expect("home dir required");
+        let mut expected = dirs::data_dir().expect("home dir required");
         expected.push(".tab");
 
         let path = dotdir_path();
@@ -103,7 +105,7 @@ mod tests {
 
     #[test]
     fn daemonfile_path_matches() {
-        let mut expected = dirs::home_dir().expect("home dir required");
+        let mut expected = dirs::data_dir().expect("home dir required");
         expected.push(".tab");
         expected.push("daemon-pid.yml");
 
