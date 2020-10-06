@@ -28,7 +28,7 @@ pub fn data_path() -> Result<PathBuf> {
         return Ok(PathBuf::from(var));
     }
 
-    let mut dir = dirs::data_dir().ok_or_else(|| anyhow::Error::msg("tab dotdir not found"))?;
+    let mut dir = dirs::data_dir().ok_or_else(|| anyhow::Error::msg("tab data dir not found"))?;
 
     dir.push("tab");
 
