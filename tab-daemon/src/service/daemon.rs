@@ -1,7 +1,7 @@
 use crate::{message::daemon::DaemonShutdown, prelude::*};
 use listener::ListenerService;
 
-use tab_api::config::dotdir_path;
+use tab_api::config::data_path;
 use time::Duration;
 use tokio::time;
 
@@ -43,7 +43,7 @@ impl Service for TabdirShutdownService {
         let mut tx = bus.tx::<DaemonShutdown>()?;
         let _monitor = Self::try_task("monitor", async move {
             loop {
-                let config_dir = dotdir_path()?;
+                let config_dir = data_path()?;
                 if !config_dir.is_dir() {
                     info!(
                         "Daemon shutdown triggered by removed runtime directory: {}",
