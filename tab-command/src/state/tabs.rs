@@ -8,6 +8,12 @@ pub struct TabsState {
     pub tabs: HashMap<TabId, TabMetadata>,
 }
 
+impl TabsState {
+    pub fn find_name(&self, name: &str) -> Option<&TabMetadata> {
+        self.tabs.values().find(|elem| elem.name == name)
+    }
+}
+
 impl Default for TabsState {
     fn default() -> Self {
         Self {

@@ -9,7 +9,7 @@ use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
 
 use lifeline::dyn_bus::DynBus;
-use tab_api::{launch::*, log::get_level};
+use tab_api::{launch::*, log::get_level, tab::normalize_name};
 use tab_websocket::resource::connection::WebsocketResource;
 
 mod bus;
@@ -51,7 +51,7 @@ pub fn command_main(args: ArgMatches) -> anyhow::Result<()> {
 
 async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     let select_tab = matches.value_of("TAB-NAME");
-    let close_tab = matches.value_of("CLOSE-TAB");
+    let close_tabs = matches.values_of("CLOSE-TAB");
     let (mut tx, rx_shutdown, _service) = spawn().await?;
     let completion = matches.is_present("AUTOCOMPLETE-TAB");
     let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
@@ -68,8 +68,9 @@ async fn main_async(matches: ArgMatches<'_>) -> anyhow::Result<()> {
     } else if let Some(tab) = select_tab {
         info!("selecting tab: {}", tab);
         tx.send(MainRecv::SelectTab(tab.to_string())).await?;
-    } else if let Some(tab) = close_tab {
-        tx.send(MainRecv::CloseTab(tab.to_string())).await?;
+    } else if let Some(tabs) = close_tabs {
+        let tabs: Vec<String> = tabs.map(normalize_name).collect();
+        tx.send(MainRecv::CloseTabs(tabs)).await?;
     } else {
         tx.send(MainRecv::SelectTab("any/".to_string())).await?;
     }

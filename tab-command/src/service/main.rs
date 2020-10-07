@@ -10,7 +10,7 @@ use crate::{
 
 use lifeline::dyn_bus::DynBus;
 
-use tab_api::tab::{normalize_name, TabMetadata};
+use tab_api::tab::TabMetadata;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
@@ -26,7 +26,6 @@ pub struct MainService {
     _tab_state: TabStateService,
     _tabs_state: TabsStateService,
     _terminal: TerminalService,
-    _close_tab: CloseTabService,
 }
 
 impl Service for MainService {
@@ -66,7 +65,6 @@ impl Service for MainService {
         let _create_tab = CreateTabService::spawn(&tab_bus)?;
         let _tabs_state = TabsStateService::spawn(&tab_bus)?;
         let _terminal = TerminalService::spawn(&main_bus)?;
-        let _close_tab = CloseTabService::spawn(&main_bus)?;
 
         Ok(Self {
             _main,
@@ -77,41 +75,8 @@ impl Service for MainService {
             _tab_state,
             _tabs_state,
             _terminal,
-            _close_tab,
         })
     }
 }
 
 impl MainService {}
-
-pub struct CloseTabService {
-    _on_close: Lifeline,
-}
-
-impl Service for CloseTabService {
-    type Bus = MainBus;
-    type Lifeline = anyhow::Result<Self>;
-    fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut rx_main = bus.rx::<MainRecv>()?;
-
-        let mut tx_request = bus.tx::<Request>()?;
-        let mut tx_shutdown = bus.tx::<MainShutdown>()?;
-
-        let _on_close = Self::try_task("on_close", async move {
-            while let Some(msg) = rx_main.recv().await {
-                match msg {
-                    MainRecv::CloseTab(name) => {
-                        let name = normalize_name(name.as_str());
-                        tx_request.send(Request::CloseNamedTab(name)).await?;
-                        tx_shutdown.send(MainShutdown {}).await?;
-                    }
-                    _ => {}
-                }
-            }
-
-            Ok(())
-        });
-
-        Ok(Self { _on_close })
-    }
-}

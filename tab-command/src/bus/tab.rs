@@ -243,6 +243,31 @@ impl CarryFrom<MainBus> for TabBus {
                                 .await
                                 .context("send TabStateSelect")?;
                         }
+                        MainRecv::CloseTabs(tabs) => {
+                            let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+
+                            for tab in tabs {
+                                let name = normalize_name(tab.as_str());
+
+                                if running_tabs.is_some()
+                                    && running_tabs
+                                        .as_ref()
+                                        .unwrap()
+                                        .find_name(name.as_str())
+                                        .is_some()
+                                {
+                                    eprintln!("Closing tab: {}", name);
+                                } else {
+                                    eprintln!("Tab not running: {}", name);
+                                }
+
+                                tx_websocket.send(Request::CloseNamedTab(name)).await?;
+                            }
+
+                            time::delay_for(Duration::from_millis(5)).await;
+
+                            tx_shutdown.send(MainShutdown {}).await?;
+                        }
                         MainRecv::ListTabs => {
                             let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
                             let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
@@ -283,7 +308,6 @@ impl CarryFrom<MainBus> for TabBus {
                         }
 
                         MainRecv::GlobalShutdown => {}
-                        MainRecv::CloseTab(_) => {}
                     }
                 }
 
