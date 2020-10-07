@@ -95,7 +95,8 @@ impl CreateTabService {
                 return Ok(tab.directory.clone());
             } else {
                 warn!(
-                    "Requested working directory not found: {}",
+                    "The configured working directory for '{}' was not found: {}",
+                    tab.name,
                     tab.directory.as_path().to_string_lossy()
                 );
                 // fall through to current directory
