@@ -10,7 +10,7 @@ pub struct MainShutdown {}
 pub enum MainRecv {
     SelectTab(String),
     ListTabs,
-    CloseTab(String),
+    CloseTabs(Vec<String>),
     AutocompleteTab,
     AutocompleteCloseTab,
     GlobalShutdown,

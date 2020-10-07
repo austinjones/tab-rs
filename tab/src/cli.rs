@@ -89,9 +89,10 @@ fn app() -> App<'static, 'static> {
                 .short("w")
                 .long("close")
                 .takes_value(true)
-                .value_name("TAB")
+                .multiple(true)
+                .value_name("TABS")
                 .validator(validate_tab_name)
-                .help("Closes the tab with the given name")
+                .help("Closes the tabs with the given names")
         )
         .arg(
             Arg::with_name("COMPLETION")
