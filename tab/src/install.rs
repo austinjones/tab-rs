@@ -181,6 +181,7 @@ fn unsafe_write_file(path: &Path, contents: String) -> anyhow::Result<()> {
 /// Environment information for package construction
 pub struct PackageEnv {
     pub home: PathBuf,
+    pub data: PathBuf,
 }
 
 impl PackageEnv {
@@ -189,7 +190,11 @@ impl PackageEnv {
             "A home directory is required for package installation, and none could be found."
         ))?;
 
-        Ok(Self { home })
+        let data = dirs::data_dir().ok_or(anyhow!(
+            "A home directory is required for package installation, and none could be found."
+        ))?;
+
+        Ok(Self { home, data })
     }
 }
 
@@ -461,10 +466,10 @@ impl ScriptAction {
     pub fn to_string(&self, shell: &Shell) -> String {
         match (self, shell) {
             (ScriptAction::SourceFile(path), Shell::Bash) => {
-                format!("source {}", path.to_string_lossy())
+                format!("source \"{}\"", path.to_string_lossy())
             }
             (ScriptAction::SourceFile(path), Shell::Zsh) => {
-                format!("source {}", path.to_string_lossy())
+                format!("source \"{}\"", path.to_string_lossy())
             }
         }
     }

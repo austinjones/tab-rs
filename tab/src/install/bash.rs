@@ -21,8 +21,7 @@ pub fn bash_package(env: &PackageEnv) -> Package {
 }
 
 fn completion_script_path(env: &PackageEnv) -> PathBuf {
-    let mut path = env.home.clone();
-    path.push(".tab");
+    let mut path = env.data.clone();
     path.push("completion");
     path.push("tab.bash");
     path
