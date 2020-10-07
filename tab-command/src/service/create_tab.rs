@@ -7,6 +7,7 @@ use crate::{
         workspace::{WorkspaceState, WorkspaceTab},
     },
 };
+use std::path::PathBuf;
 use tab_api::tab::{normalize_name, CreateTabMetadata};
 use time::Duration;
 use tokio::{sync::watch, time};
@@ -73,27 +74,43 @@ impl CreateTabService {
 
         let dimensions = rx_terminal_size.borrow().0.clone();
         let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
-        let metadata = if let Some(workspace_tab) = workspace_tab {
-            CreateTabMetadata {
-                name: workspace_tab.name,
-                dir: workspace_tab.directory.to_string_lossy().to_string(),
-                dimensions,
-                shell,
-            }
-        } else {
-            let current_dir = std::env::current_dir()?;
-            CreateTabMetadata {
-                name: name.clone(),
-                dir: current_dir.to_string_lossy().to_string(),
-                dimensions,
-                shell,
-            }
+        let directory = Self::compute_directory(&workspace_tab)?;
+
+        let metadata = CreateTabMetadata {
+            name: Self::compute_name(&workspace_tab, name.as_str()),
+            dir: directory.to_string_lossy().to_string(),
+            dimensions,
+            shell,
         };
 
         let request = Request::CreateTab(metadata);
         tx_websocket.send(request).await?;
 
         Ok(())
+    }
+
+    fn compute_directory(tab: &Option<WorkspaceTab>) -> anyhow::Result<PathBuf> {
+        if let Some(ref tab) = tab {
+            if tab.directory.exists() {
+                return Ok(tab.directory.clone());
+            } else {
+                warn!(
+                    "Requested working directory not found: {}",
+                    tab.directory.as_path().to_string_lossy()
+                );
+                // fall through to current directory
+            }
+        }
+
+        std::env::current_dir().map_err(|err| err.into())
+    }
+
+    fn compute_name(tab: &Option<WorkspaceTab>, name: &str) -> String {
+        if let Some(ref tab) = tab {
+            tab.name.clone()
+        } else {
+            name.to_string()
+        }
     }
 
     async fn await_workspace(rx_workspace: &watch::Receiver<WorkspaceState>) -> Vec<WorkspaceTab> {
