@@ -226,6 +226,7 @@ mod request_tests {
             id: TabId(0),
             name: "name".into(),
             dimensions: (1, 2),
+            env: HashMap::new(),
             shell: "bash".into(),
             dir: "/".into(),
         };
@@ -314,11 +315,15 @@ mod request_tests {
         let mut tx = cli_bus.tx::<Request>()?;
         let mut rx = cli_bus.rx::<CliSend>()?;
 
+        let mut env = HashMap::new();
+        env.insert("foo".into(), "bar".into());
+
         let tab = CreateTabMetadata {
             name: "name".into(),
             dimensions: (1, 2),
             shell: "shell".into(),
             dir: "/".into(),
+            env,
         };
         tx.send(Request::CreateTab(tab.clone())).await?;
 
@@ -426,6 +431,7 @@ mod recv_tests {
     use super::CliService;
     use crate::{bus::CliBus, message::cli::CliRecv};
     use lifeline::{assert_completes, Bus, Receiver, Sender, Service};
+    use std::collections::HashMap;
     use tab_api::{
         client::Response,
         tab::{TabId, TabMetadata},
@@ -443,6 +449,7 @@ mod recv_tests {
             id: TabId(0),
             name: "name".into(),
             dimensions: (1, 2),
+            env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
         };

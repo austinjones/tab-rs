@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
+use tab_api::tab::normalize_name;
 
 /// The client's view of the workspace configuration
 #[derive(Debug, Clone)]
@@ -19,8 +20,35 @@ impl Default for WorkspaceState {
 pub struct WorkspaceTab {
     pub name: String,
     pub directory: PathBuf,
-    pub doc: String,
-    // pub command: Option<String>,
+    pub shell: Option<String>,
+    pub doc: Option<String>,
+    pub env: Option<HashMap<String, String>>, // pub command: Option<String>,
+}
+
+impl WorkspaceTab {
+    pub fn new(name: &str, directory: PathBuf) -> Self {
+        let name = normalize_name(name);
+
+        Self {
+            name,
+            directory,
+            shell: None,
+            doc: None,
+            env: None,
+        }
+    }
+
+    pub fn with_options(name: &str, directory: PathBuf, options: TabOptions) -> Self {
+        let name = normalize_name(name);
+
+        Self {
+            name,
+            directory,
+            shell: options.shell,
+            doc: options.doc,
+            env: options.env,
+        }
+    }
 }
 
 /// The top-level YAML configuration object, either a workspace root, or repository root
@@ -37,7 +65,8 @@ pub enum Config {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Workspace {
     pub tab: Option<String>,
-    pub doc: Option<String>,
+    #[serde(flatten)]
+    pub options: TabOptions,
     pub workspace: Vec<WorkspaceItem>,
 }
 
@@ -66,7 +95,8 @@ pub struct WorkspaceRepoLink {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repo {
     pub repo: String,
-    pub doc: Option<String>,
+    #[serde(flatten)]
+    pub tab_options: TabOptions,
     pub tabs: Option<Vec<Tab>>,
 }
 
@@ -74,7 +104,50 @@ pub struct Repo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tab {
     pub tab: String,
-    pub doc: Option<String>,
     pub dir: Option<String>,
+    #[serde(flatten)]
+    pub options: TabOptions,
     // pub command: Option<String>,
+}
+
+/// A tab within the workspace or repository configurations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TabOptions {
+    pub doc: Option<String>,
+    pub shell: Option<String>,
+    pub env: Option<HashMap<String, String>>,
+}
+
+impl Default for TabOptions {
+    fn default() -> Self {
+        Self {
+            doc: None,
+            shell: None,
+            env: None,
+        }
+    }
+}
+
+impl TabOptions {
+    pub fn or(self, other: Self) -> Self {
+        let env = if let Some(mut env) = self.env {
+            if let Some(other_env) = other.env {
+                for (key, value) in other_env.into_iter() {
+                    if !env.contains_key(&key) {
+                        env.insert(key, value);
+                    }
+                }
+            }
+
+            Some(env)
+        } else {
+            other.env
+        };
+
+        Self {
+            doc: self.doc.or(other.doc),
+            shell: self.shell.or(other.shell),
+            env,
+        }
+    }
 }

@@ -113,6 +113,7 @@ mod websocket_tests {
         message::pty::{PtySend, PtyShutdown},
     };
     use lifeline::{assert_completes, assert_times_out, Bus, Receiver, Sender, Service};
+    use std::collections::HashMap;
     use tab_api::{
         chunk::OutputChunk,
         pty::PtyWebsocketResponse,
@@ -131,6 +132,7 @@ mod websocket_tests {
             id: TabId(0),
             name: "name".into(),
             dimensions: (1, 2),
+            env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
         };
@@ -219,6 +221,7 @@ mod daemon_tests {
     use super::PtyService;
     use crate::{bus::PtyBus, message::pty::PtyRecv};
     use lifeline::{assert_completes, Bus, Receiver, Sender, Service};
+    use std::collections::HashMap;
     use tab_api::{
         chunk::InputChunk,
         pty::PtyWebsocketRequest,
@@ -237,6 +240,7 @@ mod daemon_tests {
             id: TabId(0),
             name: "name".into(),
             dimensions: (1, 2),
+            env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
         };

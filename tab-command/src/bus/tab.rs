@@ -341,7 +341,7 @@ impl TabBus {
 
         if let Some(workspace) = workspace {
             for tab in workspace.into_iter() {
-                tabs.push((tab.name, tab.doc));
+                tabs.push((tab.name, tab.doc.unwrap_or_else(|| "".to_string())));
             }
         }
 
