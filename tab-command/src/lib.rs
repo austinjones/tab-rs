@@ -133,7 +133,7 @@ fn validate_daemon(config: &DaemonConfig, tab_version: &'static str) {
 
     if let (Some(tab_version), Some(daemon_version)) = (tab_version, daemon_version) {
         if tab_version.major != daemon_version.major || tab_version.minor != daemon_version.minor {
-            eprintln!("Warning: The tab command (v{}) has an incompatible version with the running daemon (v{})", tab_version, daemon_version);
+            eprintln!("Warning: The tab command (v{}) has a different version than the running daemon (v{})", tab_version, daemon_version);
             eprintln!(
                 "  You should run `tab --shutdown` to terminate your tabs and relaunch the daemon."
             );
