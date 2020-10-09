@@ -111,6 +111,42 @@ You can also add a handcrafted statusline snippet to your shell's rc configurati
 [fish](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/fish/statusline.fish),
 or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
 
+# Navigation
+This section describes common navigation patterns that tab supports.  In these examples, the prefix before the `$` is the selected tab.
+
+To select a tab:
+```
+$ tab foo
+foo/ $
+```
+
+To switch to another tab while within a session:
+```
+foo/ $ tab bar
+bar/ $
+```
+
+To switch to another tab while within an interactive application:
+```
+monitor/ $ top
+... top output ...
+[ctrl-W]
+$ tab foo
+foo/ $ 
+```
+
+To switch between workspaces, add a workspace `tab.yml` in your home directory with `workspace` links (as described in the next section).
+```
+$ tab workspace
+workspace/ $ tab project
+project/ $ 
+```
+
+```
+workspace/ $ tab other-workspace
+other-workspace/ $
+```
+
 # Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
 - Workspace configurations, which are active within any subdirectory, and link to repositories.
