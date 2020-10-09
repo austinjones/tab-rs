@@ -129,6 +129,8 @@ impl Default for TabOptions {
 }
 
 impl TabOptions {
+    /// Computes a new TabOptions struct, delegating properties to Other if not set in Self
+    /// Doc is not inherited.
     pub fn or(self, other: Self) -> Self {
         let env = if let Some(mut env) = self.env {
             if let Some(other_env) = other.env {
@@ -145,7 +147,7 @@ impl TabOptions {
         };
 
         Self {
-            doc: self.doc.or(other.doc),
+            doc: self.doc,
             shell: self.shell.or(other.shell),
             env,
         }
