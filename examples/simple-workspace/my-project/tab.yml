@@ -1,0 +1,17 @@
+# This is a repository configuration.
+# This configuration is available when linked from a parent workspace,
+#  or when your current directory is within this repo.
+#
+# With the `repo` setting, you define the name for the repository tab
+# The tab will initialize in this directory, `examples/my-project`
+repo: proj
+
+# The `proj/` tab will be displayed with this docstring
+doc: "my project"
+
+# You can also define sub-tabs, which are children of `proj/`
+# This one will be initialized in the `my-project/src` folder, and has the name `proj/run/`
+tabs:
+  - tab: run
+    dir: src/
+    doc: "runs the project server"

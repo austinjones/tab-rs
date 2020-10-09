@@ -1,0 +1,22 @@
+# Standalone repositories are supported, and will be available 
+#  whenever the current working directory is within the repository.
+repo: advanced-repo
+
+# Repository tabs support docstrings, which are displayed when `tab -l` is invoked
+doc: "my advanced repo"
+
+# Repositories can be configured with custom shells and environment variables.
+# These options apply for the repository tab, and any subtabs.
+shell: bash
+env:
+    MY_ENV: repo
+
+# Subtabs can be defined within the repository, which will appear as `advanced-repo/repo-tab`
+tabs:
+    - tab: repo-tab
+      doc: "repository subtab"
+      # The shell and individual environment variables can be overriden for subtabs.
+      shell: zsh
+      env:
+        MY_ENV: tab
+    
