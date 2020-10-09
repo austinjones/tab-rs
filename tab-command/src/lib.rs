@@ -147,7 +147,7 @@ fn validate_daemon(config: &DaemonConfig, tab_version: &'static str) {
             eprintln!(
                 "Warning: The tab command has a different executable path than the running daemon."
             );
-            eprintln!("  You may want to run `tab --shutdown` to relaunch the daemon.");
+            eprintln!("  You may want to run `tab --shutdown` to terminate your tabs and relaunch the daemon.");
 
             eprintln!("  Tab command: {}", executable);
             eprintln!("  Daemon command: {}", daemon_exec);
