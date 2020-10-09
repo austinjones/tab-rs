@@ -1,8 +1,0 @@
-# This is your repository root.
-# Whenever tab is invoked from within this directory (or any subdirectory),
-#   the repositories and tabs you define here will be available
-
-workspace:
-  - repo: my-project/
-  - tab: workspace-tab
-    doc: "this is a top-level workspace tab"
