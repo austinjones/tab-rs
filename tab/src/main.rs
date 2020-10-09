@@ -8,6 +8,8 @@ use anyhow::Context;
 use cli::init;
 use tab_api::{config::history_path, log::set_level, tab::normalize_name};
 
+const TAB_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub fn main() -> anyhow::Result<()> {
     let args = init();
 
@@ -26,7 +28,7 @@ pub fn main() -> anyhow::Result<()> {
 
     if let Some(launch) = args.value_of("LAUNCH") {
         match launch {
-            "daemon" => tab_daemon::daemon_main(),
+            "daemon" => tab_daemon::daemon_main(TAB_VERSION),
             "pty" => tab_pty::pty_main(),
             _ => panic!("unsupported --_launch value"),
         }
@@ -70,6 +72,6 @@ pub fn main() -> anyhow::Result<()> {
 
         Ok(())
     } else {
-        tab_command::command_main(args)
+        tab_command::command_main(args, TAB_VERSION)
     }
 }
