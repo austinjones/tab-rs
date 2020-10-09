@@ -24,7 +24,7 @@ mod prelude;
 mod service;
 mod state;
 
-pub fn daemon_main() -> anyhow::Result<()> {
+pub fn daemon_main(tab_version: &'static str) -> anyhow::Result<()> {
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
         .enable_io()
@@ -32,7 +32,7 @@ pub fn daemon_main() -> anyhow::Result<()> {
         .build()
         .unwrap();
 
-    let result = runtime.block_on(async { main_async().await });
+    let result = runtime.block_on(async { main_async(tab_version).await });
 
     runtime.shutdown_timeout(Duration::from_millis(25));
 
@@ -41,16 +41,23 @@ pub fn daemon_main() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn new_bus() -> anyhow::Result<DaemonBus> {
+pub async fn new_bus(tab_version: &'static str) -> anyhow::Result<DaemonBus> {
     let server = TcpListener::bind("127.0.0.1:0").await?;
     let port = server.local_addr()?.port();
     let websocket = WebsocketListenerResource(server);
 
     let auth_token = auth::gen_token();
     let pid = std::process::id();
+    let executable = std::env::current_exe()
+        .ok()
+        .map(|path| path.to_str().map(str::to_string))
+        .flatten();
+
     let config = DaemonConfig {
         pid: pid as i32,
         port,
+        executable,
+        tab_version: Some(tab_version.to_string()),
         auth_token: auth_token.clone(),
     };
 
@@ -62,7 +69,7 @@ pub async fn new_bus() -> anyhow::Result<DaemonBus> {
     Ok(bus)
 }
 
-async fn main_async() -> anyhow::Result<()> {
+async fn main_async(tab_version: &'static str) -> anyhow::Result<()> {
     let log_file = daemon_log()?;
 
     let config = simplelog::ConfigBuilder::new()
@@ -76,7 +83,7 @@ async fn main_async() -> anyhow::Result<()> {
     ])
     .unwrap();
 
-    let bus = new_bus().await?;
+    let bus = new_bus(tab_version).await?;
     let config = bus.resource::<DaemonConfig>()?;
 
     let daemon_file = DaemonFile::new(&config)?;

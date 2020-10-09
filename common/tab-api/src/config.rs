@@ -10,6 +10,8 @@ use sysinfo::{RefreshKind, SystemExt};
 pub struct DaemonConfig {
     pub pid: i32,
     pub port: u16,
+    pub executable: Option<String>,
+    pub tab_version: Option<String>,
     pub auth_token: String,
 }
 

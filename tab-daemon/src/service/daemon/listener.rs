@@ -194,7 +194,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_spawn() -> anyhow::Result<()> {
-        let bus = crate::new_bus().await?;
+        let bus = crate::new_bus("0.0.1").await?;
         let _listener = ListenerService::spawn(&bus)?;
 
         Ok(())
@@ -202,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_accepts_connection() -> anyhow::Result<()> {
-        let bus = crate::new_bus().await?;
+        let bus = crate::new_bus("0.0.1").await?;
         let config = bus.resource::<DaemonConfig>()?;
 
         let _listener = ListenerService::spawn(&bus)?;
@@ -236,7 +236,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_rejects_unauthorized() -> anyhow::Result<()> {
-        let bus = crate::new_bus().await?;
+        let bus = crate::new_bus("0.0.1").await?;
         let config = bus.resource::<DaemonConfig>()?;
         let _listener = ListenerService::spawn(&bus)?;
 
@@ -249,7 +249,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_rejects_bad_token() -> anyhow::Result<()> {
-        let bus = crate::new_bus().await?;
+        let bus = crate::new_bus("0.0.1").await?;
         let config = bus.resource::<DaemonConfig>()?;
         let _listener = ListenerService::spawn(&bus)?;
 
@@ -266,7 +266,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_rejects_origin() -> anyhow::Result<()> {
-        let bus = crate::new_bus().await?;
+        let bus = crate::new_bus("0.0.1").await?;
         let config = bus.resource::<DaemonConfig>()?;
         let _listener = ListenerService::spawn(&bus)?;
 
