@@ -2,7 +2,7 @@
 
 use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 pub fn normalize_name(name: &str) -> String {
     let name = name.to_string().trim().to_string();
@@ -34,6 +34,7 @@ pub struct TabMetadata {
     pub id: TabId,
     pub name: String,
     pub dimensions: (u16, u16),
+    pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,
 }
@@ -44,6 +45,7 @@ impl TabMetadata {
             id,
             name: create.name,
             dimensions: create.dimensions,
+            env: create.env,
             shell: create.shell,
             dir: create.dir,
         }
@@ -55,6 +57,7 @@ impl TabMetadata {
 pub struct CreateTabMetadata {
     pub name: String,
     pub dimensions: (u16, u16),
+    pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,
 }

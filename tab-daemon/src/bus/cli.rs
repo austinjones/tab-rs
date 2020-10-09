@@ -262,6 +262,7 @@ mod forward_tests {
         prelude::*, service::pty::scrollback::ScrollbackBuffer, state::pty::PtyScrollback,
     };
     use lifeline::{assert_completes, assert_times_out};
+    use std::collections::HashMap;
     use std::sync::Arc;
     use tab_api::{
         chunk::OutputChunk,
@@ -283,6 +284,7 @@ mod forward_tests {
             id: TabId(0),
             name: "name".into(),
             dimensions: (1, 1),
+            env: HashMap::new(),
             shell: "bash".into(),
             dir: "dir".into(),
         };
@@ -456,6 +458,7 @@ mod reverse_tests {
         prelude::*,
     };
     use lifeline::assert_completes;
+    use std::collections::HashMap;
     use tab_api::{
         chunk::InputChunk,
         tab::{CreateTabMetadata, TabId},
@@ -474,6 +477,7 @@ mod reverse_tests {
         let create = CreateTabMetadata {
             name: "name".into(),
             shell: "bash".into(),
+            env: HashMap::new(),
             dimensions: (1, 1),
             dir: "dir".into(),
         };

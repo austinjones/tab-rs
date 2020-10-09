@@ -147,12 +147,7 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
                         target.repos.push((repo_path, repo));
                     }
                 } else if repo_path.exists() {
-                    let tab = WorkspaceTab {
-                        name: normalize_name(repo.repo.as_str()),
-                        directory: repo_path,
-                        doc: "".to_string(),
-                    };
-
+                    let tab = WorkspaceTab::new(repo.repo.as_str(), repo_path);
                     target.tabs.push(tab);
                 }
             }
@@ -164,12 +159,9 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
                     directory.push(dir);
                 }
 
-                let tab = WorkspaceTab {
-                    name: normalize_name(tab.tab.as_str()),
-                    directory,
-                    doc: tab.doc.as_ref().unwrap_or(&"".to_string()).clone(),
-                };
+                let options = tab.options.clone().or(workspace.options.clone());
 
+                let tab = WorkspaceTab::with_options(tab.tab.as_str(), directory, options);
                 target.tabs.push(tab);
             }
         }
@@ -179,11 +171,14 @@ fn load_items(path: &Path, workspace: &Workspace, target: &mut LoaderState) -> a
 }
 
 fn workspace_tab(path: &Path, workspace: &Workspace) -> Option<WorkspaceTab> {
-    workspace_tab_name(path, &workspace).map(|name| WorkspaceTab {
-        name: normalize_name(name.as_str()),
-        directory: path.to_owned(),
-        doc: workspace_tab_doc(path, workspace),
-    })
+    workspace_tab_name(path, &workspace)
+        .map(|name| {
+            WorkspaceTab::with_options(name.as_str(), path.to_owned(), workspace.options.clone())
+        })
+        .map(|mut tab| {
+            tab.doc = Some(workspace_tab_doc(path, workspace));
+            tab
+        })
 }
 
 fn workspace_tab_name(path: &Path, workspace: &Workspace) -> Option<String> {
@@ -196,7 +191,7 @@ fn workspace_tab_name(path: &Path, workspace: &Workspace) -> Option<String> {
 }
 
 fn workspace_tab_doc(path: &Path, workspace: &Workspace) -> String {
-    if let Some(ref doc) = workspace.doc {
+    if let Some(ref doc) = workspace.options.doc {
         return doc.clone();
     }
 
@@ -215,11 +210,8 @@ fn tabs(mut loader: LoaderState) -> Vec<WorkspaceTab> {
         let repo_name = normalize_name(repo.repo.as_str());
 
         // push a tab for the repo
-        let tab = WorkspaceTab {
-            name: repo_name.clone(),
-            directory: path.clone(),
-            doc: repo.doc.unwrap_or("".to_string()),
-        };
+        let tab =
+            WorkspaceTab::with_options(repo_name.as_str(), path.clone(), repo.tab_options.clone());
         tabs.push(tab);
 
         // and then for any tabs the user defined
@@ -232,12 +224,9 @@ fn tabs(mut loader: LoaderState) -> Vec<WorkspaceTab> {
             let tab_name = normalize_name(tab.tab.as_str());
             let tab_name = repo_name.clone() + tab_name.as_str();
 
-            let tab = WorkspaceTab {
-                name: tab_name,
-                directory,
-                doc: tab.doc.unwrap_or("".to_string()), // command: tab.command,
-            };
+            let options = tab.options.or(repo.tab_options.clone());
 
+            let tab = WorkspaceTab::with_options(tab_name.as_str(), directory, options);
             tabs.push(tab);
         }
     }

@@ -4,7 +4,7 @@ use crate::prelude::*;
 use super::pty::PtyService;
 use lifeline::dyn_bus::DynBus;
 use std::{
-    collections::{hash_map::DefaultHasher, HashMap},
+    collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     path::PathBuf,
 };
@@ -59,7 +59,7 @@ impl ClientService {
                     debug!("initializing on tab {}", create.id);
                     let name = create.name.clone();
 
-                    let mut env = HashMap::new();
+                    let mut env = create.env.clone();
                     env.insert("SHELL".to_string(), create.shell.clone());
                     env.insert("TAB".to_string(), create.name.clone());
                     env.insert("TAB_ID".to_string(), create.id.0.to_string());

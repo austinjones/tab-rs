@@ -7,6 +7,7 @@ use crate::{
         workspace::{WorkspaceState, WorkspaceTab},
     },
 };
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tab_api::tab::{normalize_name, CreateTabMetadata};
 use time::Duration;
@@ -73,12 +74,14 @@ impl CreateTabService {
         let workspace_tab = workspace.into_iter().find(|tab| tab.name == name);
 
         let dimensions = rx_terminal_size.borrow().0.clone();
-        let shell = std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string());
+        let shell = Self::compute_shell(&workspace_tab);
         let directory = Self::compute_directory(&workspace_tab)?;
+        let env = Self::compute_env(&workspace_tab);
 
         let metadata = CreateTabMetadata {
             name: Self::compute_name(&workspace_tab, name.as_str()),
             dir: directory.to_string_lossy().to_string(),
+            env,
             dimensions,
             shell,
         };
@@ -87,6 +90,23 @@ impl CreateTabService {
         tx_websocket.send(request).await?;
 
         Ok(())
+    }
+
+    fn compute_shell(tab: &Option<WorkspaceTab>) -> String {
+        if let Some(ref tab) = tab {
+            if let Some(ref shell) = tab.shell {
+                return shell.clone();
+            }
+        }
+
+        std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string())
+    }
+
+    fn compute_env(tab: &Option<WorkspaceTab>) -> HashMap<String, String> {
+        tab.as_ref()
+            .map(|tab| tab.env.clone())
+            .flatten()
+            .unwrap_or(HashMap::with_capacity(0))
     }
 
     fn compute_directory(tab: &Option<WorkspaceTab>) -> anyhow::Result<PathBuf> {
