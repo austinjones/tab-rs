@@ -1,6 +1,6 @@
 [package]
 name = "tab-command"
-version = "0.3.6"
+version = "0.4.0"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the cli command module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
