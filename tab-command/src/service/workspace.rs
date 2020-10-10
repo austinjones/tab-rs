@@ -27,11 +27,15 @@ impl Service for WorkspaceService {
 
         #[allow(unreachable_code)]
         let _monitor = Self::try_task("monitor", async move {
+            let mut logged = false;
             loop {
                 let state = load_state();
 
                 if let Err(err) = state {
-                    error!("failed to load config: {:?}", err);
+                    if !logged {
+                        error!("failed to load config: {:?}", err);
+                        logged = true;
+                    }
                 } else {
                     let loader_state = state.unwrap();
                     let tabs = tabs(loader_state);
