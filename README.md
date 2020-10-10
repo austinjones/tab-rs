@@ -30,7 +30,7 @@ $ tab bar/     # to switch to another tab.
 $ echo $TAB    # to view the active tab.  
                  put this in your promptline, 
                  or get https://starship.rs/
-$ tab -w baz   # to close a tab.
+$ tab -w baz   # to close a tab.  supports multiple arguments.
 $ tab -l       # to view the tabs
 $ ctrl-W       # to disconnect the session
 ```
