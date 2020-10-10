@@ -113,7 +113,7 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
                 trace!("stdout chunk of len {}", data.len());
                 let mut index = 0;
                 for line in data.split(|e| *e == b'\n') {
-                    stdout.write(line).await?;
+                    stdout.write(line).await.context("failed to print stdout")?;
 
                     index += line.len();
                     if index < data.len() {
@@ -126,7 +126,7 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
                     }
                 }
 
-                stdout.flush().await?;
+                stdout.flush().await.context("failed to print stdout")?;
             }
         }
     }
