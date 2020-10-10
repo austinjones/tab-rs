@@ -30,7 +30,7 @@ $ tab bar/     # to switch to another tab.
 $ echo $TAB    # to view the active tab.  
                  put this in your promptline, 
                  or get https://starship.rs/
-$ tab -w foo   # to close a tab.
+$ tab -w baz   # to close a tab.
 $ tab -l       # to view the tabs
 $ ctrl-W       # to disconnect the session
 ```
@@ -112,7 +112,7 @@ You can also add a handcrafted statusline snippet to your shell's rc configurati
 or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
 
 # Navigation
-This section describes common navigation patterns that tab supports.  In these examples, the prefix before the `$` is the selected tab.
+Tab supports many methods of navigation between workspaces & repositories.  In these examples, the prefix before the `$` is the selected tab.
 
 To select a tab:
 ```
@@ -135,25 +135,24 @@ $ tab foo
 foo/ $ 
 ```
 
-To switch between workspaces, add a workspace `tab.yml` in your home directory with `workspace` links (as described in the next section).
+Each workspace has it's own tab.  You can use this to quickly reset the working directory within a workspace:
 ```
-$ tab workspace
-workspace/ $ tab project
-project/ $ 
+repo/ $ tab workspace
+workspace/ $
 ```
 
+To switch to another workspace (if a workspace link has been configured in the current workspace [tab.yml](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-repo/tab.yml)):
 ```
 workspace/ $ tab other-workspace
-other-workspace/ $
+other-workspace $
 ```
 
 # Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
-- Workspace configurations, which are active within any subdirectory, and link to repositories.
-- Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching
-  to one of these repositories via `tab myproj/`
+- Workspace configurations, which are active within any subdirectory, and link to repositories.  Tab workspaces can be nested - so if you want global tabs or sticky workspaces you can define a `~/tab.yml` config.
+- Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`
 
-A full set of example files are available in the [examples](https://github.com/austinjones/tab-rs/tree/master/examples) directory, but here are some starters:
+A full set of example files are available in the [examples](https://github.com/austinjones/tab-rs/tree/master/examples/) directory, but here are some starters:
 
 ```
 ~/workspace/tab.yml:
@@ -162,6 +161,7 @@ workspace:
   - repo: my-project/
   - tab: workspace-tab
     doc: "this is a top-level workspace tab"
+  - workspace: ../other-workspace
 ```
 
 
@@ -184,6 +184,7 @@ Available tabs:
     proj/             (my project)
     proj/run/         (runs the project server)
     workspace-tab/    (this is a top-level workspace tab)
+    other-workspace/  (workspace tab for ~/other-workspace)
 ```
 
 # Security

@@ -17,6 +17,11 @@ env:
     MY_ENV: workspace
 
 workspace:
+  # this is a workspace link.  it can be used to quickly navigate to `simple-workspace`
+  # it can be a relative or absolute file path, to a directory which contains a `tab.yml` workspace
+  # whenever within the `advanced-workspace` directory, a `simple-workspace` tab will be available.
+  - workspace: ../simple-workspace
+
   # This is an inline tab, which will be available at workspace-tab/
   - tab: workspace-tab
     # Inline workspace tabs can override the shell property, and set env variables
