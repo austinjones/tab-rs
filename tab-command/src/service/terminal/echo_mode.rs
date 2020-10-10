@@ -4,7 +4,7 @@ use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
 
 static RAW_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
 
@@ -102,34 +102,49 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
     trace!("Waiting on messages...");
 
     let mut stdout = tokio::io::stdout();
+    let mut error_printed = false;
 
     while let Some(message) = rx.recv().await {
         match message {
             TerminalRecv::Stdout(data) => {
-                if data.len() == 0 {
-                    continue;
-                }
+                let result = write_stdout(&mut stdout, data).await;
 
-                trace!("stdout chunk of len {}", data.len());
-                let mut index = 0;
-                for line in data.split(|e| *e == b'\n') {
-                    stdout.write(line).await?;
-
-                    index += line.len();
-                    if index < data.len() {
-                        let next = data[index];
-
-                        if next == b'\n' {
-                            stdout.write("\r\n".as_bytes()).await?;
-                            index += 1;
-                        }
+                if let Err(e) = result {
+                    if !error_printed {
+                        error!("failed to print stdout: {}", e);
+                        error_printed = true;
                     }
                 }
-
-                stdout.flush().await?;
             }
         }
     }
+
+    Ok(())
+}
+
+async fn write_stdout(stdout: &mut Stdout, data: Vec<u8>) -> anyhow::Result<()> {
+    if data.len() == 0 {
+        return Ok(());
+    }
+
+    trace!("stdout chunk of len {}", data.len());
+
+    let mut index = 0;
+    for line in data.split(|e| *e == b'\n') {
+        stdout.write(line).await?;
+
+        index += line.len();
+        if index < data.len() {
+            let next = data[index];
+
+            if next == b'\n' {
+                stdout.write("\r\n".as_bytes()).await?;
+                index += 1;
+            }
+        }
+    }
+
+    stdout.flush().await?;
 
     Ok(())
 }
