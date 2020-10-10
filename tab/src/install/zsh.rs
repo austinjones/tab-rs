@@ -64,6 +64,7 @@ fn run_compinit() -> anyhow::Result<()> {
 
 fn history_script(env: &PackageEnv) -> PathBuf {
     let mut path = env.data.clone();
+    path.push("tab");
     path.push("completion");
     path.push("zsh-history.zsh");
 
