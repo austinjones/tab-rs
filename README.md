@@ -112,7 +112,7 @@ You can also add a handcrafted statusline snippet to your shell's rc configurati
 or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
 
 # Navigation
-Tab supports many methods of navigation between workspaces & repositories.  In these examples, the prefix before the `$` is the selected tab.
+Tab is designed to provide quick navigation between tabs, and persistent navigation to workspaces or repositories.  In these examples, the prefix before the `$` is the selected tab.
 
 To select a tab:
 ```
@@ -120,10 +120,11 @@ $ tab foo
 foo/ $
 ```
 
-To switch to another tab while within a session:
+To switch to another tab while within a session, and drop back to the root shell:
 ```
 foo/ $ tab bar
-bar/ $
+bar/ $ exit
+$ 
 ```
 
 To switch to another tab while within an interactive application:
@@ -141,7 +142,7 @@ repo/ $ tab workspace
 workspace/ $
 ```
 
-To switch to another workspace (if a workspace link has been configured in the current workspace [tab.yml](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-repo/tab.yml)):
+To switch to another workspace (if a workspace link has been configured in the current workspace [tab.yml](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml)):
 ```
 workspace/ $ tab other-workspace
 other-workspace $
@@ -149,10 +150,10 @@ other-workspace $
 
 # Configuration
 Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
-- Workspace configurations, which are active within any subdirectory, and link to repositories.  Tab workspaces can be nested - so if you want global tabs or sticky workspaces you can define a `~/tab.yml` config.
-- Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`
+- Workspace configurations, which are active within any subdirectory, and link to repositories.
+- Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`.
 
-A full set of example files are available in the [examples](https://github.com/austinjones/tab-rs/tree/master/examples/) directory, but here are some starters:
+Detailed documentation is available in the [examples](https://github.com/austinjones/tab-rs/tree/master/examples/) directory, but here are some starter configurations:
 
 ```
 ~/workspace/tab.yml:
