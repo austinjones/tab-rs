@@ -1,0 +1,47 @@
+# This is an advanced configuration example
+
+# The workspace tab name can be overriden with the `tab` property
+# It defaults to the workspace directory name, which is `advanced-workspace` in this case.
+tab: adv-workspace
+
+# The workspace tab can have a docstring.
+doc: "my workspace tab"
+
+# Several shell properties can be set for the workspace tab, and for inline tabs defined below.
+# These properties do not apply to linked repositories, or linked workspaces.
+# You can override the launched shell:
+shell: bash
+
+# You can also set environment variables:
+env: 
+    MY_ENV: workspace
+
+workspace:
+  # this is a workspace link.  it can be used to quickly navigate to `simple-workspace`
+  # it can be a relative or absolute file path, to a directory which contains a `tab.yml` workspace
+  # whenever within the `advanced-workspace` directory, a `simple-workspace` tab will be available.
+  - workspace: ../simple-workspace
+
+  # This is an inline tab, which will be available at workspace-tab/
+  - tab: workspace-tab
+    # Inline workspace tabs can override the shell property, and set env variables
+    shell: zsh
+    env:
+        MY_ENV: workspace-tab
+    doc: "this is a top-level workspace tab"
+
+  # This is a repository link, which will be available at `tab repo/`, 
+  #   or the name overriden in repo/tab.yml
+  #
+  # The repo tab, and all it's subtabs will be available while within the `advanced-workspace` directory.
+  # 
+  # No tab.yml configuration is required in the repo folder, though it can be helpful to shorten tab names.
+  - repo: repo/
+
+  # This is a workspace link, which will be available at `tab workspace/`, 
+  #   or the name overriden in workspace/tab.yml
+  #
+  # This link from a parent workspace can provide quick lateral navigation between workspaces.
+  #
+  # A workspace configuration is required at child-workspace/tab.yml
+  - workspace: child-workspace/

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::ArgMatches;
 use semver::Version;
 

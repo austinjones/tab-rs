@@ -1,9 +1,11 @@
 # This is a repository configuration.
-# It only is available if linked from the workspace root
-
+# This configuration is available when linked from a parent workspace,
+#  or when your current directory is within this repo.
+#
 # With the `repo` setting, you define the name for the repository tab
 # The tab will initialize in this directory, `examples/my-project`
 repo: proj
+
 # The `proj/` tab will be displayed with this docstring
 doc: "my project"
 
