@@ -131,7 +131,7 @@ async fn write_stdout(stdout: &mut Stdout, data: Vec<u8>) -> anyhow::Result<()> 
 
     let mut index = 0;
     for line in data.split(|e| *e == b'\n') {
-        stdout.write(line).await.context("failed to print stdout")?;
+        stdout.write(line).await?;
 
         index += line.len();
         if index < data.len() {
@@ -144,7 +144,7 @@ async fn write_stdout(stdout: &mut Stdout, data: Vec<u8>) -> anyhow::Result<()> 
         }
     }
 
-    stdout.flush().await.context("failed to print stdout")?;
+    stdout.flush().await?;
 
     Ok(())
 }
