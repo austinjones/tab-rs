@@ -19,3 +19,8 @@ pub struct RequestTabClose(pub TabId);
 pub enum CreateTabRequest {
     Named(String),
 }
+
+#[derive(Debug, Clone)]
+pub struct FuzzyRecv {
+    pub tabs: Vec<(String, String)>,
+}

@@ -59,13 +59,13 @@ impl CarryFrom<MainBus> for TerminalBus {
             Self::try_task("main_recv", async move {
                 while let Some(msg) = rx_main.recv().await {
                     match msg {
-                        // MainRecv::SelectInteractive => {
-                        //     tx_terminal_mode.send(TerminalMode::Crossterm).await?;
-                        // }
                         MainRecv::SelectTab(_) => {
                             // we don't want to begin reading stdin until the tab has been selected
                             Self::await_selected(&mut rx_tab_state).await;
                             tx_terminal_mode.send(TerminalMode::Echo).await?;
+                        }
+                        MainRecv::SelectInteractive => {
+                            tx_terminal_mode.send(TerminalMode::Crossterm).await?;
                         }
                         _ => {}
                     }

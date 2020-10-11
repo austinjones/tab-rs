@@ -73,7 +73,7 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
         let tabs: Vec<String> = tabs.map(normalize_name).collect();
         tx.send(MainRecv::CloseTabs(tabs)).await?;
     } else {
-        tx.send(MainRecv::SelectTab("any/".to_string())).await?;
+        tx.send(MainRecv::SelectInteractive).await?;
     }
 
     wait_for_shutdown(rx_shutdown).await;

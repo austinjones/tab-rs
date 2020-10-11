@@ -1,6 +1,6 @@
 use super::{
-    create_tab::CreateTabService, tab_state::TabStateService, tabs::TabsStateService,
-    terminal::TerminalService, workspace::WorkspaceService,
+    create_tab::CreateTabService, fuzzy::FuzzyFinderService, tab_state::TabStateService,
+    tabs::TabsStateService, terminal::TerminalService, workspace::WorkspaceService,
 };
 use crate::prelude::*;
 use crate::{
@@ -25,6 +25,9 @@ pub struct MainService {
     _create_tab: CreateTabService,
     _tab_state: TabStateService,
     _tabs_state: TabsStateService,
+    _main_fuzzy_carrier: MainFuzzyCarrier,
+    _tab_fuzzy_carrier: TabFuzzyCarrier,
+    _fuzzy_finder: FuzzyFinderService,
     _terminal: TerminalService,
 }
 
@@ -66,10 +69,18 @@ impl Service for MainService {
         let _tabs_state = TabsStateService::spawn(&tab_bus)?;
         let _terminal = TerminalService::spawn(&main_bus)?;
 
+        let fuzzy_bus = FuzzyBus::default();
+        let _main_fuzzy_carrier = fuzzy_bus.carry_from(main_bus)?;
+        let _tab_fuzzy_carrier = fuzzy_bus.carry_from(&tab_bus)?;
+        let _fuzzy_finder = FuzzyFinderService::spawn(&fuzzy_bus)?;
+
         Ok(Self {
             _main,
             _main_tab,
             _main_websocket,
+            _main_fuzzy_carrier,
+            _tab_fuzzy_carrier,
+            _fuzzy_finder,
             _workspace,
             _create_tab,
             _tab_state,

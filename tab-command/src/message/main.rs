@@ -9,6 +9,7 @@ pub struct MainShutdown {}
 #[derive(Debug, Clone)]
 pub enum MainRecv {
     SelectTab(String),
+    SelectInteractive,
     ListTabs,
     CloseTabs(Vec<String>),
     AutocompleteTab,

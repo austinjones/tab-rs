@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::{
     message::{
         client::TabTerminated,
+        fuzzy::FuzzyRecv,
         main::{MainRecv, MainShutdown},
         tabs::{CreateTabRequest, TabShutdown, TabsRecv},
     },
@@ -66,6 +67,10 @@ impl Message<TabBus> for CreateTabRequest {
 
 impl Message<TabBus> for WorkspaceState {
     type Channel = watch::Sender<Self>;
+}
+
+impl Message<TabBus> for FuzzyRecv {
+    type Channel = mpsc::Sender<Self>;
 }
 
 /// Carries messages between the MainBus, and the TabBus
@@ -192,6 +197,7 @@ impl CarryFrom<MainBus> for TabBus {
             let mut tx_create = self.tx::<CreateTabRequest>()?;
             let mut tx_select = self.tx::<SelectTab>()?;
             let mut tx_websocket = self.tx::<Request>()?;
+            let mut tx_fuzzy = self.tx::<FuzzyRecv>()?;
 
             Self::try_task("main_recv", async move {
                 while let Some(msg) = rx_main.recv().await {
@@ -242,6 +248,12 @@ impl CarryFrom<MainBus> for TabBus {
                                 .send(SelectTab::NamedTab(name))
                                 .await
                                 .context("send TabStateSelect")?;
+                        }
+                        MainRecv::SelectInteractive => {
+                            let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
+                            let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
+                            let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
+                            tx_fuzzy.send(FuzzyRecv { tabs }).await?;
                         }
                         MainRecv::CloseTabs(tabs) => {
                             let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
