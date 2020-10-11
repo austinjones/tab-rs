@@ -30,7 +30,7 @@ $ tab bar/     # to switch to another tab.
 $ echo $TAB    # to view the active tab.  
                  put this in your promptline, 
                  or get https://starship.rs/
-$ tab -w baz   # to close a tab.  supports multiple arguments.
+$ tab -w baz   # to close a tab (or many tabs).
 $ tab -l       # to view the tabs
 $ ctrl-W       # to disconnect the session
 ```
@@ -107,9 +107,9 @@ format = "${custom.tab}$all"
 You can configure any other statusline tool that supports environment variables.  The current tab name is available in the `$TAB` environment var.
 
 You can also add a handcrafted statusline snippet to your shell's rc configuration file, in
-[bash](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/bash/statusline.bash), 
-[fish](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/fish/statusline.fish),
-or [zsh](https://github.com/austinjones/tab-rs/blob/master/tab/src/completions/zsh/statusline.zsh).
+[bash](https://github.com/austinjones/tab-rs/blob/main/tab/src/completions/bash/statusline.bash), 
+[fish](https://github.com/austinjones/tab-rs/blob/main/tab/src/completions/fish/statusline.fish),
+or [zsh](https://github.com/austinjones/tab-rs/blob/main/tab/src/completions/zsh/statusline.zsh).
 
 # Navigation
 Tab is designed to provide quick navigation between tabs, and persistent navigation to workspaces or repositories.  In these examples, the prefix before the `$` is the selected tab.
@@ -153,7 +153,7 @@ Tab supports persistent `tab.yml` configurations.  There are two types of config
 - Workspace configurations, which are active within any subdirectory, and link to repositories.
 - Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`.
 
-Detailed documentation is available in the [examples](https://github.com/austinjones/tab-rs/tree/master/examples/) directory, but here are some starter configurations:
+Detailed documentation is available in the [examples](https://github.com/austinjones/tab-rs/tree/main/examples/) directory, but here are some starter configurations:
 
 ```
 ~/workspace/tab.yml:

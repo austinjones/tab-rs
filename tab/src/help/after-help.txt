@@ -4,7 +4,7 @@ CONFIG:
     Using these configs, tab will provide a permanent list of tabs, print docstrings, and 
       automatically set your working directory.
 
-    Examples are available at: https://github.com/austinjones/tab-rs/tree/master/examples
+    Examples are available at: https://github.com/austinjones/tab-rs/tree/main/examples
 
 AUTOCOMPLETE:
     `tab` supports dynamic autocomplete for tab selection.

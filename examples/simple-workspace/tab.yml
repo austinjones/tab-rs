@@ -3,6 +3,6 @@
 #   the repositories and tabs you define here will be available
 
 workspace:
-  # - repo: my-project/
+  - repo: my-project/
   - tab: workspace-tab
     doc: "this is a top-level workspace tab"
