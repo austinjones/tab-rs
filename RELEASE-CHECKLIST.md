@@ -10,6 +10,6 @@
 4) Remove any cargo patches in `./Cargo.toml`.
 5) Update `tab/Cargo.toml` to use the released crates.
 6) Update `tab/Cargo.toml` with the new release version.
-7) Open a PR, and merge to master.
-8) Check that the Github Actions workflow on master succeeds.
-9) Create a Github Release on master, and monitor the progress.
+7) Open a PR, and merge to main.
+8) Check that the Github Actions workflow on main succeeds.
+9) Create a Github Release on main, and monitor the progress.
