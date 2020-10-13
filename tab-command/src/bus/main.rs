@@ -33,10 +33,6 @@ impl Message<MainBus> for TerminalSend {
     type Channel = broadcast::Sender<Self>;
 }
 
-// impl Message<MainBus> for TerminalOutput {
-//     type Channel = mpsc::Sender<Self>;
-// }
-
 // Tabs / Tab State
 impl Message<MainBus> for TabRecv {
     type Channel = mpsc::Sender<Self>;

@@ -26,6 +26,7 @@ impl Service for MainSelectTabService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
+
         let mut tx_tab = bus.tx::<TabRecv>()?;
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
 

@@ -17,8 +17,8 @@ impl Service for MainSelectInteractiveService {
         let mut rx_active_tabs = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
         let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
         let mut rx_terminal = bus.rx::<TerminalSend>()?;
-        let mut tx_terminal = bus.tx::<TerminalRecv>()?;
 
+        let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let mut tx_main = bus.tx::<MainRecv>()?;
 
         let _run = Self::try_task("run", async move {

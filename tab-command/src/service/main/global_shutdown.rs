@@ -14,6 +14,7 @@ impl Service for MainGlobalShutdownService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
+
         let mut tx = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 

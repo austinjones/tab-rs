@@ -14,7 +14,9 @@ impl Service for MainAutocompleteCloseTabsService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
         let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+        
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
+
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::AutocompleteTab = msg {

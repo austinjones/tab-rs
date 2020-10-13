@@ -15,7 +15,9 @@ impl Service for MainAutocompleteTabsService {
         let mut rx = bus.rx::<MainRecv>()?;
         let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
         let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
+
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
+
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::AutocompleteTab = msg {
