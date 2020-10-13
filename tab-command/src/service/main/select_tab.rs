@@ -2,9 +2,8 @@ use tab_api::tab::{normalize_name, TabId};
 
 use crate::message::tabs::TabRecv;
 use crate::{
-    message::main::MainRecv, message::main::MainShutdown, message::tabs::CreateTabRequest,
-    message::terminal::TerminalOutput, message::terminal::TerminalRecv, prelude::*,
-    state::tabs::ActiveTabsState, state::terminal::TerminalMode, utils::await_condition,
+    message::main::MainRecv, message::terminal::TerminalRecv, prelude::*,
+    state::terminal::TerminalMode,
 };
 
 pub fn env_tab_id() -> Option<TabId> {

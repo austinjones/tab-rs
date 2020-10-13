@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum TabRecv {
-    CreateTab(String),
     SelectNamedTab {
         name: String,
         env_tab: Option<TabId>,
@@ -27,12 +26,4 @@ pub struct RequestTabClose(pub TabId);
 #[derive(Debug, Clone)]
 pub enum CreateTabRequest {
     Named(String),
-}
-
-#[derive(Debug, Clone)]
-pub enum SelectTabRequest {
-    Named {
-        name: String,
-        env_tab: Option<TabId>,
-    },
 }

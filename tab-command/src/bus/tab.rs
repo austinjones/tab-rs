@@ -98,18 +98,13 @@ impl CarryFrom<MainBus> for TabBus {
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _forward_recv = {
             let mut rx_tab = from.rx::<TabRecv>()?;
-            let mut tx_create = self.tx::<CreateTabRequest>()?;
             let mut tx_select = self.tx::<SelectOrRetaskTab>()?;
             Self::try_task("forward_create", async move {
                 while let Some(msg) = rx_tab.recv().await {
                     match msg {
-                        TabRecv::CreateTab(name) => {
-                            tx_create.send(CreateTabRequest::Named(name)).await?;
-                        }
                         TabRecv::SelectNamedTab { name, env_tab } => {
                             tx_select.send(SelectOrRetaskTab { name, env_tab }).await?;
                         }
-                        _ => {}
                     }
                 }
 

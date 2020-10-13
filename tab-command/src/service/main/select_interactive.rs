@@ -48,27 +48,3 @@ impl Service for MainSelectInteractiveService {
         Ok(Self { _run })
     }
 }
-
-impl MainSelectInteractiveService {
-    pub async fn select_interactive(
-        _rx: &mut impl Receiver<TerminalSend>,
-        _tx: &mut impl Sender<MainRecv>,
-    ) -> anyhow::Result<()> {
-        // set fuzzy mode
-
-        // await workspace tabs
-
-        // send workspace tabs to fuzzy UI
-
-        // await a response
-
-        // send MainRecv::SelectTab
-
-        // let running_tabs = Self::await_initialized(&mut rx_tabs_state).await;
-        // let workspace_tabs = Self::await_workspace(&mut rx_workspace).await;
-        // let tabs = Self::merge_tabs(running_tabs, workspace_tabs);
-        // tx_fuzzy.send(FuzzyRecv { tabs }).await?;
-
-        Ok(())
-    }
-}

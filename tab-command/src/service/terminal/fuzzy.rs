@@ -557,15 +557,6 @@ enum TokenJoin {
 }
 
 impl Token {
-    pub fn push(&mut self, ch: char) {
-        match self {
-            Token::UnmatchedTab(string) => string.push(ch),
-            Token::MatchedTab(string) => string.push(ch),
-            Token::Unmatched(string) => string.push(ch),
-            Token::Matched(string) => string.push(ch),
-        }
-    }
-
     pub fn join(self, other: Token) -> TokenJoin {
         match (self, other) {
             (Token::UnmatchedTab(mut a), Token::UnmatchedTab(b)) => {

@@ -1,11 +1,9 @@
 use crate::{
     message::main::{MainRecv, MainShutdown},
     message::tabs::TabRecv,
-    message::terminal::TerminalOutput,
     message::terminal::TerminalRecv,
     message::terminal::TerminalSend,
     state::tabs::ActiveTabsState,
-    state::terminal::TerminalMode,
     state::workspace::WorkspaceState,
 };
 use crate::{prelude::*, state::tab::TabState};

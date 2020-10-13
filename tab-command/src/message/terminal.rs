@@ -15,7 +15,6 @@ impl TerminalSend {
     pub fn fuzzy_selection(&self) -> Option<String> {
         match self {
             TerminalSend::FuzzySelection(name) => Some(name.clone()),
-            _ => None,
         }
     }
 }
