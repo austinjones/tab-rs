@@ -2,9 +2,8 @@ use tokio::sync::{broadcast, mpsc, watch};
 
 use crate::{
     message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection,
-    message::fuzzy::FuzzyShutdown, message::main::MainShutdown,
-    message::terminal::TerminalShutdown, prelude::*, state::fuzzy::FuzzyMatchState,
-    state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
+    message::fuzzy::FuzzyShutdown, message::terminal::TerminalShutdown, prelude::*,
+    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
 };
 
 lifeline_bus!(pub struct FuzzyBus);

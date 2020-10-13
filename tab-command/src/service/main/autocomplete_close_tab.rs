@@ -1,6 +1,6 @@
 use crate::{
     message::main::MainRecv, message::main::MainShutdown, prelude::*, state::tabs::ActiveTabsState,
-    state::workspace::WorkspaceState, utils::await_state,
+    utils::await_state,
 };
 
 pub struct MainAutocompleteCloseTabsService {

@@ -5,8 +5,8 @@ use tab_api::tab::TabId;
 use tokio::{sync::watch, time};
 
 use crate::{
-    message::tabs::CreateTabRequest, message::tabs::TabRecv, message::tabs::TabShutdown,
-    prelude::*, state::tab::SelectOrRetaskTab, state::tab::SelectTab, state::tabs::ActiveTabsState,
+    message::tabs::CreateTabRequest, message::tabs::TabShutdown, prelude::*,
+    state::tab::SelectOrRetaskTab, state::tab::SelectTab, state::tabs::ActiveTabsState,
     utils::await_condition,
 };
 

@@ -51,8 +51,8 @@ impl Service for MainSelectInteractiveService {
 
 impl MainSelectInteractiveService {
     pub async fn select_interactive(
-        rx: &mut impl Receiver<TerminalSend>,
-        tx: &mut impl Sender<MainRecv>,
+        _rx: &mut impl Receiver<TerminalSend>,
+        _tx: &mut impl Sender<MainRecv>,
     ) -> anyhow::Result<()> {
         // set fuzzy mode
 

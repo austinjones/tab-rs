@@ -1,15 +1,11 @@
-use std::time::Duration;
-
-use anyhow::Context;
 use tab_api::tab::{normalize_name, TabId};
-use tokio::{sync::watch, time};
 
+use crate::message::tabs::TabRecv;
 use crate::{
     message::main::MainRecv, message::main::MainShutdown, message::tabs::CreateTabRequest,
     message::terminal::TerminalOutput, message::terminal::TerminalRecv, prelude::*,
     state::tabs::ActiveTabsState, state::terminal::TerminalMode, utils::await_condition,
 };
-use crate::{message::tabs::TabRecv, state::tab::SelectTab};
 
 pub fn env_tab_id() -> Option<TabId> {
     if let Ok(id) = std::env::var("TAB_ID") {

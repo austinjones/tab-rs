@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use tab_api::tab::normalize_name;
-use tokio::{sync::watch, time};
+use tokio::time;
 
 use crate::{
     message::main::MainRecv, message::main::MainShutdown, prelude::*, state::tabs::ActiveTabsState,

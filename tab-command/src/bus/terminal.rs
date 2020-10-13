@@ -4,7 +4,7 @@ use crate::{
 };
 use crate::{
     message::{
-        main::{MainRecv, MainShutdown},
+        main::MainShutdown,
         terminal::{TerminalInput, TerminalOutput, TerminalShutdown},
     },
     state::{

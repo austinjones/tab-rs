@@ -1,4 +1,4 @@
-use crate::state::{fuzzy::TabEntry, workspace::WorkspaceTab};
+use crate::state::workspace::WorkspaceTab;
 
 #[derive(Debug, Clone)]
 pub struct FuzzyRecv {

@@ -16,7 +16,7 @@ impl WorkspaceState {
 
         let workspace_tabs = self.into_name_set();
 
-        for (id, metadata) in active_tabs.tabs.iter() {
+        for (_id, metadata) in active_tabs.tabs.iter() {
             if workspace_tabs.contains(&metadata.name) {
                 continue;
             }
