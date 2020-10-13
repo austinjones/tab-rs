@@ -1,8 +1,8 @@
 use self::{
     autocomplete_close_tab::MainAutocompleteCloseTabsService,
     autocomplete_tab::MainAutocompleteTabsService, close_tabs::MainCloseTabsService,
-    list_tabs::MainListTabsService, select_interactive::MainSelectInteractiveService,
-    select_tab::MainSelectTabService,
+    global_shutdown::MainGlobalShutdownService, list_tabs::MainListTabsService,
+    select_interactive::MainSelectInteractiveService, select_tab::MainSelectTabService,
 };
 
 use super::{
@@ -10,11 +10,8 @@ use super::{
     tab::select_tab::SelectTabService, tab::tab_state::TabStateService,
     tab::workspace::WorkspaceService, terminal::TerminalService,
 };
+use crate::bus::MainBus;
 use crate::prelude::*;
-use crate::{
-    bus::MainBus,
-    message::main::{MainRecv, MainShutdown},
-};
 
 use lifeline::dyn_bus::DynBus;
 
@@ -27,19 +24,20 @@ use tab_websocket::{
 mod autocomplete_close_tab;
 mod autocomplete_tab;
 mod close_tabs;
+mod global_shutdown;
 mod list_tabs;
 mod select_interactive;
 mod select_tab;
 
 /// Launches the tab-command client, including websocket, tab state, and terminal services.
 pub struct MainService {
-    _main: Lifeline,
     _main_autocomplete_close: MainAutocompleteCloseTabsService,
     _main_autocomplete: MainAutocompleteTabsService,
     _main_close_tabs: MainCloseTabsService,
     _main_list_tabs: MainListTabsService,
     _main_select_interactive: MainSelectInteractiveService,
     _main_select_tab: MainSelectTabService,
+    _main_global_shutdown: MainGlobalShutdownService,
     _main_tab: MainTabCarrier,
     _main_websocket: WebsocketCarrier,
     _select_tab: SelectTabService,
@@ -61,6 +59,7 @@ impl Service for MainService {
         let _main_list_tabs = MainListTabsService::spawn(main_bus)?;
         let _main_select_interactive = MainSelectInteractiveService::spawn(main_bus)?;
         let _main_select_tab = MainSelectTabService::spawn(main_bus)?;
+        let _main_global_shutdown = MainGlobalShutdownService::spawn(main_bus)?;
 
         let tab_bus = TabBus::default();
         tab_bus.capacity::<TabMetadata>(256)?;
@@ -72,23 +71,6 @@ impl Service for MainService {
         websocket_bus.store_resource(websocket);
         let _main_websocket = websocket_bus.carry_from(main_bus)?;
 
-        let mut rx_main = main_bus.rx::<MainRecv>()?;
-
-        let mut tx_websocket = main_bus.tx::<Request>()?;
-        let mut tx_shutdown = main_bus.tx::<MainShutdown>()?;
-        let _main = Self::try_task("main_recv", async move {
-            while let Some(msg) = rx_main.recv().await {
-                debug!("MainRecv: {:?}", &msg);
-                // all the event types are handled by carriers
-                if let MainRecv::GlobalShutdown = msg {
-                    tx_websocket.send(Request::GlobalShutdown).await?;
-                    tx_shutdown.send(MainShutdown {}).await?;
-                }
-            }
-
-            Ok(())
-        });
-
         let _select_tab = SelectTabService::spawn(&tab_bus)?;
         let _tab_state = TabStateService::spawn(&tab_bus)?;
         let _workspace = WorkspaceService::spawn(&tab_bus)?;
@@ -97,13 +79,13 @@ impl Service for MainService {
         let _terminal = TerminalService::spawn(&main_bus)?;
 
         Ok(Self {
-            _main,
             _main_autocomplete_close,
             _main_autocomplete,
             _main_close_tabs,
             _main_list_tabs,
             _main_select_interactive,
             _main_select_tab,
+            _main_global_shutdown,
             _main_tab,
             _main_websocket,
             _select_tab,
