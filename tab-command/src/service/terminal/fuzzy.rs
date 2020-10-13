@@ -238,8 +238,11 @@ impl FuzzyFinderService {
 
                 let mut matches = Vec::new();
                 for entry in entries.iter() {
-                    let fuzzy_match =
-                        matcher.fuzzy_indices(entry.display.as_str(), state.query.as_str());
+                    // TODO: save lowercase strings for performance?
+                    let fuzzy_match = matcher.fuzzy_indices(
+                        entry.display.as_str().to_ascii_lowercase().as_str(),
+                        state.query.as_str().to_ascii_lowercase().as_str(),
+                    );
 
                     if let Some((score, indices)) = fuzzy_match {
                         let tab_match = FuzzyMatch {
