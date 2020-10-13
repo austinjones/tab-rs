@@ -1,22 +1,23 @@
 use crate::prelude::*;
-use crate::{message::tabs::TabsRecv, state::tabs::TabsState};
+use crate::{message::tabs::TabsRecv, state::tabs::ActiveTabsState};
 
 use std::collections::HashMap;
 use tab_api::tab::TabMetadata;
 
 /// Tracks all running tabs, and provides TabsState
-pub struct TabsStateService {
+pub struct ActiveTabsService {
     _run: Lifeline,
 }
 
-impl Service for TabsStateService {
+impl Service for ActiveTabsService {
     type Bus = TabBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> anyhow::Result<Self> {
         let mut rx = bus.rx::<TabsRecv>()?;
-        let mut tx = bus.tx::<TabsState>()?;
+        let mut tx = bus.tx::<Option<ActiveTabsState>>()?;
         let mut tx_metadata = bus.tx::<TabMetadata>()?;
+
         let _run = Self::try_task("run", async move {
             let mut state = HashMap::new();
 
@@ -39,10 +40,9 @@ impl Service for TabsStateService {
                     }
                 }
 
-                tx.send(TabsState {
-                    initialized: true,
+                tx.send(Some(ActiveTabsState {
                     tabs: state.clone(),
-                })
+                }))
                 .await?;
             }
 

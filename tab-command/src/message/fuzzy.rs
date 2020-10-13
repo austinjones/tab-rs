@@ -1,9 +1,10 @@
-use crate::state::fuzzy::{FuzzyMatchState, FuzzyQueryState};
+use crate::state::{fuzzy::TabEntry, workspace::WorkspaceTab};
 
 #[derive(Debug, Clone)]
 pub struct FuzzyRecv {
-    pub tabs: Vec<(String, String)>,
+    pub tabs: Vec<WorkspaceTab>,
 }
+
 #[derive(Debug, Clone)]
 pub enum FuzzyEvent {
     MoveLeft,
@@ -16,10 +17,7 @@ pub enum FuzzyEvent {
 }
 
 #[derive(Debug, Clone)]
-pub struct FuzzyShutdown;
+pub struct FuzzySelection(pub String);
 
 #[derive(Debug, Clone)]
-pub enum FuzzyInterfaceRecv {
-    Query(FuzzyQueryState),
-    Matches(FuzzyMatchState),
-}
+pub struct FuzzyShutdown;

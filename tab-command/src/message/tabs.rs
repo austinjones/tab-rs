@@ -3,6 +3,15 @@ use tab_api::tab::{TabId, TabMetadata};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
+pub enum TabRecv {
+    CreateTab(String),
+    SelectNamedTab {
+        name: String,
+        env_tab: Option<TabId>,
+    },
+}
+
+#[derive(Debug, Clone)]
 pub enum TabsRecv {
     Init(HashMap<TabId, TabMetadata>),
     Update(TabMetadata),
@@ -21,6 +30,9 @@ pub enum CreateTabRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct FuzzyRecv {
-    pub tabs: Vec<(String, String)>,
+pub enum SelectTabRequest {
+    Named {
+        name: String,
+        env_tab: Option<TabId>,
+    },
 }

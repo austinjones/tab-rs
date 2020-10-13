@@ -19,6 +19,7 @@ mod message;
 mod prelude;
 mod service;
 mod state;
+mod utils;
 
 pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Result<()> {
     TermLogger::init(

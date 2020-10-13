@@ -15,14 +15,16 @@ impl Default for TerminalSizeState {
 /// The current terminal mode.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalMode {
+    /// No terminal program is active
+    None,
     /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout
     Echo,
-    /// Terminal is in interactive mode, using Crossterm.
-    Crossterm,
+    /// Terminal is in interactive finder mode, using Crossterm.
+    FuzzyFinder,
 }
 
 impl Default for TerminalMode {
     fn default() -> Self {
-        Self::Crossterm
+        Self::None
     }
 }

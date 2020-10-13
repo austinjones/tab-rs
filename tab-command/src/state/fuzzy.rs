@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use super::workspace::WorkspaceTab;
+
 #[derive(Debug, Clone)]
 pub struct FuzzyQueryState {
     pub query: String,
@@ -29,6 +31,12 @@ impl Default for FuzzyMatchState {
 }
 
 #[derive(Debug, Clone)]
+pub struct FuzzySelectState {
+    pub index: usize,
+    pub tab: Arc<TabEntry>,
+}
+
+#[derive(Debug, Clone)]
 pub struct FuzzyMatch {
     pub score: i64,
     pub indices: Vec<usize>,
@@ -38,26 +46,33 @@ pub struct FuzzyMatch {
 #[derive(Debug, Clone)]
 pub struct TabEntry {
     pub name: String,
-    pub doc: String,
+    pub doc: Option<String>,
     pub display: String,
 }
 
 impl TabEntry {
-    pub fn build(tabs: Vec<(String, String)>) -> Vec<Arc<Self>> {
+    pub fn build(tabs: Vec<WorkspaceTab>) -> Vec<Arc<Self>> {
         let mut entries = Vec::with_capacity(tabs.len());
         let prefix_len = Self::tab_len(&tabs);
 
-        for (name, doc) in tabs {
-            let mut display = name.clone();
+        for tab in tabs {
+            let mut display = tab.name.clone();
 
             while display.len() < prefix_len {
                 display += " ";
             }
-            display += "(";
-            display += &doc;
-            display += ")";
 
-            let tab = Self { name, doc, display };
+            if let Some(ref doc) = tab.doc {
+                display += "(";
+                display += doc;
+                display += ")";
+            }
+
+            let tab = Self {
+                name: tab.name,
+                doc: tab.doc,
+                display,
+            };
 
             entries.push(Arc::new(tab));
         }
@@ -65,8 +80,12 @@ impl TabEntry {
         entries
     }
 
-    fn tab_len(tabs: &Vec<(String, String)>) -> usize {
-        let max_len = tabs.iter().map(|tab| tab.0.len()).max();
+    fn tab_len(tabs: &Vec<WorkspaceTab>) -> usize {
+        let max_len = tabs
+            .iter()
+            .map(|tab| tab.name.len())
+            .max()
+            .map(|len| len + 2);
         max_len.unwrap_or(0)
     }
 }

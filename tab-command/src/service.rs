@@ -1,7 +1,3 @@
-mod create_tab;
-mod fuzzy;
 pub mod main;
-mod tab_state;
-mod tabs;
+pub mod tab;
 pub mod terminal;
-mod workspace;

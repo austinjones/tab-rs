@@ -1,9 +1,10 @@
 use tokio::sync::{broadcast, mpsc, watch};
 
 use crate::{
-    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzyShutdown,
-    message::main::MainShutdown, prelude::*, state::fuzzy::FuzzyMatchState,
-    state::fuzzy::FuzzyQueryState,
+    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection,
+    message::fuzzy::FuzzyShutdown, message::main::MainShutdown,
+    message::terminal::TerminalShutdown, prelude::*, state::fuzzy::FuzzyMatchState,
+    state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
 };
 
 lifeline_bus!(pub struct FuzzyBus);
@@ -20,53 +21,69 @@ impl Message<FuzzyBus> for FuzzyMatchState {
     type Channel = watch::Sender<Self>;
 }
 
+impl Message<FuzzyBus> for Option<FuzzySelectState> {
+    type Channel = watch::Sender<Self>;
+}
+
 impl Message<FuzzyBus> for FuzzyEvent {
     type Channel = broadcast::Sender<Self>;
+}
+
+impl Message<FuzzyBus> for FuzzySelection {
+    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<FuzzyBus> for FuzzyShutdown {
     type Channel = mpsc::Sender<Self>;
 }
 
-pub struct TabFuzzyCarrier {
-    _forward_recv: Lifeline,
-}
-
-impl CarryFrom<TabBus> for FuzzyBus {
-    type Lifeline = anyhow::Result<TabFuzzyCarrier>;
-
-    fn carry_from(&self, from: &TabBus) -> Self::Lifeline {
-        let mut rx = from.rx::<FuzzyRecv>()?;
-        let mut tx = self.tx::<FuzzyRecv>()?;
-
-        let _forward_recv = Self::try_task("recv", async move {
-            while let Some(msg) = rx.recv().await {
-                tx.send(msg).await.ok();
-            }
-
-            Ok(())
-        });
-
-        Ok(TabFuzzyCarrier { _forward_recv })
-    }
-}
-
-pub struct MainFuzzyCarrier {
+pub struct TerminalFuzzyCarrier {
+    _recv: Lifeline,
+    _selection: Lifeline,
     _forward_shutdown: Lifeline,
 }
 
-impl CarryFrom<MainBus> for FuzzyBus {
-    type Lifeline = anyhow::Result<MainFuzzyCarrier>;
+impl CarryFrom<TerminalBus> for FuzzyBus {
+    type Lifeline = anyhow::Result<TerminalFuzzyCarrier>;
 
-    fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
-        let mut rx = self.rx::<FuzzyShutdown>()?;
-        let mut tx = from.tx::<MainShutdown>()?;
+    fn carry_from(&self, from: &TerminalBus) -> Self::Lifeline {
+        let _recv = {
+            let mut rx = from.rx::<FuzzyRecv>()?;
+            let mut tx = self.tx::<FuzzyRecv>()?;
 
-        let _forward_shutdown = Self::task("recv", async move {
-            rx.recv().await;
-            tx.send(MainShutdown {}).await.ok();
-        });
+            Self::task("recv", async move {
+                while let Some(msg) = rx.recv().await {
+                    tx.send(msg).await.ok();
+                }
+            })
+        };
 
-        Ok(MainFuzzyCarrier { _forward_shutdown })
+        let _selection = {
+            let mut rx = self.rx::<FuzzySelection>()?;
+            let mut tx = from.tx::<FuzzySelection>()?;
+
+            Self::task("recv", async move {
+                while let Some(msg) = rx.recv().await {
+                    tx.send(msg).await.ok();
+                }
+            })
+        };
+
+        let _forward_shutdown = {
+            let mut rx = self.rx::<FuzzyShutdown>()?;
+            let mut tx = from.tx::<TerminalShutdown>()?;
+
+            Self::task("recv", async move {
+                if let Some(_shutdown) = rx.recv().await {
+                    tx.send(TerminalShutdown {}).await.ok();
+                }
+            })
+        };
+
+        Ok(TerminalFuzzyCarrier {
+            _recv,
+            _selection,
+            _forward_shutdown,
+        })
     }
 }
