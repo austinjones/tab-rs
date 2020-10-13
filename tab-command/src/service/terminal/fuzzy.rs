@@ -9,6 +9,7 @@ use crate::{
 use crossterm::{
     cursor::Hide,
     cursor::Show,
+    event::KeyModifiers,
     style::{Colorize, Styler},
 };
 use crossterm::{
@@ -129,17 +130,17 @@ impl FuzzyFinderService {
                             tx_event.send(FuzzyEvent::Enter).await?;
                         }
                         KeyCode::Char(ch) => {
+                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'c' || ch == 'x')
+                            {
+                                tx_shutdown.send(FuzzyShutdown {}).await.ok();
+                                Self::clear_all()?;
+                                continue;
+                            }
                             tx_event.send(FuzzyEvent::Insert(ch)).await?;
                         }
                         KeyCode::Esc => {
                             tx_shutdown.send(FuzzyShutdown {}).await.ok();
-
-                            execute!(
-                                std::io::stdout(),
-                                MoveTo(0, 0),
-                                Clear(ClearType::All),
-                                MoveTo(0, 0)
-                            )?;
+                            Self::clear_all()?;
                         }
                         KeyCode::Home => {}
                         KeyCode::End => {}
@@ -347,12 +348,7 @@ impl FuzzyFinderService {
                         tx_shutdown.send(FuzzyShutdown {}).await?;
                     }
 
-                    execute!(
-                        std::io::stdout(),
-                        MoveTo(0, 0),
-                        Clear(ClearType::All),
-                        MoveTo(0, 0)
-                    )?;
+                    Self::clear_all()?;
 
                     break;
                 }
@@ -541,6 +537,17 @@ impl FuzzyFinderService {
         ret.push(token);
 
         ret
+    }
+
+    fn clear_all() -> anyhow::Result<()> {
+        execute!(
+            std::io::stdout(),
+            MoveTo(0, 0),
+            Clear(ClearType::All),
+            MoveTo(0, 0)
+        )?;
+
+        Ok(())
     }
 }
 
