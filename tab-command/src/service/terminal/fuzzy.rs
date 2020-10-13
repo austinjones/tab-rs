@@ -146,7 +146,9 @@ impl FuzzyFinderService {
                         KeyCode::End => {}
                         KeyCode::PageUp => {}
                         KeyCode::PageDown => {}
-                        KeyCode::Tab => {}
+                        KeyCode::Tab => {
+                            tx_event.send(FuzzyEvent::MoveDown).await?;
+                        }
                         KeyCode::BackTab => {}
                         KeyCode::Insert => {}
                         KeyCode::F(_) => {}
