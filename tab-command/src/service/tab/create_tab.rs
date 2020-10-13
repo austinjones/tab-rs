@@ -2,16 +2,16 @@ use crate::{
     message::tabs::CreateTabRequest,
     prelude::*,
     state::{
-        tabs::TabsState,
+        tabs::ActiveTabsState,
         terminal::TerminalSizeState,
         workspace::{WorkspaceState, WorkspaceTab},
     },
+    utils::await_state,
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tab_api::tab::{normalize_name, CreateTabMetadata};
-use time::Duration;
-use tokio::{sync::watch, time};
+use tokio::sync::watch;
 
 /// Receives CreateTabRequests, and decides whether to send the daemon issue a create request.
 /// Assembles the CreateTabMetadata.
@@ -25,28 +25,28 @@ impl Service for CreateTabService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<CreateTabRequest>()?;
-        let rx_tabs_state = bus.rx::<TabsState>()?.into_inner();
+        let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
         let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
-        let rx_workspace = bus.rx::<WorkspaceState>()?.into_inner();
+        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
         let mut tx_websocket = bus.tx::<Request>()?;
 
         let _request_tab = Self::try_task("request_tab", async move {
             while let Some(request) = rx.recv().await {
                 match request {
                     CreateTabRequest::Named(name) => {
-                        let tab_exists = rx_tabs_state
-                            .borrow()
+                        let tab_exists = await_state(&mut rx_tabs_state)
+                            .await?
                             .tabs
                             .values()
                             .find(|tab| tab.name == name)
                             .is_some();
 
                         if !tab_exists {
-                            let workspace = Self::await_workspace(&rx_workspace).await;
+                            let workspace = await_state(&mut rx_workspace).await?;
 
                             Self::create_named(
                                 name,
-                                workspace,
+                                workspace.tabs,
                                 &rx_terminal_size,
                                 &mut tx_websocket,
                             )
@@ -131,16 +131,6 @@ impl CreateTabService {
             tab.name.clone()
         } else {
             name.to_string()
-        }
-    }
-
-    async fn await_workspace(rx_workspace: &watch::Receiver<WorkspaceState>) -> Vec<WorkspaceTab> {
-        loop {
-            if let WorkspaceState::Ready(ref state) = *rx_workspace.borrow() {
-                return state.clone();
-            }
-
-            time::delay_for(Duration::from_millis(25)).await;
         }
     }
 }

@@ -16,7 +16,7 @@ tab-websocket = "0.3.4"
 lifeline = "0.3"
 
 clap = "2.33.2"
-crossterm = "0.17"
+crossterm = { version = "0.17", features = ["event-stream"] }
 
 # async / websockets
 tokio = { version = "0.2", features = ["time", "fs", "io-std", "io-util", "process", "blocking", "macros", "rt-threaded"] }
@@ -29,6 +29,9 @@ simplelog = "0.8"
 anyhow = "1.0"
 thiserror = "1.0"
 semver = "0.11"
+
+# fuzzy
+fuzzy-matcher = "0.3"
 
 # config
 serde = {version = "1.0", features = ["derive"]}

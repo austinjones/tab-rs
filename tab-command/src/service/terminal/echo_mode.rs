@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::message::terminal::{TerminalRecv, TerminalSend, TerminalShutdown};
+use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
 use crate::prelude::*;
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
@@ -43,8 +43,8 @@ impl Service for TerminalEchoService {
     fn spawn(bus: &TerminalBus) -> anyhow::Result<Self> {
         enable_raw_mode();
 
-        let rx = bus.rx::<TerminalRecv>()?;
-        let tx = bus.tx::<TerminalSend>()?;
+        let rx = bus.rx::<TerminalOutput>()?;
+        let tx = bus.tx::<TerminalInput>()?;
         let tx_shutdown = bus.tx::<TerminalShutdown>()?;
 
         let _output = Self::try_task("stdout", print_stdout(rx));
@@ -62,7 +62,7 @@ impl Drop for TerminalEchoService {
 }
 
 async fn forward_stdin(
-    mut tx: impl Sender<TerminalSend>,
+    mut tx: impl Sender<TerminalInput>,
     mut tx_shutdown: impl Sender<TerminalShutdown>,
 ) -> anyhow::Result<()> {
     info!("listening for stdin");
@@ -90,7 +90,7 @@ async fn forward_stdin(
         trace!("stdin chunk of len {}", read);
         // TODO: use selected tab
         // TODO: better error handling for broadcast
-        tx.send(TerminalSend::Stdin(buf))
+        tx.send(TerminalInput::Stdin(buf))
             .await
             .context("tx TerminalSend::Stdin")?;
     }
@@ -98,7 +98,7 @@ async fn forward_stdin(
     Ok(())
 }
 
-async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()> {
+async fn print_stdout(mut rx: impl Receiver<TerminalOutput>) -> anyhow::Result<()> {
     trace!("Waiting on messages...");
 
     let mut stdout = tokio::io::stdout();
@@ -106,7 +106,7 @@ async fn print_stdout(mut rx: impl Receiver<TerminalRecv>) -> anyhow::Result<()>
 
     while let Some(message) = rx.recv().await {
         match message {
-            TerminalRecv::Stdout(data) => {
+            TerminalOutput::Stdout(data) => {
                 let result = write_stdout(&mut stdout, data).await;
 
                 if let Err(e) = result {

@@ -5,20 +5,20 @@ use crate::prelude::*;
 
 use crate::{
     bus::TerminalBus,
-    message::terminal::{TerminalRecv, TerminalSend},
+    message::terminal::{TerminalInput, TerminalOutput},
 };
 
-use crossterm_mode::TerminalCrosstermService;
 use echo_mode::TerminalEchoService;
-
 use terminal_event::TerminalEventService;
 
-mod crossterm_mode;
 mod echo_mode;
+mod fuzzy;
 mod terminal_event;
 
 pub use echo_mode::disable_raw_mode;
 pub use echo_mode::reset_cursor;
+
+use self::fuzzy::FuzzyFinderService;
 
 /// Reads TerminalMode, and launches/cancels the TerminalEchoService / TerminalCrosstermService
 pub struct TerminalService {
@@ -29,7 +29,7 @@ pub struct TerminalService {
 
 enum ServiceLifeline {
     Echo(TerminalEchoService),
-    Crossterm(TerminalCrosstermService),
+    FuzzyFinder(FuzzyFinderService, TerminalFuzzyCarrier),
     None,
 }
 
@@ -39,8 +39,8 @@ impl Service for TerminalService {
 
     fn spawn(bus: &MainBus) -> Self::Lifeline {
         let terminal_bus = TerminalBus::default();
-        terminal_bus.capacity::<TerminalSend>(2048)?;
-        terminal_bus.capacity::<TerminalRecv>(2048)?;
+        terminal_bus.capacity::<TerminalInput>(2048)?;
+        terminal_bus.capacity::<TerminalOutput>(2048)?;
 
         let _main_terminal = terminal_bus.carry_from(bus)?;
         let _terminal_event = TerminalEventService::spawn(&terminal_bus)?;
@@ -52,6 +52,7 @@ impl Service for TerminalService {
 
             while let Some(mode) = rx_terminal_mode.recv().await {
                 service = match mode {
+                    TerminalMode::None => ServiceLifeline::None,
                     TerminalMode::Echo => {
                         if let ServiceLifeline::Echo(ref _echo) = service {
                             continue;
@@ -62,15 +63,18 @@ impl Service for TerminalService {
                         let service = TerminalEchoService::spawn(&terminal_bus)?;
                         ServiceLifeline::Echo(service)
                     }
-                    TerminalMode::Crossterm => {
-                        if let ServiceLifeline::Crossterm(ref _crossterm) = service {
+                    TerminalMode::FuzzyFinder => {
+                        if let ServiceLifeline::FuzzyFinder(ref _fuzzy, ref _carrier) = service {
                             continue;
                         }
 
-                        info!("TerminalService switching to crossterm mode");
+                        info!("TerminalService switching to fuzzy finder mode");
 
-                        let service = TerminalCrosstermService::spawn(&terminal_bus)?;
-                        ServiceLifeline::Crossterm(service)
+                        let fuzzy_bus = FuzzyBus::default();
+                        let carrier = fuzzy_bus.carry_from(&terminal_bus)?;
+
+                        let service = FuzzyFinderService::spawn(&fuzzy_bus)?;
+                        ServiceLifeline::FuzzyFinder(service, carrier)
                     }
                 }
             }

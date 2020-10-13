@@ -23,7 +23,7 @@ impl Service for WorkspaceService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut tx = bus.tx::<WorkspaceState>()?;
+        let mut tx = bus.tx::<Option<WorkspaceState>>()?;
 
         #[allow(unreachable_code)]
         let _monitor = Self::try_task("monitor", async move {
@@ -39,8 +39,8 @@ impl Service for WorkspaceService {
                 } else {
                     let loader_state = state.unwrap();
                     let tabs = tabs(loader_state);
-                    let state = WorkspaceState::Ready(tabs);
-                    tx.send(state).await.ok();
+                    let state = WorkspaceState { tabs };
+                    tx.send(Some(state)).await.ok();
                 }
 
                 time::delay_for(Duration::from_millis(1000)).await;

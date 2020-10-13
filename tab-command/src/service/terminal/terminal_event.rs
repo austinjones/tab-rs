@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::{
-    env::terminal_size, message::terminal::TerminalSend, state::terminal::TerminalSizeState,
+    env::terminal_size, message::terminal::TerminalInput, state::terminal::TerminalSizeState,
 };
 use anyhow::Context;
 use crossterm::event::Event;
@@ -17,7 +17,7 @@ impl Service for TerminalEventService {
 
     fn spawn(bus: &TerminalBus) -> Self::Lifeline {
         let mut tx = bus.tx::<TerminalSizeState>()?;
-        let mut tx_send = bus.tx::<TerminalSend>()?;
+        let mut tx_send = bus.tx::<TerminalInput>()?;
 
         #[allow(unreachable_code)]
         let _update = Self::try_task("run", async move {
@@ -32,7 +32,7 @@ impl Service for TerminalEventService {
                         .context("send TerminalStateSize")?;
 
                     tx_send
-                        .send(TerminalSend::Resize(set_size))
+                        .send(TerminalInput::Resize(set_size))
                         .await
                         .context("send TerminalStateSize")?;
                 }

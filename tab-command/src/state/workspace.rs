@@ -1,22 +1,50 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, collections::HashSet, path::PathBuf};
 use tab_api::tab::normalize_name;
 
+use super::tabs::ActiveTabsState;
+
 /// The client's view of the workspace configuration
-#[derive(Debug, Clone)]
-pub enum WorkspaceState {
-    Loading,
-    Ready(Vec<WorkspaceTab>),
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct WorkspaceState {
+    pub tabs: Vec<WorkspaceTab>,
 }
 
-impl Default for WorkspaceState {
-    fn default() -> Self {
-        Self::Loading
+impl WorkspaceState {
+    pub fn with_active_tabs(&self, active_tabs: &ActiveTabsState) -> WorkspaceState {
+        let mut tabs = self.tabs.clone();
+
+        let workspace_tabs = self.into_name_set();
+
+        for (_id, metadata) in active_tabs.tabs.iter() {
+            if workspace_tabs.contains(&metadata.name) {
+                continue;
+            }
+
+            let tab = WorkspaceTab {
+                name: metadata.name.clone(),
+                directory: PathBuf::from(&metadata.dir),
+                shell: None,
+                doc: None,
+                env: None,
+            };
+
+            tabs.push(tab);
+        }
+
+        tabs.sort_by(|a, b| a.name.cmp(&b.name));
+        tabs.dedup_by_key(|tab| tab.name.clone());
+
+        WorkspaceState { tabs }
+    }
+
+    pub fn into_name_set(&self) -> HashSet<String> {
+        self.tabs.iter().map(|tab| tab.name.clone()).collect()
     }
 }
 
 /// A user-configured workspace tab, which may or may not be running
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct WorkspaceTab {
     pub name: String,
     pub directory: PathBuf,

@@ -7,6 +7,12 @@ pub enum SelectTab {
     Tab(TabId),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SelectOrRetaskTab {
+    pub name: String,
+    pub env_tab: Option<TabId>,
+}
+
 /// The client's selected tab state.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TabState {
