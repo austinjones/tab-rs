@@ -50,11 +50,13 @@ impl MainListTabsService {
 
         let len = tabs.iter().map(|tab| tab.name.len()).max().unwrap();
         let target_len = len + 4;
+
         println!("Available tabs:");
+
         for tab in tabs.iter() {
             let name = &tab.name;
-
             print!("    {}", name);
+
             if let Some(ref doc) = tab.doc {
                 for _ in name.len()..target_len {
                     print!(" ");

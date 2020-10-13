@@ -20,8 +20,8 @@ impl Service for SelectTabService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<SelectOrRetaskTab>()?;
-
         let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+
         let mut tx_create = bus.tx::<CreateTabRequest>()?;
         let mut tx_select = bus.tx::<SelectTab>()?;
         let mut tx_websocket = bus.tx::<Request>()?;
