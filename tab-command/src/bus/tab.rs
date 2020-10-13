@@ -239,7 +239,6 @@ impl CarryFrom<MainBus> for TabBus {
             _forward_shutdown,
             _forward_active_tabs,
             _forward_workspace,
-            // _create_tab,
             _rx_response,
         })
     }
