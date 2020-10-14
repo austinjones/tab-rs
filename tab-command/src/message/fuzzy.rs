@@ -14,6 +14,7 @@ pub enum FuzzyEvent {
     Insert(char),
     Delete,
     Enter,
+    Resize(u16, u16),
 }
 
 #[derive(Debug, Clone)]

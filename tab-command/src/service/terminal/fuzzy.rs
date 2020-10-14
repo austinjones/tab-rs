@@ -1,10 +1,11 @@
-use std::io::Write;
+use std::{io::Write, sync::Arc};
 
 use crate::{
-    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection,
-    message::fuzzy::FuzzyShutdown, prelude::*, state::fuzzy::FuzzyMatch,
-    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
-    state::fuzzy::TabEntry,
+    env::terminal_size, message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv,
+    message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown, prelude::*,
+    state::fuzzy::FuzzyMatch, state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent,
+    state::fuzzy::FuzzyOutputMatch, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
+    state::fuzzy::TabEntry, state::fuzzy::Token, state::fuzzy::TokenJoin,
 };
 use crossterm::{
     cursor::Hide,
@@ -18,7 +19,13 @@ use crossterm::{
 };
 use crossterm::{event::Event, event::EventStream, event::KeyCode, terminal::enable_raw_mode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use tokio::{stream::Stream, stream::StreamExt, sync::watch};
+use tokio::{stream::Stream, stream::StreamExt};
+
+/// Rows reserved by the UI for non-match items
+const RESERVED_ROWS: usize = 2;
+
+/// Columns reserved by the UI for non-match items
+const RESERVED_COLUMNS: usize = 2;
 
 pub struct FuzzyFinderService {
     _input: Lifeline,
@@ -26,6 +33,7 @@ pub struct FuzzyFinderService {
     _filter_state: Lifeline,
     _select_state: Lifeline,
     _select: Lifeline,
+    _output_state: Lifeline,
     _output: Lifeline,
 }
 
@@ -81,11 +89,26 @@ impl Service for FuzzyFinderService {
             )
         };
 
-        let _output = {
+        let _output_state = {
             let rx_query = bus.rx::<FuzzyQueryState>()?.into_inner();
             let rx_match = bus.rx::<FuzzyMatchState>()?.into_inner();
-            let rx_select = bus.rx::<Option<FuzzySelectState>>()?.into_inner();
-            Self::try_task("output", Self::output(rx_query, rx_match, rx_select))
+            let rx_select = bus.rx::<Option<FuzzySelectState>>()?;
+            let rx_event = bus
+                .rx::<FuzzyEvent>()?
+                .into_inner()
+                .filter(|elem| elem.is_ok())
+                .map(|elem| elem.unwrap());
+
+            let tx = bus.tx::<FuzzyOutputEvent>()?;
+            Self::try_task(
+                "output_state",
+                Self::output_state(rx_query, rx_match, rx_select, rx_event, tx),
+            )
+        };
+
+        let _output = {
+            let rx = bus.rx::<FuzzyOutputEvent>()?;
+            Self::try_task("output", Self::output(rx))
         };
 
         Ok(Self {
@@ -94,6 +117,7 @@ impl Service for FuzzyFinderService {
             _filter_state,
             _select_state,
             _select,
+            _output_state,
             _output,
         })
     }
@@ -105,6 +129,9 @@ impl FuzzyFinderService {
         mut tx_shutdown: impl Sender<FuzzyShutdown>,
     ) -> anyhow::Result<()> {
         let mut reader = EventStream::new();
+
+        let (cols, rows) = terminal_size()?;
+        tx_event.send(FuzzyEvent::Resize(cols, rows)).await?;
 
         while let Some(event) = reader.next().await {
             // println!("got event: {:?}", &event);
@@ -130,7 +157,8 @@ impl FuzzyFinderService {
                             tx_event.send(FuzzyEvent::Enter).await?;
                         }
                         KeyCode::Char(ch) => {
-                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'c' || ch == 'x')
+                            if key.modifiers.eq(&KeyModifiers::CONTROL)
+                                && (ch == 'c' || ch == 'x' || ch == 'w')
                             {
                                 tx_shutdown.send(FuzzyShutdown {}).await.ok();
                                 Self::clear_all()?;
@@ -155,7 +183,9 @@ impl FuzzyFinderService {
                         KeyCode::Null => {}
                     },
                     Event::Mouse(_mouse) => {}
-                    Event::Resize(_, _) => {}
+                    Event::Resize(cols, rows) => {
+                        tx_event.send(FuzzyEvent::Resize(cols, rows)).await?;
+                    }
                 }
             }
         }
@@ -234,7 +264,11 @@ impl FuzzyFinderService {
                     }
 
                     last_query = Some(state.query);
-                    tx.send(FuzzyMatchState { matches }).await?;
+                    tx.send(FuzzyMatchState {
+                        matches,
+                        total: entries.len(),
+                    })
+                    .await?;
                     continue;
                 }
 
@@ -261,7 +295,11 @@ impl FuzzyFinderService {
                 matches.reverse();
 
                 last_query = Some(state.query);
-                tx.send(FuzzyMatchState { matches }).await?;
+                tx.send(FuzzyMatchState {
+                    matches,
+                    total: entries.len(),
+                })
+                .await?;
             }
         }
 
@@ -284,6 +322,7 @@ impl FuzzyFinderService {
 
         let mut index: usize = 0;
         let mut matches: Vec<FuzzyMatch> = Vec::new();
+        let mut terminal_height = terminal_size()?.1 as usize;
 
         while let Some(msg) = rx.next().await {
             match msg {
@@ -294,9 +333,10 @@ impl FuzzyFinderService {
                         }
                     }
                     FuzzyEvent::MoveDown => {
-                        if index + 1 < matches.len() {
-                            index += 1;
-                        }
+                        index += 1;
+                    }
+                    FuzzyEvent::Resize(_rows, cols) => {
+                        terminal_height = cols as usize;
                     }
                     _ => {
                         continue;
@@ -304,13 +344,17 @@ impl FuzzyFinderService {
                 },
                 Recv::Matches(message) => {
                     matches = message.matches;
-
-                    if matches.len() == 0 {
-                        index = 0;
-                    } else if index > matches.len() - 1 {
-                        index = matches.len() - 1;
-                    }
                 }
+            }
+
+            if terminal_height < index + 1 + RESERVED_ROWS {
+                index = terminal_height - 1 - RESERVED_ROWS;
+            }
+
+            if matches.len() == 0 {
+                index = 0;
+            } else if matches.len() <= index {
+                index = matches.len() - 1
             }
 
             let state = matches
@@ -367,100 +411,114 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    async fn output(
-        rx_query: watch::Receiver<FuzzyQueryState>,
-        rx_match: watch::Receiver<FuzzyMatchState>,
-        rx_select: watch::Receiver<Option<FuzzySelectState>>,
+    async fn output_state(
+        rx_query: impl Stream<Item = FuzzyQueryState> + Unpin,
+        rx_match: impl Stream<Item = FuzzyMatchState> + Unpin,
+        rx_select: impl Stream<Item = Option<FuzzySelectState>> + Unpin,
+        rx_event: impl Stream<Item = FuzzyEvent> + Unpin,
+        mut tx_state: impl Sender<FuzzyOutputEvent>,
     ) -> anyhow::Result<()> {
-        enable_raw_mode()?;
-
-        enum Recv {
-            Query(FuzzyQueryState),
-            Matches(FuzzyMatchState),
-            Select(Option<FuzzySelectState>),
-        }
+        let mut query_state = Arc::new(FuzzyQueryState::default());
+        let mut match_state = Arc::new(vec![]);
+        let mut total = 0usize;
+        let mut select_state = Arc::new(None);
 
         let mut rx = rx_query
-            .map(|q| Recv::Query(q))
-            .merge(rx_match.map(|m| Recv::Matches(m)))
-            .merge(rx_select.map(|s| Recv::Select(s)));
+            .map(|q| OutputRecv::Query(q))
+            .merge(rx_match.map(|m| OutputRecv::Matches(m)))
+            .merge(rx_select.map(|s| OutputRecv::Select(s)))
+            .merge(rx_event.map(|s| OutputRecv::Event(s)));
 
-        let mut cursor_index: u16 = 0;
-        let mut selected_row: Option<usize> = None;
-        let mut saved_matches = None;
+        while let Some(msg) = rx.next().await {
+            match msg {
+                OutputRecv::Query(query) => {
+                    query_state = Arc::new(query);
+                }
+                OutputRecv::Matches(matches) => {
+                    total = matches.total;
+
+                    let matches: Vec<FuzzyOutputMatch> = matches
+                        .matches
+                        .into_iter()
+                        .map(Self::parse)
+                        .map(|tokens| FuzzyOutputMatch { tokens })
+                        .collect();
+
+                    match_state = Arc::new(matches);
+                }
+                OutputRecv::Select(select) => {
+                    select_state = Arc::new(select);
+                }
+                OutputRecv::Event(event) => match event {
+                    FuzzyEvent::Resize(_cols, _rows) => {
+                        // trigger render on resize
+                    }
+                    _ => continue,
+                },
+            }
+
+            let event = FuzzyOutputEvent {
+                query_state: query_state.clone(),
+                select_state: select_state.clone(),
+                matches: match_state.clone(),
+                total,
+            };
+
+            tx_state.send(event).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn output(mut rx: impl Receiver<FuzzyOutputEvent>) -> anyhow::Result<()> {
+        enable_raw_mode()?;
+
         let mut stdout = std::io::stdout();
 
-        while let Some(recv) = rx.next().await {
+        while let Some(state) = rx.recv().await {
+            let query = state.query_state;
+            let matches = state.matches;
+            let selected = state.select_state;
+            let selected_index = (*selected).as_ref().map(|elem| elem.index);
+
             let terminal_size = crossterm::terminal::size()?;
-            let terminal_height = terminal_size.0;
+            let terminal_height = terminal_size.1;
 
             stdout.queue(Hide)?;
 
-            match recv {
-                Recv::Query(query) => {
-                    // translate into screen coordinates
-                    cursor_index = query.cursor_index as u16 + 2;
+            stdout.queue(MoveTo(0, 0))?;
+            stdout.queue(Print("❯ "))?;
+            stdout.queue(Print(query.query.as_str().bold()))?;
+            stdout.queue(Clear(ClearType::UntilNewLine))?;
 
-                    stdout.queue(MoveTo(0, 0))?;
-                    stdout.queue(Print("❯ "))?;
-                    stdout.queue(Print(query.query.as_str()))?;
-                    stdout.queue(Clear(ClearType::UntilNewLine))?;
-                }
-                Recv::Matches(matches) => {
-                    let matches = matches.matches;
+            stdout.queue(MoveTo(0, 1))?;
+            stdout.queue(Print("  "))?;
+            stdout.queue(PrintStyledContent(matches.len().to_string().bold()))?;
+            stdout.queue(PrintStyledContent("/".bold()))?;
+            stdout.queue(PrintStyledContent(state.total.to_string().bold()))?;
+            stdout.queue(Clear(ClearType::UntilNewLine))?;
 
-                    for (row, ref match_data) in (1..terminal_height).zip(matches.iter()) {
-                        let tokens = Self::parse(match_data);
+            for (row, ref output_match) in
+                (RESERVED_ROWS..terminal_height as usize).zip(matches.iter())
+            {
+                let tokens = &output_match.tokens;
 
-                        let selected = selected_row == Some(row as usize - 1);
-                        stdout.queue(MoveTo(0, row))?;
+                let selected = selected_index == Some(row - RESERVED_ROWS);
+                stdout.queue(MoveTo(0, row as u16))?;
 
-                        if selected {
-                            stdout.queue(PrintStyledContent("❯ ".blue()))?;
-                            Self::print_selected_match(&mut stdout, tokens)?;
-                        } else {
-                            stdout.queue(Print("  "))?;
-                            Self::print_match(&mut stdout, tokens)?;
-                        }
-                    }
-
-                    stdout.queue(Clear(ClearType::FromCursorDown))?;
-                    saved_matches = Some(matches);
-                }
-                Recv::Select(state) => {
-                    if let Some(select) = state {
-                        let new_row = select.index as u16 + 1;
-
-                        if let Some(selected) = selected_row {
-                            stdout.queue(MoveTo(0, (selected as u16) + 1))?;
-                            stdout.queue(Print("  "))?;
-
-                            if let Some(m) =
-                                saved_matches.as_ref().map(|m| m.get(selected)).flatten()
-                            {
-                                let tokens = Self::parse(&m);
-                                Self::print_match(&mut stdout, tokens)?;
-                            }
-                        }
-
-                        stdout.queue(MoveTo(0, new_row))?;
-                        stdout.queue(PrintStyledContent("❯ ".blue()))?;
-
-                        if let Some(m) = saved_matches
-                            .as_ref()
-                            .map(|m| m.get(select.index as usize))
-                            .flatten()
-                        {
-                            let tokens = Self::parse(&m);
-                            Self::print_selected_match(&mut stdout, tokens)?;
-                        }
-
-                        selected_row = Some(select.index);
-                    }
+                if selected {
+                    stdout.queue(PrintStyledContent("❯ ".blue()))?;
+                    Self::print_selected_match(&mut stdout, tokens)?;
+                } else {
+                    stdout.queue(Print("  "))?;
+                    Self::print_match(&mut stdout, tokens)?;
                 }
             }
 
-            stdout.queue(MoveTo(cursor_index, 0))?;
+            stdout.queue(Clear(ClearType::FromCursorDown))?;
+
+            let cursor_index = query.cursor_index + RESERVED_COLUMNS;
+            stdout.queue(MoveTo(cursor_index as u16, 0))?;
             stdout.queue(Show)?;
             stdout.flush()?;
         }
@@ -470,16 +528,20 @@ impl FuzzyFinderService {
 
     fn print_selected_match(
         stdout: &mut std::io::Stdout,
-        tokens: Vec<Token>,
+        tokens: &Vec<Token>,
     ) -> anyhow::Result<()> {
         for token in tokens.into_iter() {
             match token {
-                Token::UnmatchedTab(s) => stdout.queue(PrintStyledContent(s.bold().blue()))?,
-                Token::MatchedTab(s) => {
-                    stdout.queue(PrintStyledContent(s.bold().blue().underlined()))?
+                Token::UnmatchedTab(s) => {
+                    stdout.queue(PrintStyledContent(s.as_str().bold().blue()))?
                 }
-                Token::Unmatched(s) => stdout.queue(PrintStyledContent(s.blue()))?,
-                Token::Matched(s) => stdout.queue(PrintStyledContent(s.blue().underlined()))?,
+                Token::MatchedTab(s) => {
+                    stdout.queue(PrintStyledContent(s.as_str().bold().blue().underlined()))?
+                }
+                Token::Unmatched(s) => stdout.queue(PrintStyledContent(s.as_str().blue()))?,
+                Token::Matched(s) => {
+                    stdout.queue(PrintStyledContent(s.as_str().blue().underlined()))?
+                }
             };
         }
 
@@ -488,13 +550,17 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn print_match(stdout: &mut std::io::Stdout, tokens: Vec<Token>) -> anyhow::Result<()> {
+    fn print_match(stdout: &mut std::io::Stdout, tokens: &Vec<Token>) -> anyhow::Result<()> {
         for token in tokens.into_iter() {
             match token {
-                Token::UnmatchedTab(s) => stdout.queue(PrintStyledContent(s.bold()))?,
-                Token::MatchedTab(s) => stdout.queue(PrintStyledContent(s.bold().underlined()))?,
-                Token::Unmatched(s) => stdout.queue(Print(s.dark_grey()))?,
-                Token::Matched(s) => stdout.queue(PrintStyledContent(s.grey().underlined()))?,
+                Token::UnmatchedTab(s) => stdout.queue(PrintStyledContent(s.as_str().bold()))?,
+                Token::MatchedTab(s) => {
+                    stdout.queue(PrintStyledContent(s.as_str().bold().underlined()))?
+                }
+                Token::Unmatched(s) => stdout.queue(Print(s.as_str().dark_grey()))?,
+                Token::Matched(s) => {
+                    stdout.queue(PrintStyledContent(s.as_str().grey().underlined()))?
+                }
             };
         }
 
@@ -503,7 +569,7 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn parse<'a>(fuzzy_match: &'a FuzzyMatch) -> Vec<Token> {
+    fn parse(fuzzy_match: FuzzyMatch) -> Vec<Token> {
         let mut ret = Vec::new();
 
         let mut next_match_iter = fuzzy_match.indices.iter().copied();
@@ -556,38 +622,9 @@ impl FuzzyFinderService {
     }
 }
 
-enum Token {
-    UnmatchedTab(String),
-    MatchedTab(String),
-    Unmatched(String),
-    Matched(String),
-}
-
-enum TokenJoin {
-    Same(Token),
-    Different(Token, Token),
-}
-
-impl Token {
-    pub fn join(self, other: Token) -> TokenJoin {
-        match (self, other) {
-            (Token::UnmatchedTab(mut a), Token::UnmatchedTab(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::UnmatchedTab(a))
-            }
-            (Token::MatchedTab(mut a), Token::MatchedTab(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::MatchedTab(a))
-            }
-            (Token::Unmatched(mut a), Token::Unmatched(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::Unmatched(a))
-            }
-            (Token::Matched(mut a), Token::Matched(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::Matched(a))
-            }
-            (s, o) => TokenJoin::Different(s, o),
-        }
-    }
+enum OutputRecv {
+    Query(FuzzyQueryState),
+    Matches(FuzzyMatchState),
+    Select(Option<FuzzySelectState>),
+    Event(FuzzyEvent),
 }
