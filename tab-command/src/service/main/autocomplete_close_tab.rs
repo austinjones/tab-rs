@@ -19,7 +19,7 @@ impl Service for MainAutocompleteCloseTabsService {
 
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
-                if let MainRecv::AutocompleteTab = msg {
+                if let MainRecv::AutocompleteCloseTab = msg {
                     let active_tabs = await_state(&mut rx_active).await?;
 
                     let tabs: Vec<String> =
