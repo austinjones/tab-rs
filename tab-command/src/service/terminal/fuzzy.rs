@@ -348,7 +348,7 @@ impl FuzzyFinderService {
             }
 
             if terminal_height < index + 1 + RESERVED_ROWS {
-                index = terminal_height - 2;
+                index = terminal_height - 1 - RESERVED_ROWS;
             }
 
             if matches.len() == 0 {
