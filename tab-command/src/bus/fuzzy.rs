@@ -3,7 +3,8 @@ use tokio::sync::{broadcast, mpsc, watch};
 use crate::{
     message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection,
     message::fuzzy::FuzzyShutdown, message::terminal::TerminalShutdown, prelude::*,
-    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
+    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyQueryState,
+    state::fuzzy::FuzzySelectState,
 };
 
 lifeline_bus!(pub struct FuzzyBus);
@@ -29,6 +30,10 @@ impl Message<FuzzyBus> for FuzzyEvent {
 }
 
 impl Message<FuzzyBus> for FuzzySelection {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<FuzzyBus> for FuzzyOutputEvent {
     type Channel = mpsc::Sender<Self>;
 }
 

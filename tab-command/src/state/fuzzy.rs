@@ -19,12 +19,14 @@ impl Default for FuzzyQueryState {
 
 #[derive(Debug, Clone)]
 pub struct FuzzyMatchState {
+    pub total: usize,
     pub matches: Vec<FuzzyMatch>,
 }
 
 impl Default for FuzzyMatchState {
     fn default() -> Self {
         Self {
+            total: 0,
             matches: Vec::with_capacity(0),
         }
     }
@@ -41,6 +43,19 @@ pub struct FuzzyMatch {
     pub score: i64,
     pub indices: Vec<usize>,
     pub tab: Arc<TabEntry>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuzzyOutputEvent {
+    pub query_state: Arc<FuzzyQueryState>,
+    pub select_state: Arc<Option<FuzzySelectState>>,
+    pub matches: Arc<Vec<FuzzyOutputMatch>>,
+    pub total: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuzzyOutputMatch {
+    pub tokens: Vec<Token>,
 }
 
 #[derive(Debug, Clone)]
@@ -87,5 +102,42 @@ impl TabEntry {
             .max()
             .map(|len| len + 2);
         max_len.unwrap_or(0)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Token {
+    UnmatchedTab(String),
+    MatchedTab(String),
+    Unmatched(String),
+    Matched(String),
+}
+
+pub enum TokenJoin {
+    Same(Token),
+    Different(Token, Token),
+}
+
+impl Token {
+    pub fn join(self, other: Token) -> TokenJoin {
+        match (self, other) {
+            (Token::UnmatchedTab(mut a), Token::UnmatchedTab(b)) => {
+                a += b.as_str();
+                TokenJoin::Same(Token::UnmatchedTab(a))
+            }
+            (Token::MatchedTab(mut a), Token::MatchedTab(b)) => {
+                a += b.as_str();
+                TokenJoin::Same(Token::MatchedTab(a))
+            }
+            (Token::Unmatched(mut a), Token::Unmatched(b)) => {
+                a += b.as_str();
+                TokenJoin::Same(Token::Unmatched(a))
+            }
+            (Token::Matched(mut a), Token::Matched(b)) => {
+                a += b.as_str();
+                TokenJoin::Same(Token::Matched(a))
+            }
+            (s, o) => TokenJoin::Different(s, o),
+        }
     }
 }
