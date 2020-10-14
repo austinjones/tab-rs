@@ -19,7 +19,7 @@ use crossterm::{
 };
 use crossterm::{event::Event, event::EventStream, event::KeyCode, terminal::enable_raw_mode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use tokio::{stream::Stream, stream::StreamExt, sync::broadcast, sync::watch};
+use tokio::{stream::Stream, stream::StreamExt};
 
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;
