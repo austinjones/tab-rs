@@ -476,52 +476,57 @@ impl FuzzyFinderService {
         let mut stdout = std::io::stdout();
 
         while let Some(state) = rx.recv().await {
-            let query = state.query_state;
-            let matches = state.matches;
-            let selected = state.select_state;
-            let selected_index = (*selected).as_ref().map(|elem| elem.index);
-
-            let terminal_size = crossterm::terminal::size()?;
-            let terminal_height = terminal_size.1;
-
-            stdout.queue(Hide)?;
-
-            stdout.queue(MoveTo(0, 0))?;
-            stdout.queue(Print("❯ "))?;
-            stdout.queue(Print(query.query.as_str().bold()))?;
-            stdout.queue(Clear(ClearType::UntilNewLine))?;
-
-            stdout.queue(MoveTo(0, 1))?;
-            stdout.queue(Print("  "))?;
-            stdout.queue(PrintStyledContent(matches.len().to_string().bold()))?;
-            stdout.queue(PrintStyledContent("/".bold()))?;
-            stdout.queue(PrintStyledContent(state.total.to_string().bold()))?;
-            stdout.queue(Clear(ClearType::UntilNewLine))?;
-
-            for (row, ref output_match) in
-                (RESERVED_ROWS..terminal_height as usize).zip(matches.iter())
-            {
-                let tokens = &output_match.tokens;
-
-                let selected = selected_index == Some(row - RESERVED_ROWS);
-                stdout.queue(MoveTo(0, row as u16))?;
-
-                if selected {
-                    stdout.queue(PrintStyledContent("❯ ".blue()))?;
-                    Self::print_selected_match(&mut stdout, tokens)?;
-                } else {
-                    stdout.queue(Print("  "))?;
-                    Self::print_match(&mut stdout, tokens)?;
-                }
-            }
-
-            stdout.queue(Clear(ClearType::FromCursorDown))?;
-
-            let cursor_index = query.cursor_index + RESERVED_COLUMNS;
-            stdout.queue(MoveTo(cursor_index as u16, 0))?;
-            stdout.queue(Show)?;
-            stdout.flush()?;
+            Self::draw(&mut stdout, state)?;
         }
+
+        Ok(())
+    }
+
+    fn draw(stdout: &mut std::io::Stdout, state: FuzzyOutputEvent) -> anyhow::Result<()> {
+        let query = state.query_state;
+        let matches = state.matches;
+        let selected = state.select_state;
+        let selected_index = (*selected).as_ref().map(|elem| elem.index);
+
+        let terminal_size = crossterm::terminal::size()?;
+        let terminal_height = terminal_size.1;
+
+        stdout.queue(Hide)?;
+
+        stdout.queue(MoveTo(0, 0))?;
+        stdout.queue(Print("❯ "))?;
+        stdout.queue(Print(query.query.as_str().bold()))?;
+        stdout.queue(Clear(ClearType::UntilNewLine))?;
+
+        stdout.queue(MoveTo(0, 1))?;
+        stdout.queue(Print("  "))?;
+        stdout.queue(PrintStyledContent(matches.len().to_string().bold()))?;
+        stdout.queue(PrintStyledContent("/".bold()))?;
+        stdout.queue(PrintStyledContent(state.total.to_string().bold()))?;
+        stdout.queue(Clear(ClearType::UntilNewLine))?;
+
+        for (row, ref output_match) in (RESERVED_ROWS..terminal_height as usize).zip(matches.iter())
+        {
+            let tokens = &output_match.tokens;
+
+            let selected = selected_index == Some(row - RESERVED_ROWS);
+            stdout.queue(MoveTo(0, row as u16))?;
+
+            if selected {
+                stdout.queue(PrintStyledContent("❯ ".blue()))?;
+                Self::print_selected_match(stdout, tokens)?;
+            } else {
+                stdout.queue(Print("  "))?;
+                Self::print_match(stdout, tokens)?;
+            }
+        }
+
+        stdout.queue(Clear(ClearType::FromCursorDown))?;
+
+        let cursor_index = query.cursor_index + RESERVED_COLUMNS;
+        stdout.queue(MoveTo(cursor_index as u16, 0))?;
+        stdout.queue(Show)?;
+        stdout.flush()?;
 
         Ok(())
     }
