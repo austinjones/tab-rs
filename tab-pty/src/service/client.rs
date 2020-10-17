@@ -363,7 +363,7 @@ mod tests {
                     name: "name".to_string(),
                     dimensions: (80, 24),
                     env: HashMap::new(),
-                    shell: "/usr/bin/env bash".to_string(),
+                    shell: "/usr/bin/env sh".to_string(),
                     dir: current_dir.to_string_lossy().to_string(),
                 })),
                 created
