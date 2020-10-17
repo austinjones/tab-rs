@@ -65,9 +65,6 @@ pub enum CliSubscriptionRecv {
     Stopped(TabId),
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct CliSubscriptionOutputBarrier {}
-
 /// A message sent by the client's subscription state service
 /// Represented with the current state of the subscription, contains tab updates and output chunks
 #[derive(Debug, Clone, PartialEq, Eq)]
