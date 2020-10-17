@@ -22,12 +22,12 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
     let result = session
         .command()
         .tab(tab)
-        .await_stdout("$", 5000)
+        .await_stdout("$", 1000)
         .stdin("echo foo\n")
-        .await_stdout("echo foo", 1000)
-        .await_stdout("$", 200)
+        .await_stdout("echo foo", 300)
+        .await_stdout("$", 300)
         .stdin("exit\n")
-        .await_stdout("exit", 1000)
+        .await_stdout("exit", 300)
         .complete_snapshot()
         .run()
         .await?;
