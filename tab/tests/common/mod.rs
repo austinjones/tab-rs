@@ -113,8 +113,7 @@ impl<'s> TestCommand<'s> {
         info!("Tab command initalizing: {}", self.tab.as_str());
 
         let mut run = tokio::process::Command::new(self.session.binary());
-        run
-            .arg("--log")
+        run.arg("--log")
             .arg("info")
             .arg(self.tab.as_str())
             .env("SHELL", "/bin/bash")
@@ -204,11 +203,15 @@ impl<'s> TestCommand<'s> {
                                     search_index += index + match_target.len();
                                     break;
                                 }
-                                
+
                                 if Instant::now().duration_since(start_time) > *timeout {
                                     error!("Await timeout for stdout: {}", string);
-                                    error!("Current buffer: {}", 
-                                        snailquote::escape(std::str::from_utf8(stdout_buffer.as_slice()).unwrap()));
+                                    error!(
+                                        "Current buffer: {}",
+                                        snailquote::escape(
+                                            std::str::from_utf8(stdout_buffer.as_slice()).unwrap()
+                                        )
+                                    );
                                     break;
                                 }
 
