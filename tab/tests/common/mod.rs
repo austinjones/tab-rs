@@ -207,10 +207,6 @@ impl<'s> TestCommand<'s> {
         let stdout_buffer =
             strip_ansi_escapes::strip(&stdout_buffer).expect("couldn't strip escape sequences");
         let stdout = std::str::from_utf8(stdout_buffer.as_slice())?.to_string();
-        // the PTY sometimes cannot forward the final exit message before it quits
-        // adding sleeps was not an option, as users are waiting for the exit to occur so they can context switch
-        // we strip this message here, so it doesn't appear in the snapshot
-        let stdout = stdout.replace("\nexit\n", "\n");
 
         let result = TestResult {
             exit_status: code?,

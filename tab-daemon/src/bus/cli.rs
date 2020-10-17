@@ -10,9 +10,8 @@ use crate::{
 };
 
 use anyhow::Context;
-use lifeline::{subscription, Resource};
 use std::sync::Arc;
-use tab_api::{client::Request, client::Response, tab::TabId};
+use tab_api::{client::Request, client::Response};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
@@ -48,10 +47,6 @@ impl Message<CliBus> for CliSubscriptionSend {
 
 impl Message<CliBus> for CliSubscriptionRecv {
     type Channel = mpsc::Sender<Self>;
-}
-
-impl Message<CliBus> for subscription::Subscription<TabId> {
-    type Channel = subscription::Sender<TabId>;
 }
 
 /// This binding needs to be mpsc, as it is carried from the listener.

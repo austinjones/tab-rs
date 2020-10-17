@@ -2,15 +2,15 @@ pub mod scrollback;
 
 // mod session;
 
+use std::time::Duration;
+
 use crate::message::pty::{PtyRecv, PtySend, PtyShutdown};
 use crate::prelude::*;
 
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 
-use tokio::time;
-
 use scrollback::PtyScrollbackService;
-use time::Duration;
+use tokio::time;
 
 /// Drives an active tab-pty connection, forwarding events between the daemon and the websocket
 pub struct PtyService {
@@ -45,7 +45,9 @@ impl Service for PtyService {
                         PtyWebsocketResponse::Stopped => {
                             debug!("received pty shutdown notification");
                             tx_daemon.send(PtySend::Stopped).await?;
-                            time::delay_for(Duration::from_millis(100)).await;
+
+                            // this sleep is not visible to the user
+                            time::delay_for(Duration::from_millis(500)).await;
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;
                         }
@@ -59,7 +61,6 @@ impl Service for PtyService {
         let _daemon = {
             let mut rx_daemon = bus.rx::<PtyRecv>()?;
             let mut tx_websocket = bus.tx::<PtyWebsocketRequest>()?;
-            let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
             Self::try_task("daemon", async move {
                 while let Some(msg) = rx_daemon.recv().await {
@@ -79,13 +80,8 @@ impl Service for PtyService {
                             tx_websocket.send(message).await?;
                         }
                         PtyRecv::Terminate => {
-                            info!("PTY process terminating due to shell process shutdown");
+                            info!("PTY process terminating due to user request");
                             tx_websocket.send(PtyWebsocketRequest::Terminate).await?;
-
-                            time::delay_for(Duration::from_millis(50)).await;
-
-                            tx_shutdown.send(PtyShutdown {}).await?;
-                            break;
                         }
                         PtyRecv::Scrollback => {}
                     }
@@ -187,7 +183,7 @@ mod websocket_tests {
 
                 let _shutdown_msg = rx_shutdown.recv().await;
             },
-            250
+            750
         );
 
         Ok(())

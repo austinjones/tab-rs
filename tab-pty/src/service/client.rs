@@ -236,6 +236,7 @@ impl ClientSessionService {
 
                     tx.send(PtyWebsocketResponse::Stopped).await?;
 
+                    // this sleep is not visible to the user
                     time::delay_for(Duration::from_millis(500)).await;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }

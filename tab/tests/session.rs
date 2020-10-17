@@ -28,6 +28,7 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .await_stdout("$", 200)
         .stdin("exit\n")
         .await_stdout("exit", 200)
+        .await_stdout("exit", 200)
         .run()
         .await?;
 

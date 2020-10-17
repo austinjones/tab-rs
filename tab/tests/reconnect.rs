@@ -38,6 +38,7 @@ async fn reconnect_iter(session: &mut TestSession, iter: usize) -> anyhow::Resul
         .await_stdout("foo", 5000)
         .stdin("exit\n")
         .await_stdout("exit", 200)
+        .await_stdout("exit", 200)
         .run()
         .await?;
     assert_eq!(Some(0), result.exit_status.code());

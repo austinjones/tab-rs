@@ -1,8 +1,9 @@
 ---
-source: tab-cli/tests/reconnect.rs
-expression: output
+source: tab/tests/reconnect.rs
+expression: result.stdout
 ---
 $ echo foo
 foo
 $ exit
+exit
 

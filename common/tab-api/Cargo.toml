@@ -11,7 +11,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lifeline = "0.3"
+lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
 tokio = { version = "0.2", features = ["macros", "process", "time"] }
 sysinfo = "0.15"
 dirs = "3.0"
