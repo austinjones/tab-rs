@@ -127,6 +127,7 @@ mod websocket_tests {
         let tab = TabMetadata {
             id: TabId(0),
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 2),
             env: HashMap::new(),
             shell: "shell".into(),
@@ -235,6 +236,7 @@ mod daemon_tests {
         let tab = TabMetadata {
             id: TabId(0),
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 2),
             env: HashMap::new(),
             shell: "shell".into(),
