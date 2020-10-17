@@ -43,7 +43,7 @@ impl Service for PtyService {
                             tx_daemon.send(PtySend::Output(output)).await?;
                         }
                         PtyWebsocketResponse::Stopped => {
-                            debug!("received pty shutdown notification");
+                            info!("PTY process has terminated");
                             tx_daemon.send(PtySend::Stopped).await?;
 
                             // this sleep is not visible to the user

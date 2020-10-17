@@ -16,7 +16,7 @@ impl Service for CliSubscriptionService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let _rx = {
-            let mut rx = bus.rx::<CliSubscriptionRecv>()?.log();
+            let mut rx = bus.rx::<CliSubscriptionRecv>()?;
             let mut tx = bus.tx::<CliSubscriptionSend>()?;
             let mut tx_daemon = bus.tx::<CliSend>()?;
 

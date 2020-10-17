@@ -10,7 +10,6 @@ use crate::{
     service::{cli::CliService, pty::PtyService},
 };
 use crate::{prelude::*, service::cli::subscription::CliSubscriptionService};
-use anyhow::Context;
 
 use lifeline::dyn_bus::DynBus;
 use tab_websocket::{
@@ -155,10 +154,7 @@ impl ListenerService {
         let _subscription = CliSubscriptionService::spawn(&bus)?;
         drop(bus);
 
-        shutdown
-            .recv()
-            .await
-            .context("rx ConnectionShutdown closed")?;
+        shutdown.recv().await;
 
         Ok(())
     }
@@ -170,10 +166,7 @@ impl ListenerService {
         let _service = PtyService::spawn(&bus)?;
         drop(bus);
 
-        shutdown
-            .recv()
-            .await
-            .context("rx ConnectionShutdown closed")?;
+        shutdown.recv().await;
 
         Ok(())
     }

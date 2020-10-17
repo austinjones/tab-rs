@@ -101,6 +101,7 @@ impl TabManagerService {
         tx_close: &mut impl Sender<TabRecv>,
         tx_tabs_state: &mut impl Sender<TabsState>,
     ) -> anyhow::Result<()> {
+        info!("TabManager terminating tab {}", id);
         tabs.remove(&id);
 
         tx.send(TabManagerSend::TabTerminated(id))

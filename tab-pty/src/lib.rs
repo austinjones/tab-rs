@@ -51,6 +51,7 @@ async fn main_async() -> anyhow::Result<()> {
 
     let (_tx, rx, _lifeline) = spawn().await?;
     wait_for_shutdown(rx).await;
+    info!("PTY process terminated.");
 
     Ok(())
 }

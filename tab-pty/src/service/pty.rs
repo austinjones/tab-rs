@@ -70,6 +70,8 @@ impl PtyService {
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
             rx_barrier.await;
+
+            info!("Shell successfully terminated with exit code {}", exit_code);
             tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
 
             Ok(())

@@ -235,7 +235,6 @@ mod request_tests {
 
         let _service = CliService::spawn(&cli_bus)?;
         let mut rx = cli_bus.rx::<Response>()?;
-        rx.log();
 
         assert_completes!(async move {
             let init = rx.recv().await;
