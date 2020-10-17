@@ -10,7 +10,7 @@ lifeline_bus!(pub struct PtyBus);
 impl Resource<PtyBus> for PtyOptions {}
 
 impl Message<PtyBus> for PtyRequest {
-    type Channel = mpsc::Sender<Self>;
+    type Channel = broadcast::Sender<Self>;
 }
 
 impl Message<PtyBus> for PtyWebsocketRequest {

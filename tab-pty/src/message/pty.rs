@@ -1,13 +1,13 @@
 use lifeline::impl_storage_clone;
-use std::{collections::HashMap, path::PathBuf, process::ExitStatus};
+use std::{collections::HashMap, path::PathBuf};
 use tab_api::chunk::{InputChunk, OutputChunk};
 
 /// Terminates the process, websocket connection, and via cancellation the connected PTY shell session
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MainShutdown {}
 
 /// Terminates the PTY process.  Forwarded to the `MainBus` as a `MainShutdown`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PtyShutdown {}
 
 /// A request sent to the PTY process.
@@ -17,7 +17,7 @@ pub struct PtyShutdown {}
 /// Usage:
 /// - Rx into the `PtyService`, to write input into the shell.
 /// - Tx from the `ClientSessionService`, to forward websocket requests from the daemon.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PtyRequest {
     Resize((u16, u16)),
     Input(InputChunk),
@@ -34,7 +34,7 @@ pub enum PtyRequest {
 #[derive(Debug, Clone)]
 pub enum PtyResponse {
     Output(OutputChunk),
-    Terminated(ExitStatus),
+    Terminated,
 }
 
 /// Describes options which can be set for the launched shell process

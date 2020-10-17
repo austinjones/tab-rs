@@ -15,7 +15,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 static CHUNK_LEN: usize = 2048;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
-static STDIN_CHANNEL_SIZE: usize = 32;
+static STDIN_CHANNEL_SIZE: usize = 256;
 
 // mod process;
 // mod receiver;
@@ -58,21 +58,22 @@ impl PtyService {
     ) -> anyhow::Result<()> {
         let (child, read, write) = Self::create_pty(options).await?;
         let (tx_barrier, rx_barrier) = barrier();
+
         // stdout reader
         let _output = Self::task(
             "output",
             Self::read_output(read, tx_response.clone(), tx_barrier),
         );
+
         let _input = Self::task("input", Self::write_input(write, rx_request));
 
         let mut tx_exit = tx_response.clone();
-
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
             rx_barrier.await;
 
             info!("Shell successfully terminated with exit code {}", exit_code);
-            tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
+            tx_exit.send(PtyResponse::Terminated).await?;
 
             Ok(())
         });
