@@ -46,7 +46,7 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .await?;
 
     assert_eq!(Some(0), result.exit_status.code());
-    assert_snapshot!("create_from", result.stdout);
+    assert_snapshot!("create_from", result.snapshot);
 
     let result = session
         .command()
@@ -61,7 +61,7 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .await?;
 
     assert_eq!(Some(0), result.exit_status.code());
-    assert_snapshot!("into_target", result.stdout);
+    assert_snapshot!("into_target", result.snapshot);
 
     Ok(())
 }

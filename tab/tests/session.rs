@@ -27,13 +27,13 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .await_stdout("echo foo", 1000)
         .await_stdout("$", 200)
         .stdin("exit\n")
-        .await_stdout("exit", 200)
+        .await_stdout("exit", 1000)
         .complete_snapshot()
         .run()
         .await?;
 
     assert_eq!(Some(0), result.exit_status.code());
-    assert_snapshot!("result", result.stdout);
+    assert_snapshot!("result", result.snapshot);
 
     Ok(())
 }

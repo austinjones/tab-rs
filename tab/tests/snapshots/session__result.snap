@@ -5,5 +5,4 @@ expression: result.stdout
 $ echo foo
 foo
 $ exit
-exit
 

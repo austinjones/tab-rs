@@ -113,7 +113,10 @@ impl<'s> TestCommand<'s> {
         info!("Tab command initalizing: {}", self.tab.as_str());
 
         let mut run = tokio::process::Command::new(self.session.binary());
-        run.arg(self.tab.as_str())
+        run
+            .arg("--log")
+            .arg("debug")
+            .arg(self.tab.as_str())
             .env("SHELL", "/bin/bash")
             .env(
                 "TAB_RUNTIME_DIR",
