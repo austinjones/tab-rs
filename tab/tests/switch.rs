@@ -37,10 +37,10 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
     let result = session
         .command()
         .tab(tab_from.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 2000)
         .stdin("echo from\n")
         .await_stdout("echo from", 200)
-        .await_stdout("$", 200)
+        .await_stdout("$", 600)
         .stdin_bytes(&[23u8])
         .run()
         .await?;
@@ -51,11 +51,12 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
     let result = session
         .command()
         .tab(tab_from)
-        .await_stdout("$", 5000)
+        .await_stdout("$", 2000)
         .stdin("$TAB_BIN target/\n")
         .await_stdout("echo target", 1000)
         .await_stdout("target", 200)
-        .await_stdout("$", 200)
+        .await_stdout("$", 1200)
+        .complete_snapshot()
         .stdin_bytes(&[23u8])
         .run()
         .await?;

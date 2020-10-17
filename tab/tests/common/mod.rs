@@ -115,7 +115,7 @@ impl<'s> TestCommand<'s> {
         let mut run = tokio::process::Command::new(self.session.binary());
         run
             .arg("--log")
-            .arg("debug")
+            .arg("info")
             .arg(self.tab.as_str())
             .env("SHELL", "/bin/bash")
             .env(
@@ -174,28 +174,6 @@ impl<'s> TestCommand<'s> {
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
-                                if Instant::now().duration_since(start_time) > *timeout {
-                                    error!("Await timeout for stdout: {}", string);
-                                    break;
-                                }
-
-                                let timeout = time::timeout(Duration::from_millis(1000), async {
-                                    stdout
-                                        .read_buf(&mut buf.as_mut_slice())
-                                        .await
-                                        .expect("failed to read from buf")
-                                })
-                                .await;
-
-                                if let Err(_e) = timeout {
-                                    warn!("test read timeout");
-                                    continue;
-                                }
-
-                                let read = timeout.unwrap();
-
-                                stdout_buffer.extend_from_slice(&mut buf[0..read]);
-
                                 debug!(
                                     "Searching from [{}..{}] in: '{}'",
                                     search_index,
@@ -211,12 +189,13 @@ impl<'s> TestCommand<'s> {
                                     match_target.as_slice(),
                                 ) {
                                     info!(
-                                        "stdout match found at index [{}..{}]",
+                                        "Stdout match for {} found at index [{}..{}]",
+                                        string,
                                         search_index + index,
                                         search_index + index + match_target.len()
                                     );
                                     debug!(
-                                        "stdout match found at text: '{}'",
+                                        "Stdout match found at text: '{}'",
                                         std::str::from_utf8(&stdout_buffer[search_index + index..])
                                             .unwrap_or("")
                                             .replace("\r", " ")
@@ -225,6 +204,30 @@ impl<'s> TestCommand<'s> {
                                     search_index += index + match_target.len();
                                     break;
                                 }
+                                
+                                if Instant::now().duration_since(start_time) > *timeout {
+                                    error!("Await timeout for stdout: {}", string);
+                                    error!("Current buffer: {}", 
+                                        snailquote::escape(std::str::from_utf8(stdout_buffer.as_slice()).unwrap()));
+                                    break;
+                                }
+
+                                let timeout = time::timeout(Duration::from_millis(1000), async {
+                                    stdout
+                                        .read_buf(&mut buf.as_mut_slice())
+                                        .await
+                                        .expect("failed to read from buf")
+                                })
+                                .await;
+
+                                if let Err(_e) = timeout {
+                                    warn!("Read timeout while waiting for: {}", string);
+                                    continue;
+                                }
+
+                                let read = timeout.unwrap();
+
+                                stdout_buffer.extend_from_slice(&mut buf[0..read]);
                             }
                         }
                     }
@@ -245,8 +248,6 @@ impl<'s> TestCommand<'s> {
             10000
         );
 
-        info!("snapshot end: {:?}", &snapshot_end);
-
         let truncated_buffer = snapshot_end
             .map(|end| &stdout_buffer[0..end])
             .unwrap_or_else(|| stdout_buffer.as_slice());
@@ -259,8 +260,6 @@ impl<'s> TestCommand<'s> {
 
         let stdout = std::str::from_utf8(stdout_buffer.as_slice())?.to_string();
         let snapshot = std::str::from_utf8(truncated_buffer.as_slice())?.to_string();
-
-        info!("snapshot: {}", &snapshot);
 
         let result = TestResult {
             exit_status: code?,
