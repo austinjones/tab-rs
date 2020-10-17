@@ -14,7 +14,7 @@ use tab_api::{client::Request, client::Response};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
-    sync::{broadcast, mpsc, watch},
+    sync::{broadcast, mpsc},
     time,
 };
 
@@ -198,8 +198,9 @@ impl CliBus {
         match msg {
             TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
             TabSend::Stopped(id) => {
-                info!("Disconnecting client due to closed tab {}", id);
-                tx.send(CliRecv::TabStopped(id)).await?;
+                tx_subscription
+                    .send(CliSubscriptionRecv::Stopped(id))
+                    .await?;
             }
             TabSend::Scrollback(scrollback) => {
                 tx_subscription
@@ -279,14 +280,14 @@ mod forward_tests {
         let _carrier = cli_bus.carry_from(&listener_bus)?;
 
         let mut tx = listener_bus.tx::<TabSend>()?;
-        let mut rx = cli_bus.rx::<CliRecv>()?;
+        let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
 
         tx.send(TabSend::Stopped(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(CliRecv::TabStopped(TabId(0)), msg.unwrap());
+            assert_eq!(CliSubscriptionRecv::Stopped(TabId(0)), msg.unwrap());
         });
 
         Ok(())

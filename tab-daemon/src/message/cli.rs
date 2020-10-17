@@ -46,8 +46,6 @@ pub enum CliSend {
 pub enum CliRecv {
     /// A notification that a tab with the given metadata has started, and is ready for subscriptions.
     TabStarted(TabMetadata),
-    /// A notification that a tab has been terminated.
-    TabStopped(TabId),
 }
 
 /// A message sent to the command client's tab subscription service
@@ -63,7 +61,12 @@ pub enum CliSubscriptionRecv {
     Output(TabOutput),
     /// A notification that a tab has been retasked.  The client may need to request scrollback and change their subscriptions.
     Retask(TabId, TabId),
+    /// Notification that a tab has stopped
+    Stopped(TabId),
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct CliSubscriptionOutputBarrier {}
 
 /// A message sent by the client's subscription state service
 /// Represented with the current state of the subscription, contains tab updates and output chunks
@@ -71,6 +74,7 @@ pub enum CliSubscriptionRecv {
 pub enum CliSubscriptionSend {
     Retask(TabId),
     Output(TabId, OutputChunk),
+    Stopped(TabId),
 }
 
 /// Terminates the websocket connection & supporing services.

@@ -35,9 +35,6 @@ impl Service for ActiveTabsService {
                         state.insert(metadata.id, metadata.clone());
                         tx_metadata.send(metadata.clone()).await?;
                     }
-                    TabsRecv::Terminated(id) => {
-                        state.remove(&id);
-                    }
                 }
 
                 tx.send(Some(ActiveTabsState {

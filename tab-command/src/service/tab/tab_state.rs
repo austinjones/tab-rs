@@ -1,10 +1,5 @@
-use crate::{
-    message::{client::TabTerminated, tabs::TabShutdown},
-    state::tab::{SelectTab, TabState},
-};
+use crate::state::tab::{SelectTab, TabState};
 use crate::{prelude::*, state::terminal::TerminalSizeState};
-
-use anyhow::Context;
 
 use std::collections::HashMap;
 use tab_api::tab::{TabId, TabMetadata};
@@ -18,7 +13,6 @@ pub struct TabStateService {
 enum Event {
     Select(SelectTab),
     Metadata(TabMetadata),
-    Terminated(TabId),
 }
 
 impl Service for TabStateService {
@@ -32,12 +26,10 @@ impl Service for TabStateService {
             .into_inner()
             .filter(|r| r.is_ok())
             .map(|r| r.unwrap());
-        let rx_tab_terminated = bus.rx::<TabTerminated>()?;
         let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
 
         let mut tx = bus.tx::<TabState>()?;
         let mut tx_websocket = bus.tx::<Request>()?;
-        let mut tx_shutdown = bus.tx::<TabShutdown>()?;
 
         let _lifeline = Self::try_task("run", async move {
             let mut state = TabState::None;
@@ -45,8 +37,7 @@ impl Service for TabStateService {
             let mut events = {
                 let tabs = rx_select.map(|elem| Event::Select(elem));
                 let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem));
-                let tab_terminated = rx_tab_terminated.map(|elem| Event::Terminated(elem.0));
-                tabs.merge(tab_metadatas).merge(tab_terminated)
+                tabs.merge(tab_metadatas)
             };
 
             let mut tabs: HashMap<String, TabId> = HashMap::new();
@@ -96,28 +87,6 @@ impl Service for TabStateService {
                         let id = metadata.id;
                         let name = metadata.name;
                         tabs.insert(name, id);
-                    }
-                    Event::Terminated(terminated_id) => {
-                        if let TabState::Selected(selected_id) = state {
-                            if terminated_id == selected_id {
-                                state = TabState::None;
-                                tx.send(state.clone()).await?;
-                                tx_shutdown
-                                    .send(TabShutdown {})
-                                    .await
-                                    .context("tx TabShutdown")?;
-                            }
-                        }
-
-                        let remove: Vec<String> = tabs
-                            .iter()
-                            .filter(|(_, id)| **id == terminated_id)
-                            .map(|(name, _)| name.clone())
-                            .collect();
-
-                        for name in remove.into_iter() {
-                            tabs.remove(&name);
-                        }
                     }
                 }
             }

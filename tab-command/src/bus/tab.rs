@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use crate::{
     message::{
-        client::TabTerminated,
         fuzzy::FuzzyRecv,
         main::MainShutdown,
         tabs::{CreateTabRequest, TabRecv, TabShutdown, TabsRecv},
@@ -43,10 +42,6 @@ impl Message<TabBus> for TabState {
 
 impl Message<TabBus> for TabMetadata {
     type Channel = broadcast::Sender<Self>;
-}
-
-impl Message<TabBus> for TabTerminated {
-    type Channel = mpsc::Sender<Self>;
 }
 
 impl Message<TabBus> for TerminalSizeState {
@@ -158,12 +153,10 @@ impl CarryFrom<MainBus> for TabBus {
         };
 
         let _rx_response = {
-            let rx_tab_state = self.rx::<TabState>()?.into_inner();
             let mut rx_response = from.rx::<Response>()?;
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;
             let mut tx_tab_metadata = self.tx::<TabMetadata>()?;
-            let mut tx_tab_terminated = self.tx::<TabTerminated>()?;
             let mut tx_select_tab = self.tx::<SelectTab>()?;
 
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
@@ -188,22 +181,17 @@ impl CarryFrom<MainBus> for TabBus {
                                 .await
                                 .context("tx TabsRecv::Update")?;
                         }
-                        Response::TabTerminated(id) => {
-                            tx_tabs.send(TabsRecv::Terminated(id)).await?;
+                        Response::TabTerminated(_id) => {
+                            // wait just a few moments for messages to settle.
+                            // if we terminate immediately, there could be terminal I/O going on.
+                            // example:
+                            //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
+                            time::delay_for(Duration::from_millis(25)).await;
 
-                            tx_tab_terminated.send(TabTerminated(id)).await?;
-                            if rx_tab_state.borrow().is_selected(&id) {
-                                // wait just a few moments for messages to settle.
-                                // if we terminate immediately, there could be terminal I/O going on.
-                                // example:
-                                //   05:39:38 [ERROR] ERR: TerminalEchoService/stdout: task was cancelled
-                                time::delay_for(Duration::from_millis(25)).await;
-
-                                tx_shutdown
-                                    .send(MainShutdown {})
-                                    .await
-                                    .context("tx MainShutdown")?;
-                            }
+                            tx_shutdown
+                                .send(MainShutdown {})
+                                .await
+                                .context("tx MainShutdown")?;
                         }
                         Response::Retask(to_id) => {
                             let state = SelectTab::Tab(to_id);

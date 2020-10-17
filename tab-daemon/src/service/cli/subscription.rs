@@ -81,6 +81,13 @@ impl Service for CliSubscriptionService {
                                 }
                             }
                         }
+                        CliSubscriptionRecv::Stopped(id) => {
+                            if !state.is_selected(id) {
+                                continue;
+                            }
+
+                            tx.send(CliSubscriptionSend::Stopped(id)).await?;
+                        }
                     }
                 }
                 Ok(())

@@ -102,6 +102,9 @@ impl Service for CliService {
                         CliSubscriptionSend::Output(id, chunk) => {
                             tx.send(Response::Output(id, chunk)).await?;
                         }
+                        CliSubscriptionSend::Stopped(id) => {
+                            tx.send(Response::TabTerminated(id)).await?;
+                        }
                     }
                 }
 
@@ -184,13 +187,6 @@ impl CliService {
             CliRecv::TabStarted(metadata) => {
                 tx_websocket
                     .send(Response::TabUpdate(metadata))
-                    .await
-                    .context("tx_websocket closed")?;
-            }
-            CliRecv::TabStopped(id) => {
-                debug!("notifying client of stopped tab: {}", id);
-                tx_websocket
-                    .send(Response::TabTerminated(id))
                     .await
                     .context("tx_websocket closed")?;
             }
@@ -429,7 +425,7 @@ mod request_tests {
 #[cfg(test)]
 mod recv_tests {
     use super::CliService;
-    use crate::{bus::CliBus, message::cli::CliRecv};
+    use crate::{bus::CliBus, message::cli::CliRecv, message::cli::CliSubscriptionSend};
     use lifeline::{assert_completes, Bus, Receiver, Sender, Service};
     use std::collections::HashMap;
     use tab_api::{
@@ -469,10 +465,10 @@ mod recv_tests {
         let bus = CliBus::default();
         let _service = CliService::spawn(&bus)?;
 
-        let mut tx = bus.tx::<CliRecv>()?;
+        let mut tx = bus.tx::<CliSubscriptionSend>()?;
         let mut rx = bus.rx::<Response>()?;
 
-        tx.send(CliRecv::TabStopped(TabId(0))).await?;
+        tx.send(CliSubscriptionSend::Stopped(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
