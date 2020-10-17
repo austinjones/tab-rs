@@ -36,6 +36,7 @@ pub enum Action {
     Delay(Duration),
     AwaitStdout(Vec<u8>, Duration),
     Stdin(Vec<u8>),
+    FinishSnapshot,
 }
 
 /// Represents a tab runtime (including command, daemon, and pty sessions)
@@ -97,6 +98,13 @@ impl<'s> TestCommand<'s> {
         self
     }
 
+    /// Completes the snapshot at the current stdin index
+    pub fn complete_snapshot(&mut self) -> &mut Self {
+        let action = Action::FinishSnapshot;
+        self.actions.push(action);
+        self
+    }
+
     /// Executes all queued actions, and retrives the exit status and stdout buffer (with ansi escape codes removed).
     pub async fn run(&mut self) -> anyhow::Result<TestResult> {
         setup();
@@ -122,6 +130,7 @@ impl<'s> TestCommand<'s> {
         let mut stdin = child.stdin.take().expect("couldn't get child stdin");
         let mut stdout = child.stdout.take().expect("couldn't get child stdout");
         let mut stdout_buffer = Vec::new();
+        let mut snapshot_end = None;
 
         assert_completes!(
             async {
@@ -145,12 +154,20 @@ impl<'s> TestCommand<'s> {
                                 .expect("failed to write to stdin");
                             stdin.flush().await.expect("failed to flush stdin");
                         }
+                        Action::FinishSnapshot => {
+                            info!("Ending snapshot at index: {}", search_index + 1);
+                            snapshot_end = Some(search_index + 1);
+                        }
                         Action::AwaitStdout(match_target, timeout) => {
                             let string = snailquote::escape(
                                 std::str::from_utf8(match_target.as_slice()).unwrap_or(""),
                             );
                             debug!("Awaiting stdout: {}", string);
-
+                            debug!("Current search index: {}", search_index);
+                            debug!(
+                                "Current stdout: {}",
+                                std::str::from_utf8(stdout_buffer.as_slice()).unwrap_or("")
+                            );
                             let mut buf = vec![0u8; 32];
                             let start_time = Instant::now();
                             loop {
@@ -176,12 +193,33 @@ impl<'s> TestCommand<'s> {
 
                                 stdout_buffer.extend_from_slice(&mut buf[0..read]);
 
+                                debug!(
+                                    "Searching from [{}..{}] in: '{}'",
+                                    search_index,
+                                    stdout_buffer.len(),
+                                    std::str::from_utf8(&stdout_buffer[search_index..])
+                                        .unwrap_or("")
+                                        .replace("\r", " ")
+                                        .replace("\n", " ")
+                                );
+
                                 if let Some(index) = find_subsequence(
                                     &stdout_buffer[search_index..],
                                     match_target.as_slice(),
                                 ) {
+                                    info!(
+                                        "stdout match found at index [{}..{}]",
+                                        search_index + index,
+                                        search_index + index + match_target.len()
+                                    );
+                                    debug!(
+                                        "stdout match found at text: '{}'",
+                                        std::str::from_utf8(&stdout_buffer[search_index + index..])
+                                            .unwrap_or("")
+                                            .replace("\r", " ")
+                                            .replace("\n", " ")
+                                    );
                                     search_index += index + match_target.len();
-                                    debug!("stdout match found");
                                     break;
                                 }
                             }
@@ -204,13 +242,27 @@ impl<'s> TestCommand<'s> {
             10000
         );
 
+        info!("snapshot end: {:?}", &snapshot_end);
+
+        let truncated_buffer = snapshot_end
+            .map(|end| &stdout_buffer[0..end])
+            .unwrap_or_else(|| stdout_buffer.as_slice());
+
         let stdout_buffer =
             strip_ansi_escapes::strip(&stdout_buffer).expect("couldn't strip escape sequences");
+
+        let truncated_buffer =
+            strip_ansi_escapes::strip(&truncated_buffer).expect("couldn't strip escape sequences");
+
         let stdout = std::str::from_utf8(stdout_buffer.as_slice())?.to_string();
+        let snapshot = std::str::from_utf8(truncated_buffer.as_slice())?.to_string();
+
+        info!("snapshot: {}", &snapshot);
 
         let result = TestResult {
             exit_status: code?,
             stdout,
+            snapshot,
         };
 
         info!("Tab command terminated: {}", self.tab.as_str());
@@ -229,6 +281,7 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 /// Includes the stdout of the process (with ansi escape codes removed), and the process exit status.
 pub struct TestResult {
     pub stdout: String,
+    pub snapshot: String,
     pub exit_status: ExitStatus,
 }
 
