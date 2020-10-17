@@ -746,6 +746,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "lifeline"
+version = "0.4.0"
+source = "git+https://github.com/austinjones/lifeline-rs.git#4d699be4f5a146e544a16f6a9b633b786bb5509a"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "async-trait",
+ "futures-util",
+ "lockfree",
+ "log",
+ "pin-project",
+ "regex",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -758,6 +775,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "lockfree"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74ee94b5ad113c7cb98c5a040f783d0952ee4fe100993881d1673c2cb002dd23"
+dependencies = [
+ "owned-alloc",
 ]
 
 [[package]]
@@ -945,6 +971,12 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "owned-alloc"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30fceb411f9a12ff9222c5f824026be368ff15dc2f13468d850c7d3f502205d6"
 
 [[package]]
 name = "parking_lot"
@@ -1451,15 +1483,15 @@ dependencies = [
  "dialoguer",
  "dirs",
  "insta",
- "lifeline",
+ "lifeline 0.3.3",
  "log",
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-command",
- "tab-daemon 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-daemon",
+ "tab-pty",
  "tempfile",
  "tokio",
  "tokio-test",
@@ -1473,25 +1505,7 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "dirs",
- "lifeline",
- "log",
- "serde",
- "serde_yaml",
- "snailquote",
- "sysinfo",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "tab-api"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a46e31dc8355d70fa3bb0d8aae71e1f0901ebf279d4a83c43313c9fc92114d85"
-dependencies = [
- "anyhow",
- "dirs",
- "lifeline",
+ "lifeline 0.4.0",
  "log",
  "serde",
  "serde_yaml",
@@ -1509,14 +1523,14 @@ dependencies = [
  "clap",
  "crossterm",
  "fuzzy-matcher",
- "lifeline",
+ "lifeline 0.4.0",
  "log",
  "semver",
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-websocket",
  "thiserror",
  "tokio",
  "tokio-test",
@@ -1532,13 +1546,13 @@ dependencies = [
  "base64 0.13.0",
  "dirs",
  "http",
- "lifeline",
+ "lifeline 0.4.0",
  "log",
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-websocket",
  "thiserror",
  "tokio",
  "tokio-io",
@@ -1547,28 +1561,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-daemon"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2bb1ce6033e76ac34d687386a4ccd4a6faec9b97ce517a14fcddaa587042ed4"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.13.0",
- "dirs",
- "lifeline",
- "log",
- "rand",
- "serde_yaml",
- "simplelog",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
- "tokio-io",
-]
-
-[[package]]
 name = "tab-pty"
 version = "0.4.0"
 dependencies = [
@@ -1578,39 +1570,14 @@ dependencies = [
  "bincode",
  "dirs",
  "futures 0.3.6",
- "lifeline",
+ "lifeline 0.4.0",
  "log",
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty-process 0.2.0",
- "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
- "tokio-io",
-]
-
-[[package]]
-name = "tab-pty"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfbf8115a70aae4427d7c3700b13d510a8f460dd19635d5ff56723858790bb00"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.12.3",
- "bincode",
- "dirs",
- "futures 0.3.6",
- "lifeline",
- "log",
- "rand",
- "serde_yaml",
- "simplelog",
- "tab-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-pty-process",
+ "tab-websocket",
  "thiserror",
  "tokio",
  "tokio-io",
@@ -1630,20 +1597,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tab-pty-process"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4b92455283e9992144259f518c09f80f15493329d0a3dc6700d15bd3547ab2d"
-dependencies = [
- "async-trait",
- "bytes 0.4.12",
- "futures 0.3.6",
- "libc",
- "mio 0.6.22",
- "tokio",
-]
-
-[[package]]
 name = "tab-websocket"
 version = "0.3.4"
 dependencies = [
@@ -1651,30 +1604,12 @@ dependencies = [
  "async-tungstenite",
  "bincode",
  "futures 0.3.6",
- "lifeline",
+ "lifeline 0.4.0",
  "log",
  "serde",
  "thiserror",
  "tokio",
  "tokio-test",
- "tungstenite",
-]
-
-[[package]]
-name = "tab-websocket"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52cc3b88f37ffec522bdbe6ff1b2b671cdce0ef270014ea0a2fd4dbfb9f0085b"
-dependencies = [
- "anyhow",
- "async-tungstenite",
- "bincode",
- "futures 0.3.6",
- "lifeline",
- "log",
- "serde",
- "thiserror",
- "tokio",
  "tungstenite",
 ]
 

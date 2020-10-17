@@ -11,7 +11,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lifeline = "0.3"
+lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
 
 tungstenite = { version = "0.11", default-features = false }
 async-tungstenite = { version = "0.8", features = ["tokio-runtime"] }

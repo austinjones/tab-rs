@@ -10,6 +10,9 @@ homepage = "https://github.com/austinjones/tab-rs"
 repository = "https://github.com/austinjones/tab-rs"
 license = "MIT"
 readme = "../README.md"
+exclude = [
+    "tests/snapshots/*"
+]
 
 [[bin]]
 name = "tab"

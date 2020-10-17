@@ -53,3 +53,6 @@ pub struct PtyOptions {
 }
 
 impl_storage_clone!(PtyOptions);
+
+#[derive(Clone, Debug, Default)]
+pub struct PtyOutputBarrier {}

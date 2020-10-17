@@ -138,7 +138,7 @@ impl ClientService {
                 PtyWebsocketRequest::Terminate => {
                     // in case we somehow get a pty termination request, but don't have a session running,
                     // send a main shutdown message
-                    time::delay_for(Duration::from_millis(100)).await;
+                    time::delay_for(Duration::from_millis(2000)).await;
                     tx_shutdown.send(MainShutdown {}).await?;
                 }
             }
@@ -176,8 +176,12 @@ impl Service for ClientSessionService {
         let _input = {
             let rx_request = bus.rx::<PtyWebsocketRequest>()?;
             let tx_pty = bus.tx::<PtyRequest>()?;
+            let tx_websocket = bus.tx::<PtyWebsocketResponse>()?;
             let tx_shutdown = bus.tx::<PtyShutdown>()?;
-            Self::try_task("input", Self::input(rx_request, tx_pty, tx_shutdown))
+            Self::try_task(
+                "input",
+                Self::input(rx_request, tx_pty, tx_websocket, tx_shutdown),
+            )
         };
 
         Ok(Self {
@@ -192,6 +196,7 @@ impl ClientSessionService {
     async fn input(
         mut rx: impl Receiver<PtyWebsocketRequest>,
         mut tx_pty: impl Sender<PtyRequest>,
+        mut tx_websocket: impl Sender<PtyWebsocketResponse>,
         mut tx_shutdown: impl Sender<PtyShutdown>,
     ) -> anyhow::Result<()> {
         while let Some(request) = rx.recv().await {
@@ -206,7 +211,12 @@ impl ClientSessionService {
 
                     tx_pty.send(PtyRequest::Shutdown).await.ok();
 
-                    time::delay_for(Duration::from_millis(20)).await;
+                    // The shell should shut down, and emit a shutdown message.
+                    // If it doesn't within a reasonable time,
+                    //   we'll forcefully kill it.
+                    time::delay_for(Duration::from_millis(1000)).await;
+                    warn!("Shell process did not shut down within the 1 second timeout.");
+                    tx_websocket.send(PtyWebsocketResponse::Stopped).await?;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
                 PtyWebsocketRequest::Resize(dimensions) => {
@@ -236,7 +246,8 @@ impl ClientSessionService {
 
                     tx.send(PtyWebsocketResponse::Stopped).await?;
 
-                    time::delay_for(Duration::from_millis(500)).await;
+                    // this sleep is not visible to the user
+                    time::delay_for(Duration::from_millis(100)).await;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }

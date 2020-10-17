@@ -1,7 +1,6 @@
 ---
-source: tab/tests/reconnect.rs
+source: tab/tests/simple.rs
 expression: "&result.snapshot"
 ---
-$ echo foo
-foo
 $ exit
+

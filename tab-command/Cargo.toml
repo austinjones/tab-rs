@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 tab-api = "0.4.0"
 tab-websocket = "0.3.4"
-lifeline = "0.3"
+lifeline = { git = "https://github.com/austinjones/lifeline-rs.git" }
 
 clap = "2.33.2"
 crossterm = { version = "0.17", features = ["event-stream"] }

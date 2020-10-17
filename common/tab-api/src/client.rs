@@ -52,7 +52,7 @@ pub enum Response {
     TabUpdate(TabMetadata),
     /// A notification that the client is being re-tasks, and will now be serving the user on another tab.
     Retask(TabId),
-    /// A notification that the tab has been terminated
+    /// A notification that the active tab has been terminated
     TabTerminated(TabId),
 }
 

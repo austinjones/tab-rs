@@ -1,7 +1,7 @@
-use crate::message::pty::{PtyOptions, PtyRequest, PtyResponse, PtyShutdown};
+use crate::message::pty::{PtyOptions, PtyOutputBarrier, PtyRequest, PtyResponse, PtyShutdown};
 use crate::prelude::*;
 
-use lifeline::{Receiver, Sender};
+use lifeline::{barrier::*, Receiver, Sender};
 use std::process::{Command, Stdio};
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
@@ -11,11 +11,7 @@ use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
-use time::Duration;
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    time,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 static CHUNK_LEN: usize = 2048;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
@@ -61,16 +57,21 @@ impl PtyService {
         tx_response: impl Sender<PtyResponse> + Clone + Send + 'static,
     ) -> anyhow::Result<()> {
         let (child, read, write) = Self::create_pty(options).await?;
+        let (tx_barrier, rx_barrier) = barrier();
         // stdout reader
-        let _output = Self::task("output", Self::read_output(read, tx_response.clone()));
+        let _output = Self::task(
+            "output",
+            Self::read_output(read, tx_response.clone(), tx_barrier),
+        );
         let _input = Self::task("input", Self::write_input(write, rx_request));
 
         let mut tx_exit = tx_response.clone();
 
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.await?;
-            // await long enough for the final stdout read to get through
-            time::delay_for(Duration::from_millis(10)).await;
+            rx_barrier.await;
+
+            info!("Shell successfully terminated with exit code {}", exit_code);
             tx_exit.send(PtyResponse::Terminated(exit_code)).await?;
 
             Ok(())
@@ -108,12 +109,16 @@ impl PtyService {
         Ok((child, read, write))
     }
 
-    async fn read_output(mut channel: impl AsyncReadExt + Unpin, mut tx: impl Sender<PtyResponse>) {
+    async fn read_output(
+        mut channel: impl AsyncReadExt + Unpin,
+        mut tx: impl Sender<PtyResponse>,
+        _barrier: Barrier<PtyOutputBarrier>,
+    ) {
         let mut index = 0usize;
         let mut buffer = vec![0u8; CHUNK_LEN];
         while let Ok(read) = channel.read(buffer.as_mut_slice()).await {
             if read == 0 {
-                continue;
+                break;
             }
 
             trace!("Read {} bytes", read);
@@ -126,10 +131,6 @@ impl PtyService {
 
             tx.send(response).await.ok();
             index += read;
-
-            // a very short delay allows things to batch up
-            // without any buffering, the message rate can get very high
-            time::delay_for(Duration::from_millis(5)).await;
         }
     }
 

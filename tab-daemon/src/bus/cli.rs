@@ -4,15 +4,13 @@ use crate::{
         cli::{CliRecv, CliSend, CliShutdown},
         listener::ListenerShutdown,
         tab::{TabInput, TabRecv, TabSend},
-        tab_manager::{TabManagerRecv, TabManagerSend},
+        tab_manager::TabManagerRecv,
     },
     state::tab::TabsState,
 };
-
 use anyhow::Context;
-use lifeline::{subscription, Resource};
 use std::sync::Arc;
-use tab_api::{client::Request, client::Response, tab::TabId};
+use tab_api::{client::Request, client::Response};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::{
@@ -50,10 +48,6 @@ impl Message<CliBus> for CliSubscriptionRecv {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<CliBus> for subscription::Subscription<TabId> {
-    type Channel = subscription::Sender<TabId>;
-}
-
 /// This binding needs to be mpsc, as it is carried from the listener.
 /// If it is watch, receivers can see a temporary empty value
 impl Message<CliBus> for TabsState {
@@ -69,7 +63,6 @@ impl WebsocketMessageBus for CliBus {
 pub struct ListenerConnectionCarrier {
     _forward: Lifeline,
     _reverse: Lifeline,
-    _terminated: Lifeline,
     _forward_tabs_state: Lifeline,
 }
 
@@ -108,12 +101,6 @@ impl CarryFrom<ListenerBus> for CliBus {
             )
         };
 
-        let _terminated = {
-            let rx_manager = from.rx::<TabManagerSend>()?;
-            let tx_conn = self.tx::<CliRecv>()?;
-            Self::try_task("terminated", Self::handle_terminated(rx_manager, tx_conn))
-        };
-
         let _forward_tabs_state = {
             let mut rx_tabs_state = from.rx::<TabsState>()?;
             let mut tx_tabs_state = self.tx::<TabsState>()?;
@@ -129,7 +116,6 @@ impl CarryFrom<ListenerBus> for CliBus {
         Ok(ListenerConnectionCarrier {
             _forward,
             _reverse,
-            _terminated,
             _forward_tabs_state,
         })
     }
@@ -204,21 +190,6 @@ impl CliBus {
         Ok(())
     }
 
-    async fn handle_terminated(
-        mut rx: impl Receiver<TabManagerSend>,
-        mut tx: impl Sender<CliRecv>,
-    ) -> anyhow::Result<()> {
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                TabManagerSend::TabTerminated(id) => {
-                    tx.send(CliRecv::TabStopped(id)).await?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     async fn handle_tabsend(
         msg: TabSend,
         tx: &mut impl Sender<CliRecv>,
@@ -227,8 +198,9 @@ impl CliBus {
         match msg {
             TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
             TabSend::Stopped(id) => {
-                info!("Disconnecting client due to closed tab {}", id);
-                tx.send(CliRecv::TabStopped(id)).await?;
+                tx_subscription
+                    .send(CliSubscriptionRecv::Stopped(id))
+                    .await?;
             }
             TabSend::Scrollback(scrollback) => {
                 tx_subscription
@@ -308,14 +280,14 @@ mod forward_tests {
         let _carrier = cli_bus.carry_from(&listener_bus)?;
 
         let mut tx = listener_bus.tx::<TabSend>()?;
-        let mut rx = cli_bus.rx::<CliRecv>()?;
+        let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
 
         tx.send(TabSend::Stopped(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(CliRecv::TabStopped(TabId(0)), msg.unwrap());
+            assert_eq!(CliSubscriptionRecv::Stopped(TabId(0)), msg.unwrap());
         });
 
         Ok(())
@@ -638,37 +610,6 @@ mod reverse_tests {
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-        });
-
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod terminated_tests {
-    use crate::{
-        message::{cli::CliRecv, tab_manager::TabManagerSend},
-        prelude::*,
-    };
-    use lifeline::assert_completes;
-    use tab_api::tab::TabId;
-
-    #[tokio::test]
-    async fn retask() -> anyhow::Result<()> {
-        let cli_bus = CliBus::default();
-        let listener_bus = ListenerBus::default();
-
-        let _carrier = cli_bus.carry_from(&listener_bus)?;
-
-        let mut tx = listener_bus.tx::<TabManagerSend>()?;
-        let mut rx = cli_bus.rx::<CliRecv>()?;
-
-        tx.send(TabManagerSend::TabTerminated(TabId(0))).await?;
-
-        assert_completes!(async move {
-            let msg = rx.recv().await;
-            assert!(msg.is_some());
-            assert_eq!(CliRecv::TabStopped(TabId(0)), msg.unwrap());
         });
 
         Ok(())

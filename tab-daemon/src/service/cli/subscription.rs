@@ -16,7 +16,7 @@ impl Service for CliSubscriptionService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let _rx = {
-            let mut rx = bus.rx::<CliSubscriptionRecv>()?.log();
+            let mut rx = bus.rx::<CliSubscriptionRecv>()?;
             let mut tx = bus.tx::<CliSubscriptionSend>()?;
             let mut tx_daemon = bus.tx::<CliSend>()?;
 
@@ -80,6 +80,13 @@ impl Service for CliSubscriptionService {
                                     *index = Self::send_output(id, *index, chunk, &mut tx).await?;
                                 }
                             }
+                        }
+                        CliSubscriptionRecv::Stopped(id) => {
+                            if !state.is_selected(id) {
+                                continue;
+                            }
+
+                            tx.send(CliSubscriptionSend::Stopped(id)).await?;
                         }
                     }
                 }

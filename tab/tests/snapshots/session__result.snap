@@ -1,6 +1,6 @@
 ---
-source: tab-cli/tests/session.rs
-expression: output
+source: tab/tests/session.rs
+expression: result.stdout
 ---
 $ echo foo
 foo

@@ -14,7 +14,6 @@ pub enum TabRecv {
 pub enum TabsRecv {
     Init(HashMap<TabId, TabMetadata>),
     Update(TabMetadata),
-    Terminated(TabId),
 }
 
 #[derive(Debug, Clone)]
