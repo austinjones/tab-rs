@@ -347,11 +347,12 @@ mod tests {
         let current_dir = std::env::current_dir().unwrap();
         tx.send(PtyWebsocketRequest::Init(TabMetadata {
             id: TabId(0),
-            name: "name".to_string(),
+            name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (80, 24),
             env: HashMap::new(),
-            shell: "/usr/bin/env sh".to_string(),
-            dir: current_dir.to_string_lossy().to_string(),
+            shell: "/usr/bin/env sh".into(),
+            dir: current_dir.to_string_lossy().into(),
         }))
         .await?;
 
@@ -360,11 +361,12 @@ mod tests {
             assert_eq!(
                 Some(PtyWebsocketResponse::Started(TabMetadata {
                     id: TabId(0),
-                    name: "name".to_string(),
+                    name: "name".into(),
+                    doc: Some("doc".into()),
                     dimensions: (80, 24),
                     env: HashMap::new(),
-                    shell: "/usr/bin/env sh".to_string(),
-                    dir: current_dir.to_string_lossy().to_string(),
+                    shell: "/usr/bin/env sh".into(),
+                    dir: current_dir.to_string_lossy().into(),
                 })),
                 created
             );
