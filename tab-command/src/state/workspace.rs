@@ -47,12 +47,12 @@ impl WorkspaceState {
 #[derive(TypedBuilder, Debug, Clone, Eq, PartialEq)]
 pub struct WorkspaceTab {
     pub name: String,
-    #[builder(default)]
+    #[builder(default, setter(strip_option))]
     pub doc: Option<String>,
     pub directory: PathBuf,
-    #[builder(default)]
+    #[builder(default, setter(strip_option))]
     pub shell: Option<String>,
-    #[builder(default)]
+    #[builder(default, setter(strip_option))]
     pub env: Option<HashMap<String, String>>, // pub command: Option<String>,
 }
 
