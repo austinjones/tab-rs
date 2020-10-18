@@ -1,13 +1,5 @@
 # `tab` autocompletions for bash
 
-_tab_select() {
-    tab --_autocomplete_tab
-}
-
-_tab_close() {
-    tab --_autocomplete_close_tab
-}
-
 _tab() {
     local cur prev opts
     COMPREPLY=()
@@ -20,6 +12,16 @@ _tab() {
         return 0
         ;;
     --close)
+        TABS=$(tab --_autocomplete_close_tab)
+        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
+        return 0
+        ;;
+    -z)
+        TABS=$(tab --_autocomplete_close_tab)
+        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
+        return 0
+        ;;
+    --disconnect)
         TABS=$(tab --_autocomplete_close_tab)
         COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
         return 0
@@ -37,8 +39,8 @@ _tab() {
         return 0
         ;;
     -*)
-        opts=" -h --help -l --list -w --close -W --shutdown -V --version --completion <TAB> "
-        COMPREPLY=( $(compgen -W "${opts}") )
+        opts=" -h --help -l --list -w --close -z --disconnect -W --shutdown -V --version --completion <TAB> "
+        COMPREPLY=( $(compgen -W "${opts}" -- $cur) )
         return 0
         ;;
     *)

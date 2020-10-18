@@ -197,6 +197,13 @@ impl CarryFrom<MainBus> for TabBus {
                             let state = SelectTab::Tab(to_id);
                             tx_select_tab.send(state).await?;
                         }
+                        Response::Disconnect => {
+                            eprintln!("\r\nTab disconnected.");
+                            tx_shutdown
+                                .send(MainShutdown {})
+                                .await
+                                .context("tx MainShutdown")?;
+                        }
                         _ => {}
                     }
                 }

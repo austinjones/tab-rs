@@ -8,11 +8,11 @@ use crate::{
     utils::await_state,
 };
 
-pub struct MainCloseTabsService {
+pub struct MainDisconnectTabsService {
     _run: Lifeline,
 }
 
-impl Service for MainCloseTabsService {
+impl Service for MainDisconnectTabsService {
     type Bus = MainBus;
     type Lifeline = anyhow::Result<Self>;
 
@@ -25,9 +25,9 @@ impl Service for MainCloseTabsService {
 
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
-                if let MainRecv::CloseTabs(tabs) = msg {
+                if let MainRecv::DisconnectTabs(tabs) = msg {
                     let state = await_state(&mut rx_active).await?;
-                    Self::close_tabs(tabs, state, &mut tx_request).await?;
+                    Self::disconnect_tabs(tabs, state, &mut tx_request).await?;
 
                     time::delay_for(Duration::from_millis(5)).await;
                     tx_shutdown.send(MainShutdown {}).await?;
@@ -42,8 +42,8 @@ impl Service for MainCloseTabsService {
     }
 }
 
-impl MainCloseTabsService {
-    async fn close_tabs(
+impl MainDisconnectTabsService {
+    async fn disconnect_tabs(
         tabs: Vec<String>,
         state: ActiveTabsState,
         tx_websocket: &mut impl Sender<Request>,
@@ -51,14 +51,14 @@ impl MainCloseTabsService {
         if tabs.is_empty() {
             if let Ok(tab) = std::env::var("TAB_ID") {
                 eprintln!(
-                    "Closing current tab: {}",
+                    "Disconnecting current tab: {}",
                     std::env::var("TAB").unwrap_or("".to_string())
                 );
 
                 let id = tab.parse()?;
-                tx_websocket.send(Request::CloseTab(id)).await?;
+                tx_websocket.send(Request::DisconnectTab(id)).await?;
             } else {
-                eprintln!("No arguments or current tab was detected.")
+                eprintln!("No arguments or current tab was detected.");
             }
 
             return Ok(());
@@ -74,7 +74,7 @@ impl MainCloseTabsService {
                 continue;
             }
 
-            eprintln!("Closing tab: {}", name);
+            eprintln!("Disconnecting tab: {}", name);
 
             let tab = state.find_name(name.as_str()).unwrap();
             tx_websocket.send(Request::DisconnectTab(tab.id)).await?;

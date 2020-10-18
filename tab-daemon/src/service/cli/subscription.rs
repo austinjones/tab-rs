@@ -61,6 +61,16 @@ impl Service for CliSubscriptionService {
                             if state.is_selected(from) {
                                 info!("Retasking subscription from {:?} to {:?}", from, to);
 
+                                // if to is none, trigger a disconnect
+                                if let None = to {
+                                    state = SubscriptionState::None;
+                                    tx.send(CliSubscriptionSend::Disconnect).await?;
+                                    continue;
+                                }
+
+                                // otherwise, process the retask
+                                let to = to.unwrap();
+
                                 tx_daemon.send(CliSend::RequestScrollback(to)).await?;
                                 tx.send(CliSubscriptionSend::Retask(to)).await?;
 
@@ -394,7 +404,7 @@ mod tests {
 
         tx_subscribe(&mut tx, TabId(0)).await?;
 
-        tx.send(CliSubscriptionRecv::Retask(TabId(0), TabId(1)))
+        tx.send(CliSubscriptionRecv::Retask(TabId(0), Some(TabId(1))))
             .await?;
 
         assert_completes!(async {
@@ -408,6 +418,36 @@ mod tests {
 
             let msg = rx_daemon.recv().await;
             assert_eq!(Some(CliSend::RequestScrollback(TabId(1))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn disconnect() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliSubscriptionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliSubscriptionRecv>()?;
+        let mut rx = bus.rx::<CliSubscriptionSend>()?;
+        let mut rx_daemon = bus.rx::<CliSend>()?;
+
+        tx_subscribe(&mut tx, TabId(0)).await?;
+
+        // request scrollback msg
+        assert_completes!(async {
+            rx_daemon.recv().await;
+        });
+
+        tx.send(CliSubscriptionRecv::Retask(TabId(0), None)).await?;
+
+        assert_completes!(async {
+            let msg = rx.recv().await;
+            assert_eq!(Some(CliSubscriptionSend::Disconnect), msg);
+        });
+
+        assert_times_out!(async {
+            rx_daemon.recv().await;
         });
 
         Ok(())

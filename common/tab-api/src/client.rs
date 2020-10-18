@@ -34,8 +34,8 @@ pub enum Request {
     /// Terminates the shell on the given tab
     CloseTab(TabId),
 
-    /// Terminates the shell on the given tab, by name
-    CloseNamedTab(String),
+    /// Disconnects any sessions for the given tab
+    DisconnectTab(TabId),
 
     /// Shuts down all tab processes, including the daemon and all ptys
     GlobalShutdown,
@@ -54,6 +54,8 @@ pub enum Response {
     Retask(TabId),
     /// A notification that the active tab has been terminated
     TabTerminated(TabId),
+    /// A notification that the client should disconnect
+    Disconnect,
 }
 
 /// An initialization message sent to CLI connections.

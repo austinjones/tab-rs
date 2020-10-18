@@ -11,6 +11,7 @@ pub enum MainRecv {
     SelectTab(String),
     SelectInteractive,
     ListTabs,
+    DisconnectTabs(Vec<String>),
     CloseTabs(Vec<String>),
     AutocompleteTab,
     AutocompleteCloseTab,

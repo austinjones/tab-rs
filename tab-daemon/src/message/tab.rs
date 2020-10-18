@@ -66,8 +66,9 @@ pub enum TabRecv {
     Scrollback(TabId),
     /// Resizes the tab to the given number of (cols, rows)
     Resize(TabId, (u16, u16)),
-    // Retasks all clients from the first tab, to the second
-    Retask(TabId, TabId),
+    /// Retasks all clients from the first tab, to the second
+    /// If the second argument is None, then clients should disconnect
+    Retask(TabId, Option<TabId>),
     Input(TabInput),
     Terminate(TabId),
     TerminateAll,
@@ -123,7 +124,9 @@ impl TabScrollback {
 pub enum TabSend {
     Started(TabMetadata),
     Scrollback(TabScrollback),
-    Retask(TabId, TabId),
+    /// Instructs clients on the first tab to retask to the second
+    /// If the second argument is None, clients should disconnect
+    Retask(TabId, Option<TabId>),
     Output(TabOutput),
     Stopped(TabId),
 }
