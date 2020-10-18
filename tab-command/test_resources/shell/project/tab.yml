@@ -1,0 +1,7 @@
+repo: project
+shell: project-shell
+
+tabs:
+    - tab: project-inherit
+    - tab: project-override
+      shell: project-override-shell

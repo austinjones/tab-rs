@@ -1,0 +1,5 @@
+doc: "doc workspace"
+workspace:
+    - repo: project
+    - tab: workspace-tab
+      doc: "doc workspace tab"

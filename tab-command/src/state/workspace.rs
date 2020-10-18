@@ -1,8 +1,8 @@
+use super::tabs::ActiveTabsState;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, collections::HashSet, path::PathBuf};
 use tab_api::tab::normalize_name;
-
-use super::tabs::ActiveTabsState;
+use typed_builder::TypedBuilder;
 
 /// The client's view of the workspace configuration
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -44,12 +44,15 @@ impl WorkspaceState {
 }
 
 /// A user-configured workspace tab, which may or may not be running
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(TypedBuilder, Debug, Clone, Eq, PartialEq)]
 pub struct WorkspaceTab {
     pub name: String,
-    pub directory: PathBuf,
-    pub shell: Option<String>,
+    #[builder(default)]
     pub doc: Option<String>,
+    pub directory: PathBuf,
+    #[builder(default)]
+    pub shell: Option<String>,
+    #[builder(default)]
     pub env: Option<HashMap<String, String>>, // pub command: Option<String>,
 }
 

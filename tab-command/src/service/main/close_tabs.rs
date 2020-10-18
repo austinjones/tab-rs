@@ -58,7 +58,7 @@ impl MainCloseTabsService {
                 let id = tab.parse()?;
                 tx_websocket.send(Request::CloseTab(id)).await?;
             } else {
-                eprintln!("No arguments or current tab was detected.")
+                eprintln!("No arguments or current tab was detected.");
             }
 
             return Ok(());

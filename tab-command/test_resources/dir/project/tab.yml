@@ -1,0 +1,7 @@
+repo: project
+
+tabs:
+    - tab: project-exists
+      dir: subdir
+    - tab: project-not-exists
+      dir: not-exists
