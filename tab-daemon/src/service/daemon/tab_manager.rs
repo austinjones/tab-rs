@@ -60,19 +60,6 @@ impl Service for TabManagerService {
                             tabs.insert(tab_id, tab_metadata);
                             tx_tabs_state.send(TabsState::new(&tabs)).await?;
                         }
-                        TabManagerRecv::CloseNamedTab(name) => {
-                            let close_tab = tabs.values().find(|t| t.name == name);
-                            if let Some(tab) = close_tab {
-                                Self::close_tab(
-                                    tab.id,
-                                    &mut tabs,
-                                    &mut tx,
-                                    &mut tx_tabs,
-                                    &mut tx_tabs_state,
-                                )
-                                .await?;
-                            }
-                        }
                         TabManagerRecv::CloseTab(close) => {
                             Self::close_tab(
                                 close,

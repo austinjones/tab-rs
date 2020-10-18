@@ -27,8 +27,8 @@ pub enum CliSend {
     ResizeTab(TabId, (u16, u16)),
     /// Closes the tab with the given ID
     CloseTab(TabId),
-    /// Closes the tab with the given name, if one exists.
-    CloseNamedTab(String),
+    /// Disconnects any sessions for the tab with the given ID
+    DisconnectTab(TabId),
     /// Shuts down the Daemon and all PTY processes
     GlobalShutdown,
 }
@@ -60,7 +60,8 @@ pub enum CliSubscriptionRecv {
     /// An indexed stdout chunk, for the given tab
     Output(TabOutput),
     /// A notification that a tab has been retasked.  The client may need to request scrollback and change their subscriptions.
-    Retask(TabId, TabId),
+    /// If the second argument is None, the client should disconnect.
+    Retask(TabId, Option<TabId>),
     /// Notification that a tab has stopped
     Stopped(TabId),
 }
@@ -70,6 +71,7 @@ pub enum CliSubscriptionRecv {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliSubscriptionSend {
     Retask(TabId),
+    Disconnect,
     Output(TabId, OutputChunk),
     Stopped(TabId),
 }

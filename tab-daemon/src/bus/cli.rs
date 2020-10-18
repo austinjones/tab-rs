@@ -150,9 +150,6 @@ impl CliBus {
                 CliSend::CloseTab(id) => {
                     tx_manager.send(TabManagerRecv::CloseTab(id)).await?;
                 }
-                CliSend::CloseNamedTab(name) => {
-                    tx_manager.send(TabManagerRecv::CloseNamedTab(name)).await?;
-                }
                 CliSend::RequestScrollback(id) => {
                     debug!(
                         "ListenerConnectionCarrier forwarding scrollback request on tab {:?}",
@@ -173,7 +170,7 @@ impl CliBus {
                     tx.send(message).await?;
                 }
                 CliSend::Retask(from, to) => {
-                    let message = TabRecv::Retask(from, to);
+                    let message = TabRecv::Retask(from, Some(to));
                     tx.send(message).await?;
                 }
                 CliSend::GlobalShutdown => {
@@ -181,6 +178,10 @@ impl CliBus {
                     tx.send(TabRecv::TerminateAll).await?;
                     tx_listener_shutdown.send(ListenerShutdown {}).await?;
                     time::delay_for(Duration::from_millis(50)).await;
+                }
+                CliSend::DisconnectTab(id) => {
+                    let message = TabRecv::Retask(id, None);
+                    tx.send(message).await?;
                 }
             }
         }
@@ -382,7 +383,7 @@ mod forward_tests {
         let mut tx = listener_bus.tx::<TabSend>()?;
         let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
 
-        tx.send(TabSend::Retask(TabId(0), TabId(1))).await?;
+        tx.send(TabSend::Retask(TabId(0), Some(TabId(1)))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
@@ -390,7 +391,7 @@ mod forward_tests {
             let msg = msg.unwrap();
             if let CliSubscriptionRecv::Retask(from, to) = msg {
                 assert_eq!(TabId(0), from);
-                assert_eq!(TabId(1), to);
+                assert_eq!(Some(TabId(1)), to);
             } else {
                 panic!("Expected CliSubscriptionRecv::Retask, found {:?}", msg);
             }
@@ -409,7 +410,7 @@ mod forward_tests {
         let mut tx = listener_bus.tx::<TabSend>()?;
         let mut rx = cli_bus.rx::<CliRecv>()?;
 
-        tx.send(TabSend::Retask(TabId(0), TabId(1))).await?;
+        tx.send(TabSend::Retask(TabId(0), Some(TabId(1)))).await?;
 
         assert_times_out!(async move {
             let _msg = rx.recv().await;
@@ -489,21 +490,21 @@ mod reverse_tests {
     }
 
     #[tokio::test]
-    async fn close_named_tab() -> anyhow::Result<()> {
+    async fn disconnect_tab() -> anyhow::Result<()> {
         let cli_bus = CliBus::default();
         let listener_bus = ListenerBus::default();
 
         let _carrier = cli_bus.carry_from(&listener_bus)?;
 
         let mut tx = cli_bus.tx::<CliSend>()?;
-        let mut rx = listener_bus.rx::<TabManagerRecv>()?;
+        let mut rx = listener_bus.rx::<TabRecv>()?;
 
-        tx.send(CliSend::CloseNamedTab("foo".into())).await?;
+        tx.send(CliSend::DisconnectTab(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(TabManagerRecv::CloseNamedTab("foo".into()), msg.unwrap());
+            assert_eq!(TabRecv::Retask(TabId(0), None), msg.unwrap());
         });
 
         Ok(())
@@ -591,7 +592,7 @@ mod reverse_tests {
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(TabRecv::Retask(TabId(0), TabId(1)), msg.unwrap());
+            assert_eq!(TabRecv::Retask(TabId(0), Some(TabId(1))), msg.unwrap());
         });
 
         Ok(())

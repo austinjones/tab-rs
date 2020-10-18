@@ -14,17 +14,12 @@ _tab() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     case "$prev" in
-    -w)
+    @(-w|--close|-z|--disconnect) )
         TABS=$(tab --_autocomplete_close_tab)
         COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
         return 0
         ;;
-    --close)
-        TABS=$(tab --_autocomplete_close_tab)
-        COMPREPLY=( $(compgen -W "${TABS}" -- $cur) )
-        return 0
-        ;;
-    --completion)
+    --completion                  )
         COMPREPLY=( $(compgen -W "bash elvish fish powershell zsh") )
         return 0
         ;;
@@ -32,7 +27,6 @@ _tab() {
 
     case "$cur" in
     --completion=)
-        TABS=$(tab --_autocomplete_close_tab)
         COMPREPLY=( $(compgen -W "bash elvish fish powershell zsh") )
         return 0
         ;;

@@ -54,6 +54,7 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyhow::Result<()> {
     let select_tab = matches.value_of("TAB-NAME");
     let close_tabs = matches.values_of("CLOSE-TAB");
+    let disconnect_tabs = matches.values_of("DISCONNECT-TAB");
     let (mut tx, rx_shutdown, _service) = spawn(tab_version).await?;
     let completion = matches.is_present("AUTOCOMPLETE-TAB");
     let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
@@ -73,6 +74,9 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
     } else if let Some(tabs) = close_tabs {
         let tabs: Vec<String> = tabs.map(normalize_name).collect();
         tx.send(MainRecv::CloseTabs(tabs)).await?;
+    } else if let Some(tabs) = disconnect_tabs {
+        let tabs: Vec<String> = tabs.map(normalize_name).collect();
+        tx.send(MainRecv::DisconnectTabs(tabs)).await?;
     } else {
         tx.send(MainRecv::SelectInteractive).await?;
     }

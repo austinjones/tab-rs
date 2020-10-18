@@ -11,7 +11,6 @@ use tab_api::tab::{CreateTabMetadata, TabId};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TabManagerRecv {
     CreateTab(CreateTabMetadata),
-    CloseNamedTab(String),
     CloseTab(TabId),
 }
 

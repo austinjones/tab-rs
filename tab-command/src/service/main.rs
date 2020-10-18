@@ -1,8 +1,9 @@
 use self::{
     autocomplete_close_tab::MainAutocompleteCloseTabsService,
     autocomplete_tab::MainAutocompleteTabsService, close_tabs::MainCloseTabsService,
-    global_shutdown::MainGlobalShutdownService, list_tabs::MainListTabsService,
-    select_interactive::MainSelectInteractiveService, select_tab::MainSelectTabService,
+    disconnect_tabs::MainDisconnectTabsService, global_shutdown::MainGlobalShutdownService,
+    list_tabs::MainListTabsService, select_interactive::MainSelectInteractiveService,
+    select_tab::MainSelectTabService,
 };
 
 use super::{
@@ -24,6 +25,7 @@ use tab_websocket::{
 mod autocomplete_close_tab;
 mod autocomplete_tab;
 mod close_tabs;
+mod disconnect_tabs;
 mod global_shutdown;
 mod list_tabs;
 mod select_interactive;
@@ -34,6 +36,7 @@ pub struct MainService {
     _main_autocomplete_close: MainAutocompleteCloseTabsService,
     _main_autocomplete: MainAutocompleteTabsService,
     _main_close_tabs: MainCloseTabsService,
+    _main_disconnect_tabs: MainDisconnectTabsService,
     _main_list_tabs: MainListTabsService,
     _main_select_interactive: MainSelectInteractiveService,
     _main_select_tab: MainSelectTabService,
@@ -56,6 +59,7 @@ impl Service for MainService {
         let _main_autocomplete_close = MainAutocompleteCloseTabsService::spawn(main_bus)?;
         let _main_autocomplete = MainAutocompleteTabsService::spawn(main_bus)?;
         let _main_close_tabs = MainCloseTabsService::spawn(main_bus)?;
+        let _main_disconnect_tabs = MainDisconnectTabsService::spawn(main_bus)?;
         let _main_list_tabs = MainListTabsService::spawn(main_bus)?;
         let _main_select_interactive = MainSelectInteractiveService::spawn(main_bus)?;
         let _main_select_tab = MainSelectTabService::spawn(main_bus)?;
@@ -82,6 +86,7 @@ impl Service for MainService {
             _main_autocomplete_close,
             _main_autocomplete,
             _main_close_tabs,
+            _main_disconnect_tabs,
             _main_list_tabs,
             _main_select_interactive,
             _main_select_tab,

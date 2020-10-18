@@ -105,6 +105,9 @@ impl Service for CliService {
                         CliSubscriptionSend::Stopped(id) => {
                             tx.send(Response::TabTerminated(id)).await?;
                         }
+                        CliSubscriptionSend::Disconnect => {
+                            tx.send(Response::Disconnect).await?;
+                        }
                     }
                 }
 
@@ -161,8 +164,8 @@ impl CliService {
                 let message = CliSend::CloseTab(id);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
-            Request::CloseNamedTab(name) => {
-                let message = CliSend::CloseNamedTab(name);
+            Request::DisconnectTab(id) => {
+                let message = CliSend::DisconnectTab(id);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
             Request::Retask(id, name) => {
@@ -370,18 +373,18 @@ mod request_tests {
     }
 
     #[tokio::test]
-    async fn close_named_tab() -> anyhow::Result<()> {
+    async fn disconnect_tab() -> anyhow::Result<()> {
         let cli_bus = CliBus::default();
         let _service = CliService::spawn(&cli_bus)?;
 
         let mut tx = cli_bus.tx::<Request>()?;
         let mut rx = cli_bus.rx::<CliSend>()?;
 
-        tx.send(Request::CloseNamedTab("tab".into())).await?;
+        tx.send(Request::DisconnectTab(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
-            assert_eq!(Some(CliSend::CloseNamedTab("tab".into())), msg);
+            assert_eq!(Some(CliSend::DisconnectTab(TabId(0))), msg);
         });
 
         Ok(())
@@ -476,6 +479,24 @@ mod recv_tests {
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert_eq!(Some(Response::TabTerminated(TabId(0))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn disconnect() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliSubscriptionSend>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        tx.send(CliSubscriptionSend::Disconnect).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(Response::Disconnect), msg);
         });
 
         Ok(())

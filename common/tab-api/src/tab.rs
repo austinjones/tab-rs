@@ -2,7 +2,7 @@
 
 use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, num::ParseIntError, str::FromStr};
 
 pub fn normalize_name(name: &str) -> String {
     let name = name.to_string().trim().to_string();
@@ -17,6 +17,15 @@ pub fn normalize_name(name: &str) -> String {
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TabId(pub u16);
 impl_storage_clone!(TabId);
+
+impl FromStr for TabId {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let id = u16::from_str(s)?;
+        Ok(Self(id))
+    }
+}
 
 impl Display for TabId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
