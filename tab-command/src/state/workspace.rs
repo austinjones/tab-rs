@@ -23,9 +23,9 @@ impl WorkspaceState {
 
             let tab = WorkspaceTab {
                 name: metadata.name.clone(),
+                doc: metadata.doc.clone(),
                 directory: PathBuf::from(&metadata.dir),
                 shell: None,
-                doc: None,
                 env: None,
             };
 

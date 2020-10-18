@@ -221,6 +221,7 @@ mod request_tests {
         let tab_metadata = TabMetadata {
             id: TabId(0),
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 2),
             env: HashMap::new(),
             shell: "bash".into(),
@@ -316,6 +317,7 @@ mod request_tests {
 
         let tab = CreateTabMetadata {
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 2),
             shell: "shell".into(),
             dir: "/".into(),
@@ -444,6 +446,7 @@ mod recv_tests {
         let metadata = TabMetadata {
             id: TabId(0),
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 2),
             env: HashMap::new(),
             shell: "shell".into(),

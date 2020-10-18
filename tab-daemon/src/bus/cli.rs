@@ -255,6 +255,7 @@ mod forward_tests {
         let started = TabMetadata {
             id: TabId(0),
             name: "name".into(),
+            doc: Some("doc".into()),
             dimensions: (1, 1),
             env: HashMap::new(),
             shell: "bash".into(),
@@ -448,6 +449,7 @@ mod reverse_tests {
 
         let create = CreateTabMetadata {
             name: "name".into(),
+            doc: Some("doc".into()),
             shell: "bash".into(),
             env: HashMap::new(),
             dimensions: (1, 1),

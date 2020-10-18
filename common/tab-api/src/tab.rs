@@ -33,6 +33,7 @@ impl Display for TabId {
 pub struct TabMetadata {
     pub id: TabId,
     pub name: String,
+    pub doc: Option<String>,
     pub dimensions: (u16, u16),
     pub env: HashMap<String, String>,
     pub shell: String,
@@ -44,6 +45,7 @@ impl TabMetadata {
         Self {
             id,
             name: create.name,
+            doc: create.doc,
             dimensions: create.dimensions,
             env: create.env,
             shell: create.shell,
@@ -57,6 +59,7 @@ impl TabMetadata {
 pub struct CreateTabMetadata {
     pub name: String,
     pub dimensions: (u16, u16),
+    pub doc: Option<String>,
     pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,

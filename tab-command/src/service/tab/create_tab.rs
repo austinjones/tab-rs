@@ -80,6 +80,7 @@ impl CreateTabService {
 
         let metadata = CreateTabMetadata {
             name: Self::compute_name(&workspace_tab, name.as_str()),
+            doc: workspace_tab.map(|tab| tab.doc.clone()).flatten(),
             dir: directory.to_string_lossy().to_string(),
             env,
             dimensions,
