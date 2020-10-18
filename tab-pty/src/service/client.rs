@@ -139,6 +139,7 @@ impl ClientService {
                     // in case we somehow get a pty termination request, but don't have a session running,
                     // send a main shutdown message
                     time::delay_for(Duration::from_millis(2000)).await;
+                    tx.send(PtyWebsocketResponse::Stopped).await.ok();
                     tx_shutdown.send(MainShutdown {}).await?;
                 }
             }
@@ -206,6 +207,11 @@ impl ClientSessionService {
 
                     tx_pty.send(message).await.ok();
                 }
+                PtyWebsocketRequest::Resize(dimensions) => {
+                    debug!("received resize request: {:?}", dimensions);
+
+                    tx_pty.send(PtyRequest::Resize(dimensions)).await.ok();
+                }
                 PtyWebsocketRequest::Terminate => {
                     info!("Terminating due to command request.");
 
@@ -218,11 +224,6 @@ impl ClientSessionService {
                     warn!("Shell process did not shut down within the 1 second timeout.");
                     tx_websocket.send(PtyWebsocketResponse::Stopped).await?;
                     tx_shutdown.send(PtyShutdown {}).await?;
-                }
-                PtyWebsocketRequest::Resize(dimensions) => {
-                    debug!("received resize request: {:?}", dimensions);
-
-                    tx_pty.send(PtyRequest::Resize(dimensions)).await.ok();
                 }
                 _ => {}
             }
@@ -241,8 +242,8 @@ impl ClientSessionService {
                 PtyResponse::Output(out) => {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
-                PtyResponse::Terminated(code) => {
-                    debug!("pty child process terminated with status: {:?}", &code);
+                PtyResponse::Terminated => {
+                    debug!("pty child process terminated");
 
                     tx.send(PtyWebsocketResponse::Stopped).await?;
 
@@ -257,7 +258,7 @@ impl ClientSessionService {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Shell {
     Sh,
     Zsh,
@@ -281,4 +282,305 @@ pub fn resolve_shell(command: &str) -> Shell {
     }
 
     Shell::Unknown
+}
+
+#[cfg(test)]
+mod shell_test {
+    use super::{resolve_shell, Shell};
+
+    #[test]
+    fn test_shell() {
+        assert_eq!(Shell::Sh, resolve_shell("sh"));
+        assert_eq!(Shell::Zsh, resolve_shell("zsh"));
+        assert_eq!(Shell::Bash, resolve_shell("bash"));
+        assert_eq!(Shell::Fish, resolve_shell("fish"));
+
+        assert_eq!(Shell::Unknown, resolve_shell("batty"));
+    }
+
+    #[test]
+    fn test_absolute_shell() {
+        assert_eq!(Shell::Sh, resolve_shell("/bin/sh"));
+    }
+
+    #[test]
+    fn test_relative_shell() {
+        assert_eq!(Shell::Sh, resolve_shell("./sh"));
+    }
+
+    #[test]
+    fn test_env_shell() {
+        assert_eq!(Shell::Sh, resolve_shell("/usr/bin/env sh"));
+    }
+
+    #[test]
+    fn test_shell_args() {
+        assert_eq!(Shell::Sh, resolve_shell("/bin/sh --flag -f"));
+        assert_eq!(Shell::Sh, resolve_shell("/usr/bin/env sh --flag -f"));
+        assert_eq!(Shell::Sh, resolve_shell("sh --flag -f"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, time::Duration};
+
+    use lifeline::{assert_completes, assert_times_out};
+    use tab_api::{
+        pty::{PtyWebsocketRequest, PtyWebsocketResponse},
+        tab::TabId,
+        tab::TabMetadata,
+    };
+    use tokio::time;
+
+    use super::ClientService;
+    use crate::{message::pty::MainShutdown, prelude::*};
+
+    #[tokio::test]
+    async fn launch_sh() -> anyhow::Result<()> {
+        let bus = MainBus::default();
+        let _service = ClientService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyWebsocketResponse>()?;
+
+        let current_dir = std::env::current_dir().unwrap();
+        tx.send(PtyWebsocketRequest::Init(TabMetadata {
+            id: TabId(0),
+            name: "name".to_string(),
+            dimensions: (80, 24),
+            env: HashMap::new(),
+            shell: "/usr/bin/env sh".to_string(),
+            dir: current_dir.to_string_lossy().to_string(),
+        }))
+        .await?;
+
+        assert_completes!(async move {
+            let created = rx.recv().await;
+            assert_eq!(
+                Some(PtyWebsocketResponse::Started(TabMetadata {
+                    id: TabId(0),
+                    name: "name".to_string(),
+                    dimensions: (80, 24),
+                    env: HashMap::new(),
+                    shell: "/usr/bin/env sh".to_string(),
+                    dir: current_dir.to_string_lossy().to_string(),
+                })),
+                created
+            );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn terminate_escape() -> anyhow::Result<()> {
+        let bus = MainBus::default();
+        let _service = ClientService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyWebsocketResponse>()?;
+        let mut rx_shutdown = bus.rx::<MainShutdown>()?;
+
+        tx.send(PtyWebsocketRequest::Terminate).await?;
+
+        assert_times_out!(
+            async {
+                rx.recv().await;
+            },
+            1900
+        );
+
+        // wait for a total of 2000ms + 10ms.
+        time::delay_for(Duration::from_millis(110)).await;
+
+        assert_completes!(async {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyWebsocketResponse::Stopped), msg)
+        });
+
+        assert_completes!(async {
+            let msg = rx_shutdown.recv().await;
+            assert_eq!(Some(MainShutdown {}), msg);
+        });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod client_session_tests {
+    use lifeline::{assert_completes, assert_times_out, dyn_bus::DynBus};
+    use tab_api::{
+        chunk::InputChunk, chunk::OutputChunk, pty::PtyWebsocketRequest, pty::PtyWebsocketResponse,
+    };
+    use tokio::time;
+
+    use crate::{
+        message::pty::PtyOptions, message::pty::PtyRequest, message::pty::PtyResponse,
+        message::pty::PtyShutdown, prelude::*,
+    };
+    use std::{collections::HashMap, time::Duration};
+
+    use super::ClientSessionService;
+
+    fn options() -> PtyOptions {
+        let current_dir = std::env::current_dir().unwrap();
+
+        PtyOptions {
+            working_directory: current_dir,
+            dimensions: (80, 24),
+            command: "/usr/bin/env sh".to_string(),
+            args: vec![],
+            env: HashMap::new(),
+        }
+    }
+    #[tokio::test]
+    async fn rx_input() -> anyhow::Result<()> {
+        let bus = PtyBus::default();
+        bus.store_resource::<PtyOptions>(options());
+
+        let _service = ClientSessionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyRequest>()?;
+
+        let input = InputChunk { data: vec![0, 1] };
+
+        tx.send(PtyWebsocketRequest::Input(input.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyRequest::Input(input)), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn rx_resize() -> anyhow::Result<()> {
+        let bus = PtyBus::default();
+        bus.store_resource::<PtyOptions>(options());
+
+        let _service = ClientSessionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyRequest>()?;
+
+        tx.send(PtyWebsocketRequest::Resize((1, 2))).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyRequest::Resize((1, 2))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn rx_terminate() -> anyhow::Result<()> {
+        let bus = PtyBus::default();
+        bus.store_resource::<PtyOptions>(options());
+
+        let _service = ClientSessionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyWebsocketRequest>()?;
+        let mut rx = bus.rx::<PtyRequest>()?;
+        let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?;
+        let mut rx_shutdown = bus.rx::<PtyShutdown>()?;
+
+        tx.send(PtyWebsocketRequest::Terminate).await?;
+
+        assert_completes!(
+            async move {
+                let msg = rx.recv().await;
+                assert_eq!(Some(PtyRequest::Shutdown), msg);
+            },
+            15
+        );
+
+        assert_times_out!(async {
+            rx_websocket.recv().await;
+        });
+
+        assert_times_out!(async {
+            rx_shutdown.recv().await;
+        });
+
+        time::delay_for(Duration::from_millis(1000)).await;
+
+        assert_completes!(async {
+            let msg = rx_websocket.recv().await;
+            assert_eq!(Some(PtyWebsocketResponse::Stopped), msg)
+        });
+
+        assert_completes!(async {
+            let msg = rx_shutdown.recv().await;
+            assert_eq!(Some(PtyShutdown {}), msg)
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn tx_output() -> anyhow::Result<()> {
+        let bus = PtyBus::default();
+        bus.store_resource::<PtyOptions>(options());
+
+        let _service = ClientSessionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyResponse>()?;
+        let mut rx = bus.rx::<PtyWebsocketResponse>()?;
+
+        let output = OutputChunk {
+            index: 0,
+            data: vec![0, 1],
+        };
+
+        tx.send(PtyResponse::Output(output.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyWebsocketResponse::Output(output)), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn tx_terminated() -> anyhow::Result<()> {
+        let bus = PtyBus::default();
+        bus.store_resource::<PtyOptions>(options());
+
+        let _service = ClientSessionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<PtyResponse>()?;
+        let mut rx = bus.rx::<PtyWebsocketResponse>()?;
+        let mut rx_shutdown = bus.rx::<PtyShutdown>()?;
+
+        tx.send(PtyResponse::Terminated).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(PtyWebsocketResponse::Stopped), msg);
+        });
+
+        assert_times_out!(
+            async {
+                rx_shutdown.recv().await;
+            },
+            90
+        );
+
+        time::delay_for(Duration::from_millis(20)).await;
+
+        assert_completes!(
+            async {
+                rx_shutdown.recv().await;
+            },
+            90
+        );
+
+        Ok(())
+    }
 }
