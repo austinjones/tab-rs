@@ -1,0 +1,6 @@
+workspace:
+    - repo: project
+    - tab: workspace-exists
+      dir: project
+    - tab: workspace-not-exists
+      dir: not-exists

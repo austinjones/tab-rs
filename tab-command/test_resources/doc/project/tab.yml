@@ -1,0 +1,5 @@
+repo: project
+doc: "doc project"
+tabs:
+    - tab: project-tab
+      doc: "doc project tab" 

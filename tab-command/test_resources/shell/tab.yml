@@ -1,0 +1,7 @@
+shell: workspace-shell
+
+workspace:
+    - repo: project
+    - tab: workspace-inherit
+    - tab: workspace-override
+      shell: workspace-override-shell

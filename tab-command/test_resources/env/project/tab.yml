@@ -1,0 +1,10 @@
+repo: project
+env:
+    inherit-repo: inherit
+    override-repo: base
+
+tabs:
+  - tab: project-tab
+    env:
+        override-repo: override
+        unique-repo: unique
