@@ -52,13 +52,15 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 }
 
 async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyhow::Result<()> {
-    let select_tab = matches.value_of("TAB-NAME");
-    let close_tabs = matches.values_of("CLOSE-TAB");
-    let disconnect_tabs = matches.values_of("DISCONNECT-TAB");
-    let (mut tx, rx_shutdown, _service) = spawn(tab_version).await?;
-    let completion = matches.is_present("AUTOCOMPLETE-TAB");
+    let check_workspace = matches.is_present("CHECK-WORKSPACE");
     let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
+    let close_tabs = matches.values_of("CLOSE-TAB");
+    let completion = matches.is_present("AUTOCOMPLETE-TAB");
+    let disconnect_tabs = matches.values_of("DISCONNECT-TAB");
+    let select_tab = matches.value_of("TAB-NAME");
     let shutdown = matches.is_present("SHUTDOWN");
+
+    let (mut tx, rx_shutdown, _service) = spawn(tab_version).await?;
 
     if shutdown {
         tx.send(MainRecv::GlobalShutdown).await?;
@@ -66,6 +68,8 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
         tx.send(MainRecv::AutocompleteTab).await?;
     } else if close_completion {
         tx.send(MainRecv::AutocompleteCloseTab).await?;
+    } else if check_workspace {
+        tx.send(MainRecv::CheckWorkspace).await?;
     } else if matches.is_present("LIST") {
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {

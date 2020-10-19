@@ -1,6 +1,9 @@
-use super::tabs::ActiveTabsState;
+use super::{
+    tabs::ActiveTabsState, workspace_err::ConfigVariantError, workspace_err::NoConfigVariantError,
+    workspace_err::WorkspaceError,
+};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, collections::HashSet, path::PathBuf};
+use std::{collections::HashMap, collections::HashSet, path::Path, path::PathBuf};
 use tab_api::tab::normalize_name;
 use typed_builder::TypedBuilder;
 
@@ -8,6 +11,7 @@ use typed_builder::TypedBuilder;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct WorkspaceState {
     pub tabs: Vec<WorkspaceTab>,
+    pub errors: Vec<String>,
 }
 
 impl WorkspaceState {
@@ -35,7 +39,10 @@ impl WorkspaceState {
         tabs.sort_by(|a, b| a.name.cmp(&b.name));
         tabs.dedup_by_key(|tab| tab.name.clone());
 
-        WorkspaceState { tabs }
+        WorkspaceState {
+            tabs,
+            errors: self.errors.clone(),
+        }
     }
 
     pub fn into_name_set(&self) -> HashSet<String> {
@@ -90,6 +97,55 @@ pub enum Config {
     Workspace(Workspace),
     #[serde(rename = "repo")]
     Repo(Repo),
+    None,
+}
+
+impl Config {
+    pub fn as_workspace(self, dir: &Path) -> Result<Workspace, WorkspaceError> {
+        if let Config::Workspace(workspace) = self {
+            return Ok(workspace);
+        }
+
+        if let Config::None = self {
+            return Err(WorkspaceError::NoConfigVariant(NoConfigVariantError {
+                path: dir.to_path_buf(),
+                expected: "Workspace",
+            }));
+        }
+
+        Err(WorkspaceError::ConfigVariantError(ConfigVariantError {
+            path: dir.to_path_buf(),
+            expected: "Workspace",
+            found: self.variant_name(),
+        }))
+    }
+
+    pub fn as_repo(self, dir: &Path) -> Result<Repo, WorkspaceError> {
+        if let Config::Repo(repo) = self {
+            return Ok(repo);
+        }
+
+        if let Config::None = self {
+            return Err(WorkspaceError::NoConfigVariant(NoConfigVariantError {
+                path: dir.to_path_buf(),
+                expected: "Repo",
+            }));
+        }
+
+        Err(WorkspaceError::ConfigVariantError(ConfigVariantError {
+            path: dir.to_path_buf(),
+            expected: "Repo",
+            found: self.variant_name(),
+        }))
+    }
+
+    fn variant_name(&self) -> &'static str {
+        match self {
+            Config::Workspace(_) => "Workspace",
+            Config::Repo(_) => "Workspace",
+            Config::None => "None",
+        }
+    }
 }
 
 /// The workspace root configuration

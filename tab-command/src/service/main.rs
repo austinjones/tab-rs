@@ -1,9 +1,9 @@
 use self::{
     autocomplete_close_tab::MainAutocompleteCloseTabsService,
-    autocomplete_tab::MainAutocompleteTabsService, close_tabs::MainCloseTabsService,
-    disconnect_tabs::MainDisconnectTabsService, global_shutdown::MainGlobalShutdownService,
-    list_tabs::MainListTabsService, select_interactive::MainSelectInteractiveService,
-    select_tab::MainSelectTabService,
+    autocomplete_tab::MainAutocompleteTabsService, check_workspace::MainCheckWorkspaceService,
+    close_tabs::MainCloseTabsService, disconnect_tabs::MainDisconnectTabsService,
+    global_shutdown::MainGlobalShutdownService, list_tabs::MainListTabsService,
+    select_interactive::MainSelectInteractiveService, select_tab::MainSelectTabService,
 };
 
 use super::{
@@ -24,6 +24,7 @@ use tab_websocket::{
 
 mod autocomplete_close_tab;
 mod autocomplete_tab;
+mod check_workspace;
 mod close_tabs;
 mod disconnect_tabs;
 mod global_shutdown;
@@ -33,14 +34,15 @@ mod select_tab;
 
 /// Launches the tab-command client, including websocket, tab state, and terminal services.
 pub struct MainService {
-    _main_autocomplete_close: MainAutocompleteCloseTabsService,
     _main_autocomplete: MainAutocompleteTabsService,
+    _main_autocomplete_close: MainAutocompleteCloseTabsService,
     _main_close_tabs: MainCloseTabsService,
+    _main_check_workspace: MainCheckWorkspaceService,
     _main_disconnect_tabs: MainDisconnectTabsService,
+    _main_global_shutdown: MainGlobalShutdownService,
     _main_list_tabs: MainListTabsService,
     _main_select_interactive: MainSelectInteractiveService,
     _main_select_tab: MainSelectTabService,
-    _main_global_shutdown: MainGlobalShutdownService,
     _main_tab: MainTabCarrier,
     _main_websocket: WebsocketCarrier,
     _select_tab: SelectTabService,
@@ -56,14 +58,15 @@ impl Service for MainService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(main_bus: &MainBus) -> anyhow::Result<Self> {
-        let _main_autocomplete_close = MainAutocompleteCloseTabsService::spawn(main_bus)?;
         let _main_autocomplete = MainAutocompleteTabsService::spawn(main_bus)?;
+        let _main_autocomplete_close = MainAutocompleteCloseTabsService::spawn(main_bus)?;
+        let _main_check_workspace = MainCheckWorkspaceService::spawn(main_bus)?;
         let _main_close_tabs = MainCloseTabsService::spawn(main_bus)?;
         let _main_disconnect_tabs = MainDisconnectTabsService::spawn(main_bus)?;
+        let _main_global_shutdown = MainGlobalShutdownService::spawn(main_bus)?;
         let _main_list_tabs = MainListTabsService::spawn(main_bus)?;
         let _main_select_interactive = MainSelectInteractiveService::spawn(main_bus)?;
         let _main_select_tab = MainSelectTabService::spawn(main_bus)?;
-        let _main_global_shutdown = MainGlobalShutdownService::spawn(main_bus)?;
 
         let tab_bus = TabBus::default();
         tab_bus.capacity::<TabMetadata>(256)?;
@@ -83,14 +86,15 @@ impl Service for MainService {
         let _terminal = TerminalService::spawn(&main_bus)?;
 
         Ok(Self {
-            _main_autocomplete_close,
             _main_autocomplete,
+            _main_autocomplete_close,
+            _main_check_workspace,
             _main_close_tabs,
             _main_disconnect_tabs,
+            _main_global_shutdown,
             _main_list_tabs,
             _main_select_interactive,
             _main_select_tab,
-            _main_global_shutdown,
             _main_tab,
             _main_websocket,
             _select_tab,

@@ -9,7 +9,7 @@ mod workspace;
 
 /// Loads the workspace configuration using the current directory
 pub struct WorkspaceService {
-    _monitor: Lifeline,
+    _scan: Lifeline,
 }
 
 impl Service for WorkspaceService {
@@ -19,18 +19,25 @@ impl Service for WorkspaceService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut tx = bus.tx::<Option<WorkspaceState>>()?;
 
-        #[allow(unreachable_code)]
-        let _monitor = Self::try_task("monitor", async move {
+        let _scan = Self::try_task("scan", async move {
             let dir = std::env::current_dir()?;
             let state = scan_config(dir.as_path(), None);
-            let tabs = state.unwrap_log();
-            let state = WorkspaceState { tabs };
+
+            let errors = state
+                .errors()
+                .into_iter()
+                .map(|err| format!("{}", err))
+                .collect();
+
+            let tabs = state.ok();
+
+            let state = WorkspaceState { tabs, errors };
             tx.send(Some(state)).await.ok();
 
             Ok(())
         });
 
-        Ok(Self { _monitor })
+        Ok(Self { _scan })
     }
 }
 
@@ -58,6 +65,12 @@ mod tests {
     fn load(name: &str) -> anyhow::Result<(PathBuf, Vec<WorkspaceTab>)> {
         let path = test_dir(name)?;
         let tabs = scan_config(path.as_path(), Some(path.as_path())).unwrap();
+        Ok((path, tabs))
+    }
+
+    fn load_ok(name: &str) -> anyhow::Result<(PathBuf, Vec<WorkspaceTab>)> {
+        let path = test_dir(name)?;
+        let tabs = scan_config(path.as_path(), Some(path.as_path())).ok();
         Ok((path, tabs))
     }
 
@@ -164,7 +177,7 @@ mod tests {
 
     #[test]
     fn dir_test() -> anyhow::Result<()> {
-        let (dir, tabs) = load("dir")?;
+        let (dir, tabs) = load_ok("dir")?;
 
         let expected = vec![
             WorkspaceTab::builder()
@@ -307,7 +320,7 @@ mod tests {
     #[test]
     fn workspace_link_test() -> anyhow::Result<()> {
         let (dir, tabs) = load("workspace-link/a")?;
-        let b_dir = test_dir("workspace-link/a/../b")?;
+        let b_dir = test_dir("workspace-link/b")?;
 
         let expected = vec![
             WorkspaceTab::builder()

@@ -17,6 +17,8 @@ function _tab() {
         '--disconnect=[disconnects any active sessions for the given tab]:close:($(_tab_close))'\
         '-l[lists the active tabs]' \
         '--list[lists the active tabs]' \
+        '-k[checks the current workspace for errors and warnings]' \
+        '--check[checks the current workspace for errors and warnings]' \
         '-W[terminates the tab daemon and all active pty sessions]' \
         '--shutdown[terminates the tab daemon and all active pty sessions]' \
         '--completion=[prints raw autocomplete scripts]: :(bash elvish fish powershell zsh)' \
