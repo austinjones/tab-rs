@@ -39,7 +39,7 @@ _tab() {
         return 0
         ;;
     -*)
-        opts=" -h --help -l --list -w --close -z --disconnect -W --shutdown -V --version --completion <TAB> "
+        opts=" -h --help -l --list -w --close -z --disconnect -k --check -W --shutdown -V --version --completion <TAB> "
         COMPREPLY=( $(compgen -W "${opts}" -- $cur) )
         return 0
         ;;
