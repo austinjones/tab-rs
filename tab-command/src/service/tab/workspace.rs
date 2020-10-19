@@ -23,11 +23,15 @@ impl Service for WorkspaceService {
             let dir = std::env::current_dir()?;
             let state = scan_config(dir.as_path(), None);
 
-            let errors = state
+            let errors: Vec<String> = state
                 .errors()
                 .into_iter()
                 .map(|err| format!("{}", err))
                 .collect();
+
+            if errors.len() > 0 {
+                eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.")
+            }
 
             let tabs = state.ok();
 
