@@ -29,10 +29,6 @@ impl Service for WorkspaceService {
                 .map(|err| format!("{}", err))
                 .collect();
 
-            if errors.len() > 0 {
-                eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.")
-            }
-
             let tabs = state.ok();
 
             let state = WorkspaceState { tabs, errors };

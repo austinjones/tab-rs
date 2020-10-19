@@ -26,6 +26,10 @@ impl Service for MainListTabsService {
                         .await?
                         .with_active_tabs(&active_tabs);
 
+                    if workspace.errors.len() > 0 {
+                        eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.")
+                    }
+
                     Self::echo_tabs(&workspace.tabs);
                     tx_shutdown.send(MainShutdown {}).await.ok();
                     break;
