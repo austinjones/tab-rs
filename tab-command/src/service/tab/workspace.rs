@@ -23,8 +23,16 @@ impl Service for WorkspaceService {
         let _monitor = Self::try_task("monitor", async move {
             let dir = std::env::current_dir()?;
             let state = scan_config(dir.as_path(), None);
-            let tabs = state.unwrap_log();
-            let state = WorkspaceState { tabs };
+
+            let errors = state
+                .errors()
+                .into_iter()
+                .map(|err| format!("{}", err))
+                .collect();
+
+            let tabs = state.ok();
+
+            let state = WorkspaceState { tabs, errors };
             tx.send(Some(state)).await.ok();
 
             Ok(())
@@ -307,7 +315,7 @@ mod tests {
     #[test]
     fn workspace_link_test() -> anyhow::Result<()> {
         let (dir, tabs) = load("workspace-link/a")?;
-        let b_dir = test_dir("workspace-link/a/../b")?;
+        let b_dir = test_dir("workspace-link/b")?;
 
         let expected = vec![
             WorkspaceTab::builder()

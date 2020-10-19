@@ -62,6 +62,13 @@ fn app() -> App<'static, 'static> {
                 .help("Automatically installs completions & statusline integrations."),
         )
         .arg(
+            Arg::with_name("CHECK-WORKSPACE")
+                .long("check")
+                .short("-k")
+                .required(false)
+                .help("Checks the current workspace (tab.yml) for errors and warnings."),
+        )
+        .arg(
             Arg::with_name("LOG")
                 .long("log")
                 .required(false)

@@ -13,6 +13,22 @@ pub fn normalize_name(name: &str) -> String {
     }
 }
 
+pub fn validate_tab_name(name: String) -> Result<(), String> {
+    if name.starts_with('-') {
+        return Err("tab name may not begin with a dash".into());
+    }
+
+    if name.contains(' ') || name.contains('\t') || name.contains('\r') || name.contains('\n') {
+        return Err("tab name may not contain whitespace".into());
+    }
+
+    if name.contains('\\') {
+        return Err("tab name may not contain backslashes".into());
+    }
+
+    Ok(())
+}
+
 /// Identifies a running tab using a numeric index.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TabId(pub u16);
