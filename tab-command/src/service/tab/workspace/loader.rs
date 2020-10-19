@@ -140,15 +140,6 @@ impl WorkspaceTabs {
     }
 }
 
-impl IntoIterator for WorkspaceTabs {
-    type Item = WorkspaceResult;
-    type IntoIter = std::vec::IntoIter<WorkspaceResult>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.elems.into_iter()
-    }
-}
-
 pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {
     let mut builder = WorkspaceBuilder::new();
     let mut working_dir = Some(dir);
