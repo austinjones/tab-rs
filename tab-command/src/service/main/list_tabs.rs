@@ -27,7 +27,8 @@ impl Service for MainListTabsService {
                         .with_active_tabs(&active_tabs);
 
                     if workspace.errors.len() > 0 {
-                        eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.")
+                        eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.");
+                        eprintln!("");
                     }
 
                     Self::echo_tabs(&workspace.tabs);
