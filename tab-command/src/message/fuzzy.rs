@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, Clone)]
 pub enum FuzzyEvent {
     MoveLeft,

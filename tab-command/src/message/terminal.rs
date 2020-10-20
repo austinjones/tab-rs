@@ -1,8 +1,4 @@
-
-
-
-
-use crate::state::{terminal::TerminalMode};
+use crate::state::terminal::TerminalMode;
 
 #[derive(Debug, Clone)]
 pub enum TerminalRecv {
