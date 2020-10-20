@@ -138,6 +138,22 @@ impl WorkspaceTabs {
 
         errors
     }
+
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
+
+    pub fn as_name_set(&self) -> HashSet<&String> {
+        let mut set = HashSet::with_capacity(self.elems.len());
+
+        for result in self.elems.iter() {
+            if let Ok(tab) = result {
+                set.insert(&tab.name);
+            }
+        }
+
+        set
+    }
 }
 
 pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {

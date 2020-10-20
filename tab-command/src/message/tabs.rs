@@ -8,6 +8,7 @@ pub enum TabRecv {
         name: String,
         env_tab: Option<TabId>,
     },
+    ScanWorkspace,
 }
 
 #[derive(Debug, Clone)]
@@ -15,6 +16,9 @@ pub enum TabsRecv {
     Init(HashMap<TabId, TabMetadata>),
     Update(TabMetadata),
 }
+
+#[derive(Debug, Clone)]
+pub struct ScanWorkspace {}
 
 #[derive(Debug, Clone)]
 pub struct TabShutdown {}

@@ -1,11 +1,6 @@
 use crate::state::workspace::WorkspaceTab;
 
 #[derive(Debug, Clone)]
-pub struct FuzzyRecv {
-    pub tabs: Vec<WorkspaceTab>,
-}
-
-#[derive(Debug, Clone)]
 pub enum FuzzyEvent {
     MoveLeft,
     MoveRight,

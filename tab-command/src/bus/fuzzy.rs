@@ -1,16 +1,17 @@
 use tokio::sync::{broadcast, mpsc, watch};
 
 use crate::{
-    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection,
-    message::fuzzy::FuzzyShutdown, message::terminal::TerminalShutdown, prelude::*,
-    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyQueryState,
-    state::fuzzy::FuzzySelectState,
+    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown,
+    message::terminal::TerminalRecv, message::terminal::TerminalSend,
+    message::terminal::TerminalShutdown, prelude::*, state::fuzzy::FuzzyMatchState,
+    state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
+    state::fuzzy::FuzzyTabsState, state::workspace::WorkspaceState,
 };
 
 lifeline_bus!(pub struct FuzzyBus);
 
-impl Message<FuzzyBus> for FuzzyRecv {
-    type Channel = mpsc::Sender<Self>;
+impl Message<FuzzyBus> for Option<FuzzyTabsState> {
+    type Channel = watch::Sender<Self>;
 }
 
 impl Message<FuzzyBus> for FuzzyQueryState {
@@ -52,23 +53,23 @@ impl CarryFrom<TerminalBus> for FuzzyBus {
 
     fn carry_from(&self, from: &TerminalBus) -> Self::Lifeline {
         let _recv = {
-            let mut rx = from.rx::<FuzzyRecv>()?;
-            let mut tx = self.tx::<FuzzyRecv>()?;
+            let mut rx = from.rx::<Option<WorkspaceState>>()?.log();
+            let mut tx = self.tx::<Option<FuzzyTabsState>>()?;
 
             Self::task("recv", async move {
                 while let Some(msg) = rx.recv().await {
-                    tx.send(msg).await.ok();
+                    tx.send(msg.map(WorkspaceState::into)).await.ok();
                 }
             })
         };
 
         let _selection = {
             let mut rx = self.rx::<FuzzySelection>()?;
-            let mut tx = from.tx::<FuzzySelection>()?;
+            let mut tx = from.tx::<TerminalSend>()?;
 
             Self::task("recv", async move {
                 while let Some(msg) = rx.recv().await {
-                    tx.send(msg).await.ok();
+                    tx.send(TerminalSend::FuzzySelection(msg.0)).await.ok();
                 }
             })
         };

@@ -50,6 +50,7 @@ impl MainSelectTabService {
         tx_tab: &mut impl Sender<TabRecv>,
         tx_terminal: &mut impl Sender<TerminalRecv>,
     ) -> anyhow::Result<()> {
+        info!("MainRecv::SelectTab({}) running", &name);
         let name = normalize_name(name.as_str());
         let env_tab = env_tab_id();
 

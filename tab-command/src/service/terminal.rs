@@ -1,4 +1,4 @@
-use crate::state::terminal::TerminalMode;
+use crate::{message::terminal::TerminalRecv, state::terminal::TerminalMode};
 
 use crate::bus::MainBus;
 use crate::prelude::*;
@@ -45,12 +45,12 @@ impl Service for TerminalService {
         let _main_terminal = terminal_bus.carry_from(bus)?;
         let _terminal_event = TerminalEventService::spawn(&terminal_bus)?;
 
-        let mut rx_terminal_mode = terminal_bus.rx::<TerminalMode>()?;
+        let mut rx = terminal_bus.rx::<TerminalMode>()?;
 
         let _terminal_mode = Self::try_task("dispatch_mode", async move {
             let mut service = ServiceLifeline::None;
 
-            while let Some(mode) = rx_terminal_mode.recv().await {
+            while let Some(mode) = rx.recv().await {
                 service = match mode {
                     TerminalMode::None => ServiceLifeline::None,
                     TerminalMode::Echo => {

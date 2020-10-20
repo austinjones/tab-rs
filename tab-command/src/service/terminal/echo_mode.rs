@@ -1,7 +1,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
-use crate::prelude::*;
+use crate::{message::terminal::TerminalSend, prelude::*};
+use crate::{
+    message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown},
+    state::terminal::TerminalMode,
+};
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
@@ -45,11 +48,11 @@ impl Service for TerminalEchoService {
 
         let rx = bus.rx::<TerminalOutput>()?;
         let tx = bus.tx::<TerminalInput>()?;
-        let tx_shutdown = bus.tx::<TerminalShutdown>()?;
+        let tx_terminal = bus.tx::<TerminalSend>()?;
 
         let _output = Self::try_task("stdout", print_stdout(rx));
 
-        let _input = Self::try_task("stdin", forward_stdin(tx, tx_shutdown));
+        let _input = Self::try_task("stdin", forward_stdin(tx, tx_terminal));
 
         Ok(TerminalEchoService { _input, _output })
     }
@@ -63,7 +66,7 @@ impl Drop for TerminalEchoService {
 
 async fn forward_stdin(
     mut tx: impl Sender<TerminalInput>,
-    mut tx_shutdown: impl Sender<TerminalShutdown>,
+    mut tx_mode: impl Sender<TerminalSend>,
 ) -> anyhow::Result<()> {
     info!("listening for stdin");
     let mut stdin = tokio::io::stdin();
@@ -78,12 +81,12 @@ async fn forward_stdin(
         buf.copy_from_slice(&buffer[0..read]);
 
         // this is ctrl-w
-        if buf.contains(&23u8) {
+        if buf.contains(&20u8) {
             // write a newline.
             // this prevents a situation like this:
             // $ child terminal <ctrl-W> $ parent terminal
-            tokio::io::stdout().write("\r\n".as_bytes()).await?;
-            tx_shutdown.send(TerminalShutdown {}).await?;
+            // tokio::io::stdout().write("\r\n".as_bytes()).await?;
+            tx_mode.send(TerminalSend::FuzzyRequest).await?;
             break;
         }
 

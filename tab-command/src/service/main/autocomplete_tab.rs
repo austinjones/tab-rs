@@ -13,7 +13,6 @@ impl Service for MainAutocompleteTabsService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
         let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
 
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
@@ -21,14 +20,10 @@ impl Service for MainAutocompleteTabsService {
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::AutocompleteTab = msg {
-                    let active_tabs = await_state(&mut rx_active).await?;
-                    let workspace = await_state(&mut rx_workspace)
-                        .await?
-                        .with_active_tabs(&active_tabs);
+                    let workspace = await_state(&mut rx_workspace).await?;
 
-                    let tabs: Vec<String> =
-                        workspace.tabs.into_iter().map(|tab| tab.name).collect();
-                    Self::echo_completion(&tabs);
+                    let tabs = workspace.tabs.iter().map(|tab| &tab.name).collect();
+                    Self::echo_completion(tabs);
 
                     tx_shutdown.send(MainShutdown {}).await.ok();
                 }
@@ -42,7 +37,7 @@ impl Service for MainAutocompleteTabsService {
 }
 
 impl MainAutocompleteTabsService {
-    fn echo_completion(tabs: &Vec<String>) {
+    fn echo_completion(tabs: Vec<&String>) {
         debug!("echo completion: {:?}", tabs);
 
         for tab in tabs {

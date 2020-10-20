@@ -758,7 +758,7 @@ dependencies = [
 [[package]]
 name = "lifeline"
 version = "0.4.0"
-source = "git+https://github.com/austinjones/lifeline-rs.git#4d699be4f5a146e544a16f6a9b633b786bb5509a"
+source = "git+https://github.com/austinjones/lifeline-rs.git#f89a2d68aa869b0bba4f40d70c22e121a331b71f"
 dependencies = [
  "anyhow",
  "arc-swap",

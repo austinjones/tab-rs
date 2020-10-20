@@ -1,6 +1,7 @@
 use crate::{
-    message::fuzzy::FuzzyRecv, message::fuzzy::FuzzySelection, message::terminal::TerminalRecv,
-    message::terminal::TerminalSend, prelude::*,
+    message::fuzzy::FuzzySelection, message::main::MainRecv, message::terminal::TerminalRecv,
+    message::terminal::TerminalSend, prelude::*, state::fuzzy::FuzzyTabsState,
+    state::workspace::WorkspaceState,
 };
 use crate::{
     message::{
@@ -31,20 +32,24 @@ impl Message<TerminalBus> for TerminalSizeState {
     type Channel = watch::Sender<Self>;
 }
 
-impl Message<TerminalBus> for TerminalMode {
-    type Channel = mpsc::Sender<Self>;
-}
+// impl Message<TerminalBus> for TerminalMode {
+//     type Channel = mpsc::Sender<Self>;
+// }
 
 impl Message<TerminalBus> for TerminalShutdown {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<TerminalBus> for FuzzyRecv {
+impl Message<TerminalBus> for TerminalSend {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<TerminalBus> for FuzzySelection {
-    type Channel = mpsc::Sender<Self>;
+impl Message<TerminalBus> for TerminalMode {
+    type Channel = watch::Sender<Self>;
+}
+
+impl Message<TerminalBus> for Option<WorkspaceState> {
+    type Channel = watch::Sender<Self>;
 }
 
 /// Carries messages between the MainBus, and the TerminalBus.
@@ -52,11 +57,12 @@ impl Message<TerminalBus> for FuzzySelection {
 /// Listens to MainRecv and sends TerminalMode,
 /// forwards TerminalShutdown, and carries Input, Output, and Resize events.
 pub struct MainTerminalCarrier {
-    pub(super) _recv: Lifeline,
-    pub(super) _fuzzy_send: Lifeline,
-    pub(super) _forward_shutdown: Lifeline,
-    pub(super) _echo_output: Lifeline,
-    pub(super) _read_input: Lifeline,
+    _recv: Lifeline,
+    _send: Lifeline,
+    _forward_shutdown: Lifeline,
+    _forward_workspace: Lifeline,
+    _echo_output: Lifeline,
+    _read_input: Lifeline,
 }
 
 impl CarryFrom<MainBus> for TerminalBus {
@@ -65,18 +71,12 @@ impl CarryFrom<MainBus> for TerminalBus {
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _recv = {
             let mut rx = from.rx::<TerminalRecv>()?;
-            let mut tx_mode = self.tx::<TerminalMode>()?;
-            let mut tx_fuzzy = self.tx::<FuzzyRecv>()?;
+            let mut tx_terminal_mode = self.tx::<TerminalMode>()?;
 
-            Self::try_task("forward_mode", async move {
+            Self::try_task("recv", async move {
                 while let Some(msg) = rx.recv().await {
                     match msg {
-                        TerminalRecv::FuzzyTabs(tabs) => {
-                            tx_fuzzy.send(FuzzyRecv { tabs }).await?;
-                        }
-                        TerminalRecv::Mode(mode) => {
-                            tx_mode.send(mode).await?;
-                        }
+                        TerminalRecv::Mode(mode) => tx_terminal_mode.send(mode).await?,
                     }
                 }
 
@@ -84,13 +84,18 @@ impl CarryFrom<MainBus> for TerminalBus {
             })
         };
 
-        let _fuzzy_send = {
-            let mut rx = self.rx::<FuzzySelection>()?;
-            let mut tx = from.tx::<TerminalSend>()?;
+        let _send = {
+            let mut rx = self.rx::<TerminalSend>()?;
+            let mut tx = from.tx::<MainRecv>()?;
 
-            Self::try_task("forward_mode", async move {
+            Self::try_task("send", async move {
                 while let Some(msg) = rx.recv().await {
-                    tx.send(TerminalSend::FuzzySelection(msg.0)).await?;
+                    match msg {
+                        TerminalSend::FuzzyRequest => tx.send(MainRecv::SelectInteractive).await?,
+                        TerminalSend::FuzzySelection(selection) => {
+                            tx.send(MainRecv::SelectTab(selection)).await?
+                        }
+                    }
                 }
 
                 Ok(())
@@ -104,6 +109,19 @@ impl CarryFrom<MainBus> for TerminalBus {
             Self::try_task("forward_shutdown", async move {
                 if let Some(_shutdown) = rx_shutdown.recv().await {
                     tx_shutdown.send(MainShutdown {}).await?;
+                }
+
+                Ok(())
+            })
+        };
+
+        let _forward_workspace = {
+            let mut rx = from.rx::<Option<WorkspaceState>>()?;
+            let mut tx = self.tx::<Option<WorkspaceState>>()?;
+
+            Self::try_task("recv", async move {
+                while let Some(msg) = rx.recv().await {
+                    tx.send(msg).await?;
                 }
 
                 Ok(())
@@ -164,8 +182,9 @@ impl CarryFrom<MainBus> for TerminalBus {
 
         Ok(MainTerminalCarrier {
             _recv,
-            _fuzzy_send,
+            _send,
             _forward_shutdown,
+            _forward_workspace,
             _echo_output,
             _read_input,
         })
