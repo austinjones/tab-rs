@@ -1,4 +1,4 @@
-use crate::state::workspace::WorkspaceTab;
+
 
 #[derive(Debug, Clone)]
 pub enum FuzzyEvent {

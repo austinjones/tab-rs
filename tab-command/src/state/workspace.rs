@@ -1,5 +1,5 @@
 use super::{
-    tabs::ActiveTabsState, workspace_err::ConfigVariantError, workspace_err::NoConfigVariantError,
+    workspace_err::ConfigVariantError, workspace_err::NoConfigVariantError,
     workspace_err::WorkspaceError,
 };
 use serde::{Deserialize, Serialize};

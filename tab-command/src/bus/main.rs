@@ -2,7 +2,6 @@ use crate::{
     message::main::{MainRecv, MainShutdown},
     message::tabs::TabRecv,
     message::terminal::TerminalRecv,
-    message::terminal::TerminalSend,
     state::tabs::ActiveTabsState,
     state::workspace::WorkspaceState,
 };

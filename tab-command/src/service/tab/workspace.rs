@@ -10,7 +10,7 @@ use crate::{
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab,
 };
 use lifeline::Service;
-use tokio::{stream::StreamExt, time};
+use tokio::{stream::StreamExt};
 
 use self::loader::{scan_config, WorkspaceTabs};
 

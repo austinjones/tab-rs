@@ -1,8 +1,8 @@
-use std::sync::Arc;
 
-use lifeline::barrier::Barrier;
 
-use crate::state::{terminal::TerminalMode, workspace::WorkspaceTab};
+
+
+use crate::state::{terminal::TerminalMode};
 
 #[derive(Debug, Clone)]
 pub enum TerminalRecv {

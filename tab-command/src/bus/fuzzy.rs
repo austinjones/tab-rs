@@ -1,8 +1,7 @@
 use tokio::sync::{broadcast, mpsc, watch};
 
 use crate::{
-    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown,
-    message::terminal::TerminalRecv, message::terminal::TerminalSend,
+    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown, message::terminal::TerminalSend,
     message::terminal::TerminalShutdown, prelude::*, state::fuzzy::FuzzyMatchState,
     state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
     state::fuzzy::FuzzyTabsState, state::workspace::WorkspaceState,

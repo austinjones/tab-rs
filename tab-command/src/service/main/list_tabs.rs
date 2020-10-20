@@ -1,5 +1,5 @@
 use crate::{
-    message::main::MainRecv, message::main::MainShutdown, prelude::*, state::tabs::ActiveTabsState,
+    message::main::MainRecv, message::main::MainShutdown, prelude::*,
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab, utils::await_state,
 };
 

@@ -1,4 +1,4 @@
-use crate::{message::terminal::TerminalRecv, state::terminal::TerminalMode};
+use crate::{state::terminal::TerminalMode};
 
 use crate::bus::MainBus;
 use crate::prelude::*;
