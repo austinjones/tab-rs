@@ -1,10 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::message::terminal::{TerminalInput, TerminalOutput};
 use crate::{message::terminal::TerminalSend, prelude::*};
-use crate::{
-    message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown},
-    state::terminal::TerminalMode,
-};
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};

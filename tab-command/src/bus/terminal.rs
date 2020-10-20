@@ -1,7 +1,6 @@
 use crate::{
-    message::fuzzy::FuzzySelection, message::main::MainRecv, message::terminal::TerminalRecv,
-    message::terminal::TerminalSend, prelude::*, state::fuzzy::FuzzyTabsState,
-    state::workspace::WorkspaceState,
+    message::main::MainRecv, message::terminal::TerminalRecv, message::terminal::TerminalSend,
+    prelude::*, state::workspace::WorkspaceState,
 };
 use crate::{
     message::{

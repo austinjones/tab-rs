@@ -1,7 +1,6 @@
 use crate::{
     message::main::MainRecv, message::tabs::TabRecv, message::terminal::TerminalRecv, prelude::*,
-    state::tabs::ActiveTabsState, state::terminal::TerminalMode, state::workspace::WorkspaceState,
-    utils::await_state,
+    state::terminal::TerminalMode,
 };
 
 pub struct MainSelectInteractiveService {
