@@ -7,8 +7,8 @@ use common::*;
 ///  that A can be reconnected to,
 ///  and B can be switched to by executing the tab binary within A.
 #[tokio::test]
-async fn session() -> anyhow::Result<()> {
-    let mut session = TestSession::new()?;
+async fn retask() -> anyhow::Result<()> {
+    let session = TestSession::new()?;
 
     let result = session
         .command()
@@ -26,13 +26,13 @@ async fn session() -> anyhow::Result<()> {
     assert_snapshot!("create_target", result.stdout);
 
     for i in 0..5 {
-        session_iter(&mut session, i).await?;
+        retask_iter(&session, i).await?;
     }
 
     Ok(())
 }
 
-async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<()> {
+async fn retask_iter(session: &TestSession, iter: usize) -> anyhow::Result<()> {
     let tab_from = format!("from/{}/", iter);
 
     let result = session

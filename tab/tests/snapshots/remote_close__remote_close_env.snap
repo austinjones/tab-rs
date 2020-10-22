@@ -1,0 +1,7 @@
+---
+source: tab/tests/remote_close.rs
+expression: result.snapshot
+---
+$ $TAB_BIN --close
+Closing current tab: remote_close_env/
+$ 

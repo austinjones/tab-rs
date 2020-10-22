@@ -3,10 +3,13 @@
 use anyhow::Context;
 use lifeline::assert_completes;
 use log::*;
-use std::process::{ExitStatus, Stdio};
 use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
+};
+use std::{
+    process::{ExitStatus, Stdio},
+    sync::Arc,
 };
 use tempfile::{tempdir, TempDir};
 
@@ -43,19 +46,24 @@ pub enum Action {
 /// Represents a tab runtime (including command, daemon, and pty sessions)
 /// The tab binary is retrieved from the built cargo bin.
 pub struct TestSession {
+    _tempdir: TempDir,
+    context: Arc<TestContext>,
+}
+
+struct TestContext {
     binary: PathBuf,
-    dir: TempDir,
+    runtime_dir: PathBuf,
 }
 
 /// Represents & executes a single invocation of the `tab` binary.
-pub struct TestCommand<'s> {
-    session: &'s mut TestSession,
+pub struct TestCommand {
+    context: Arc<TestContext>,
     pub tab: String,
     pub actions: Vec<Action>,
 }
 
 #[allow(dead_code)]
-impl<'s> TestCommand<'s> {
+impl TestCommand {
     /// Sets the tab name on the session
     pub fn tab<T: ToString>(&mut self, value: T) -> &mut Self {
         self.tab = value.to_string();
@@ -120,14 +128,18 @@ impl<'s> TestCommand<'s> {
         info!("");
         info!("Tab command initializing: {}", self.tab.as_str());
 
-        let mut run = tokio::process::Command::new(self.session.binary());
+        let mut run = tokio::process::Command::new(self.context.binary.as_path());
         run.arg("--log")
             .arg("info")
             .arg(self.tab.as_str())
             .env("SHELL", "/bin/bash")
             .env(
                 "TAB_RUNTIME_DIR",
-                self.session.dir.path().to_string_lossy().to_string(),
+                self.context
+                    .runtime_dir
+                    .to_str()
+                    .expect("Failed to encode runtime dir as string")
+                    .to_string(),
             )
             .env("TAB_RAW_MODE", "false")
             .env("TAB", "")
@@ -325,18 +337,26 @@ impl TestSession {
 
         let binary = assert_cmd::cargo::cargo_bin("tab");
 
-        Ok(Self { binary, dir })
+        let context = TestContext {
+            runtime_dir: dir.path().to_path_buf(),
+            binary,
+        };
+
+        Ok(Self {
+            context: Arc::new(context),
+            _tempdir: dir,
+        })
     }
 
     /// The path to the tab binary which will be executed by commands.
     pub fn binary(&self) -> &Path {
-        &self.binary.as_path()
+        &self.context.binary.as_path()
     }
 
     /// Constructs a new command, which can be executed to launch the tab binaries.
-    pub fn command(&mut self) -> TestCommand {
+    pub fn command(&self) -> TestCommand {
         TestCommand {
-            session: self,
+            context: self.context.clone(),
             tab: "tab".into(),
             actions: Vec::new(),
         }
