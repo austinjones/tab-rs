@@ -1,19 +1,23 @@
-use crate::state::tab::{DeselectTab, SelectTab, TabState};
-use crate::{prelude::*, state::terminal::TerminalSizeState};
-
-use std::collections::HashMap;
-use tab_api::tab::{TabId, TabMetadata};
-use tokio::{stream::StreamExt, sync::watch};
+use crate::{
+    prelude::*,
+    state::{tab::TabMetadataState, terminal::TerminalSizeState},
+};
+use crate::{
+    state::{
+        tab::{DeselectTab, SelectTab, TabState},
+        tabs::ActiveTabsState,
+    },
+    utils::await_condition,
+};
 
 /// Tracks the current tab state, and updates TabState.
 pub struct TabStateService {
-    _lifeline: Lifeline,
-}
-
-enum Event {
-    Select(SelectTab),
-    Deselect(DeselectTab),
-    Metadata(TabMetadata),
+    _select: Lifeline,
+    _select_named: Lifeline,
+    _tab_metadata: Lifeline,
+    _deselect: Lifeline,
+    _publish: Lifeline,
+    _websocket: Lifeline,
 }
 
 impl Service for TabStateService {
@@ -21,112 +25,142 @@ impl Service for TabStateService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
-        let rx_select = bus.rx::<SelectTab>()?;
-        let rx_deselect = bus.rx::<DeselectTab>()?;
-        let rx_tab_metadata = bus
-            .rx::<TabMetadata>()?
-            .into_inner()
-            .filter(|r| r.is_ok())
-            .map(|r| r.unwrap());
-        let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
+        // create an internal channel to distribute state updates
+        let (tx_internal, mut rx_internal) = tokio::sync::mpsc::channel(16);
 
-        let mut tx = bus.tx::<TabState>()?;
-        let mut tx_websocket = bus.tx::<Request>()?;
+        let _select = {
+            let mut rx = bus.rx::<SelectTab>()?;
+            let rx_state = bus.rx::<TabState>()?.into_inner();
+            let mut tx = tx_internal.clone();
 
-        let _lifeline = Self::try_task("run", async move {
-            let mut state = TabState::None;
-
-            let mut events = {
-                let tabs = rx_select.map(|elem| Event::Select(elem));
-                let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem));
-                let deselect = rx_deselect.map(|elem| Event::Deselect(elem));
-                tabs.merge(tab_metadatas).merge(deselect)
-            };
-
-            let mut tabs: HashMap<String, TabId> = HashMap::new();
-
-            while let Some(event) = events.next().await {
-                match event {
-                    Event::Select(select) => match select {
+            Self::try_task("select", async move {
+                while let Some(select) = rx.recv().await {
+                    let state = rx_state.borrow().clone();
+                    match select {
                         SelectTab::NamedTab(name) => {
                             if state.is_awaiting(name.as_str()) {
                                 continue;
                             }
 
-                            state = if let Some(id) = tabs.get(&name.to_string()) {
-                                info!("selected tab {}", name);
-
-                                Self::select_tab(*id, &rx_terminal_size, &mut tx, &mut tx_websocket)
-                                    .await?
-                            } else {
-                                info!("awaiting tab {}", name);
-                                TabState::Awaiting(name.to_string())
-                            };
-
-                            tx.send(state.clone()).await?;
+                            tx.send(TabState::Awaiting(name)).await?;
                         }
                         SelectTab::Tab(id) => {
                             if state.is_selected(&id) {
                                 continue;
                             }
-                            state =
-                                Self::select_tab(id, &rx_terminal_size, &mut tx, &mut tx_websocket)
-                                    .await?;
-                        }
-                    },
-                    Event::Metadata(metadata) => {
-                        if state.is_awaiting(metadata.name.as_str()) {
-                            info!("tab active {}", metadata.name.as_str());
 
-                            state = Self::select_tab(
-                                metadata.id,
-                                &rx_terminal_size,
-                                &mut tx,
-                                &mut tx_websocket,
-                            )
-                            .await?;
+                            tx.send(TabState::Selected(id)).await?;
                         }
-
-                        let id = metadata.id;
-                        let name = metadata.name;
-                        tabs.insert(name, id);
-                    }
-                    Event::Deselect(_deselect) => {
-                        if let TabState::Selected(id) = state {
-                            tx_websocket.send(Request::Unsubscribe(id)).await?;
-                        }
-
-                        state = TabState::None;
-                        tx.send(state.clone()).await?;
                     }
                 }
-            }
 
-            Ok(())
-        });
+                Ok(())
+            })
+        };
 
-        Ok(Self { _lifeline })
-    }
-}
+        let _select_named = {
+            let mut rx = bus.rx::<TabState>()?;
+            let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+            let mut tx = tx_internal.clone();
 
-impl TabStateService {
-    pub async fn select_tab(
-        id: TabId,
-        rx_terminal_size: &watch::Receiver<TerminalSizeState>,
-        tx_state: &mut impl Sender<TabState>,
-        tx_websocket: &mut impl Sender<Request>,
-    ) -> anyhow::Result<TabState> {
-        tx_websocket.send(Request::Subscribe(id)).await?;
+            Self::try_task("select_named", async move {
+                while let Some(state) = rx.recv().await {
+                    if let TabState::Awaiting(name) = state {
+                        let tabs = await_condition(&mut rx_active, |tabs| {
+                            tabs.find_name(name.as_str()).is_some()
+                        })
+                        .await?;
 
-        let terminal_size = rx_terminal_size.borrow().clone();
-        tx_websocket
-            .send(Request::ResizeTab(id, terminal_size.0))
-            .await?;
+                        let id = tabs.find_name(name.as_str()).unwrap().id;
+                        tx.send(TabState::Selected(id)).await?;
+                    }
+                }
 
-        let state = TabState::Selected(id);
+                Ok(())
+            })
+        };
 
-        tx_state.send(state.clone()).await?;
+        let _tab_metadata = {
+            let mut rx = bus.rx::<TabState>()?;
+            let mut rx_tabs = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+            let mut tx = bus.tx::<TabMetadataState>()?;
 
-        Ok(state)
+            Self::try_task("deselect", async move {
+                while let Some(state) = rx.recv().await {
+                    if let TabState::Selected(id) = state {
+                        let state =
+                            await_condition(&mut rx_tabs, |state| state.get(&id).is_some()).await?;
+                        let tab = state.get(&id).unwrap();
+                        tx.send(TabMetadataState::Selected(tab.clone())).await?;
+                    } else if let TabState::None = state {
+                        tx.send(TabMetadataState::None).await?;
+                    }
+                }
+
+                Ok(())
+            })
+        };
+
+        let _deselect = {
+            let mut rx = bus.rx::<DeselectTab>()?;
+            let mut tx = tx_internal.clone();
+
+            Self::try_task("deselect", async move {
+                while let Some(_deselect) = rx.recv().await {
+                    tx.send(TabState::None).await?;
+                }
+
+                Ok(())
+            })
+        };
+
+        let _publish = {
+            let mut tx = bus.tx::<TabState>()?;
+            Self::try_task("publish", async move {
+                while let Some(state) = rx_internal.recv().await {
+                    tx.send(state).await?;
+                }
+
+                Ok(())
+            })
+        };
+
+        let _websocket = {
+            let mut rx = bus.rx::<TabState>()?;
+            let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
+
+            let mut tx_websocket = bus.tx::<Request>()?;
+
+            Self::try_task("websocket", async move {
+                let mut last_state = TabState::None;
+                while let Some(state) = rx.recv().await {
+                    if let TabState::Selected(id) = state {
+                        tx_websocket.send(Request::Subscribe(id)).await?;
+
+                        let terminal_size = rx_terminal_size.borrow().clone();
+                        tx_websocket
+                            .send(Request::ResizeTab(id, terminal_size.0))
+                            .await?;
+                    } else if let (TabState::Selected(prev_id), &TabState::None) =
+                        (last_state, &state)
+                    {
+                        tx_websocket.send(Request::Unsubscribe(prev_id)).await?;
+                    }
+
+                    last_state = state;
+                }
+
+                Ok(())
+            })
+        };
+
+        Ok(Self {
+            _select,
+            _select_named,
+            _tab_metadata,
+            _deselect,
+            _publish,
+            _websocket,
+        })
     }
 }

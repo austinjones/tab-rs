@@ -8,6 +8,7 @@ use crate::{
     },
     utils::await_state,
 };
+use anyhow::anyhow;
 use std::path::PathBuf;
 use std::{collections::HashMap, sync::Arc};
 use tab_api::tab::{normalize_name, CreateTabMetadata};
@@ -81,7 +82,15 @@ impl CreateTabService {
         let metadata = CreateTabMetadata {
             name: Self::compute_name(workspace_tab, name.as_str()),
             doc: workspace_tab.map(|tab| tab.doc.clone()).flatten(),
-            dir: directory.to_string_lossy().to_string(),
+            dir: directory
+                .to_str()
+                .ok_or_else(|| {
+                    anyhow!(
+                        "The working directory {} could not be parsed as a string",
+                        directory.to_string_lossy()
+                    )
+                })?
+                .to_string(),
             env,
             dimensions,
             shell,
