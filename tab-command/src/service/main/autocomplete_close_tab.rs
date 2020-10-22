@@ -26,7 +26,7 @@ impl Service for MainAutocompleteCloseTabsService {
                         active_tabs.tabs.into_iter().map(|tab| tab.1.name).collect();
                     Self::echo_completion(&tabs);
 
-                    tx_shutdown.send(MainShutdown {}).await.ok();
+                    tx_shutdown.send(MainShutdown(0)).await.ok();
                 }
             }
 

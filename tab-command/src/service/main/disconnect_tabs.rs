@@ -27,10 +27,10 @@ impl Service for MainDisconnectTabsService {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::DisconnectTabs(tabs) = msg {
                     let state = await_state(&mut rx_active).await?;
-                    Self::disconnect_tabs(tabs, state, &mut tx_request).await?;
+                    let exit_code = Self::disconnect_tabs(tabs, state, &mut tx_request).await?;
 
                     time::delay_for(Duration::from_millis(5)).await;
-                    tx_shutdown.send(MainShutdown {}).await?;
+                    tx_shutdown.send(MainShutdown(exit_code)).await?;
                     break;
                 }
             }
@@ -47,7 +47,7 @@ impl MainDisconnectTabsService {
         tabs: Vec<String>,
         state: ActiveTabsState,
         tx_websocket: &mut impl Sender<Request>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<i32> {
         if tabs.is_empty() {
             if let Ok(tab) = std::env::var("TAB_ID") {
                 eprintln!(
@@ -59,9 +59,10 @@ impl MainDisconnectTabsService {
                 tx_websocket.send(Request::DisconnectTab(id)).await?;
             } else {
                 eprintln!("No arguments or current tab was detected.");
+                return Ok(1);
             }
 
-            return Ok(());
+            return Ok(0);
         }
 
         let running_tabs = state.into_name_set();
@@ -80,6 +81,6 @@ impl MainDisconnectTabsService {
             tx_websocket.send(Request::DisconnectTab(tab.id)).await?;
         }
 
-        Ok(())
+        Ok(0)
     }
 }

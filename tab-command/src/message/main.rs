@@ -3,8 +3,14 @@ use tab_api::{
     tab::TabId,
 };
 
-#[derive(Debug)]
-pub struct MainShutdown {}
+#[derive(Debug, Clone)]
+pub struct MainShutdown(pub i32);
+
+impl Default for MainShutdown {
+    fn default() -> Self {
+        MainShutdown(0)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum MainRecv {

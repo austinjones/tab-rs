@@ -21,7 +21,7 @@ mod service;
 mod state;
 mod utils;
 
-pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Result<()> {
+pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Result<i32> {
     TermLogger::init(
         get_level().unwrap_or(LevelFilter::Warn),
         simplelog::ConfigBuilder::new()
@@ -44,14 +44,14 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 
     runtime.shutdown_background();
 
-    result?;
+    let code = result?;
 
     info!("tab-command runtime stopped");
 
-    Ok(())
+    Ok(code)
 }
 
-async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyhow::Result<()> {
+async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyhow::Result<i32> {
     let check_workspace = matches.is_present("CHECK-WORKSPACE");
     let close_completion = matches.is_present("AUTOCOMPLETE-CLOSE-TAB");
     let close_tabs = matches.values_of("CLOSE-TAB");
@@ -101,11 +101,11 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
         tx.send(MainRecv::SelectInteractive).await?;
     }
 
-    wait_for_shutdown(rx_shutdown).await;
+    let exit = wait_for_shutdown(rx_shutdown).await;
     disable_raw_mode();
     reset_cursor();
 
-    Ok(())
+    Ok(exit.0)
 }
 
 async fn spawn(

@@ -1,3 +1,3 @@
 /// Terminates the daemon process.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DaemonShutdown;

@@ -103,7 +103,7 @@ impl CarryFrom<MainBus> for TerminalBus {
 
             Self::try_task("forward_shutdown", async move {
                 if let Some(_shutdown) = rx_shutdown.recv().await {
-                    tx_shutdown.send(MainShutdown {}).await?;
+                    tx_shutdown.send(MainShutdown(0)).await?;
                 }
 
                 Ok(())

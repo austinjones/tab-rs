@@ -72,6 +72,7 @@ pub fn main() -> anyhow::Result<()> {
 
         Ok(())
     } else {
-        tab_command::command_main(args, TAB_VERSION)
+        let exit_code = tab_command::command_main(args, TAB_VERSION)?;
+        std::process::exit(exit_code);
     }
 }
