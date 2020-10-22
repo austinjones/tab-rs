@@ -252,7 +252,7 @@ impl FuzzyFinderService {
         rx_query: watch::Receiver<FuzzyQueryState>,
         mut tx: impl Sender<FuzzyMatchState>,
     ) -> anyhow::Result<()> {
-        let matcher = SkimMatcherV2::default();
+        let matcher = SkimMatcherV2::default().ignore_case();
 
         let mut rx = rx
             .map(|event| FilterEvent::Tabs(event))
@@ -260,7 +260,6 @@ impl FuzzyFinderService {
 
         let mut entries = TabEntry::build(&Vec::with_capacity(0));
         let mut query = "".to_string();
-        let mut query_lowercase = "".to_string();
 
         while let Some(event) = rx.next().await {
             match event {
@@ -274,7 +273,6 @@ impl FuzzyFinderService {
                         continue;
                     }
 
-                    query_lowercase = state.query.to_ascii_lowercase();
                     query = state.query;
                 }
             }
@@ -300,10 +298,7 @@ impl FuzzyFinderService {
             let mut matches = Vec::new();
             for entry in entries.iter() {
                 // TODO: save lowercase strings for performance?
-                let fuzzy_match = matcher.fuzzy_indices(
-                    entry.display.as_str().to_ascii_lowercase().as_str(),
-                    query_lowercase.as_str(),
-                );
+                let fuzzy_match = matcher.fuzzy_indices(entry.display.as_str(), query.as_str());
 
                 if let Some((score, indices)) = fuzzy_match {
                     let tab_match = FuzzyMatch {
@@ -316,8 +311,7 @@ impl FuzzyFinderService {
                 }
             }
 
-            matches.sort_by_key(|elem| elem.score);
-            matches.reverse();
+            matches.sort_by_key(|elem| -elem.score);
 
             tx.send(FuzzyMatchState {
                 matches,
