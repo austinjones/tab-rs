@@ -36,6 +36,7 @@ pub enum Action {
     Delay(Duration),
     AwaitStdout(Vec<u8>, Duration),
     Stdin(Vec<u8>),
+    Disconnect,
     FinishSnapshot,
 }
 
@@ -98,6 +99,13 @@ impl<'s> TestCommand<'s> {
         self
     }
 
+    /// Disconnects the interactive session
+    pub fn disconnect(&mut self) -> &mut Self {
+        let action = Action::Disconnect;
+        self.actions.push(action);
+        self
+    }
+
     /// Completes the snapshot at the current stdin index
     pub fn complete_snapshot(&mut self) -> &mut Self {
         let action = Action::FinishSnapshot;
@@ -110,7 +118,7 @@ impl<'s> TestCommand<'s> {
         setup();
 
         info!("");
-        info!("Tab command initalizing: {}", self.tab.as_str());
+        info!("Tab command initializing: {}", self.tab.as_str());
 
         let mut run = tokio::process::Command::new(self.session.binary());
         run.arg("--log")
@@ -152,6 +160,16 @@ impl<'s> TestCommand<'s> {
                             );
                             stdin
                                 .write_all(input.as_slice())
+                                .await
+                                .expect("failed to write to stdin");
+                            stdin.flush().await.expect("failed to flush stdin");
+                        }
+                        Action::Disconnect => {
+                            info!("Disconnecting session",);
+                            // write `ctrl-T ESC` to stdin
+                            // this is a special escape sequence which users don't use
+                            stdin
+                                .write_all(&[0x14, 0x1b])
                                 .await
                                 .expect("failed to write to stdin");
                             stdin.flush().await.expect("failed to flush stdin");

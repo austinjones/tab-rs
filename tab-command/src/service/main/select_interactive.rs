@@ -26,6 +26,7 @@ impl Service for MainSelectInteractiveService {
                         .send(TerminalRecv::Mode(TerminalMode::FuzzyFinder))
                         .await?;
 
+                    tx_tab.send(TabRecv::DeselectTab).await?;
                     tx_tab.send(TabRecv::ScanWorkspace).await?;
                 }
             }

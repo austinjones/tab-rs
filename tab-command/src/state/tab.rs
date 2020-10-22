@@ -13,6 +13,9 @@ pub struct SelectOrRetaskTab {
     pub env_tab: Option<TabId>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct DeselectTab {}
+
 /// The client's selected tab state.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TabState {

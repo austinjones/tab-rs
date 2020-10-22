@@ -169,6 +169,11 @@ impl FuzzyFinderService {
                                 Self::clear_all()?;
                                 continue;
                             }
+
+                            if key.modifiers.eq(&KeyModifiers::CONTROL) {
+                                continue;
+                            }
+
                             tx_event.send(FuzzyEvent::Insert(ch)).await?;
                         }
                         KeyCode::Esc => {

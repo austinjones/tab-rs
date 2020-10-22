@@ -17,7 +17,8 @@ async fn session() -> anyhow::Result<()> {
         .stdin("echo target\n")
         .await_stdout("echo target", 300)
         .await_stdout("$", 300)
-        .stdin_bytes(&[23u8])
+        .complete_snapshot()
+        .stdin_bytes(&[0x14, 0x1b])
         .run()
         .await?;
 
@@ -41,7 +42,7 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .stdin("echo from\n")
         .await_stdout("echo from", 300)
         .await_stdout("$", 300)
-        .stdin_bytes(&[23u8])
+        .disconnect()
         .run()
         .await?;
 
@@ -57,7 +58,7 @@ async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<
         .await_stdout("target", 300)
         .await_stdout("$", 300)
         .complete_snapshot()
-        .stdin_bytes(&[23u8])
+        .disconnect()
         .run()
         .await?;
 

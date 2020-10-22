@@ -55,12 +55,13 @@ impl MainSelectTabService {
         let env_tab = env_tab_id();
 
         info!("selecting tab: {}", name);
-        let message = TabRecv::SelectNamedTab { name, env_tab };
-        tx_tab.send(message).await?;
 
         tx_terminal
             .send(TerminalRecv::Mode(TerminalMode::Echo))
             .await?;
+
+        let message = TabRecv::SelectNamedTab { name, env_tab };
+        tx_tab.send(message).await?;
 
         Ok(())
     }

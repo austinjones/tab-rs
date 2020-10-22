@@ -25,7 +25,7 @@ async fn reconnect_iter(session: &mut TestSession, iter: usize) -> anyhow::Resul
         .stdin("echo foo\n")
         .await_stdout("echo foo", 300)
         .await_stdout("$", 300)
-        .stdin_bytes(&[23u8])
+        .disconnect()
         .run()
         .await?;
 

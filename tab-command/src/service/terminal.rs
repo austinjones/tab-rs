@@ -11,6 +11,7 @@ use crate::{
 use echo_mode::TerminalEchoService;
 use terminal_event::TerminalEventService;
 
+mod echo_input;
 mod echo_mode;
 mod fuzzy;
 mod terminal_event;

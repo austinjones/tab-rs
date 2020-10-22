@@ -8,6 +8,7 @@ pub enum TabRecv {
         name: String,
         env_tab: Option<TabId>,
     },
+    DeselectTab,
     ScanWorkspace,
 }
 
