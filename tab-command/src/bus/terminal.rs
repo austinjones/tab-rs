@@ -31,10 +31,6 @@ impl Message<TerminalBus> for TerminalSizeState {
     type Channel = watch::Sender<Self>;
 }
 
-// impl Message<TerminalBus> for TerminalMode {
-//     type Channel = mpsc::Sender<Self>;
-// }
-
 impl Message<TerminalBus> for TerminalShutdown {
     type Channel = mpsc::Sender<Self>;
 }

@@ -17,7 +17,6 @@ impl Service for MainSelectInteractiveService {
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let mut tx_tab = bus.tx::<TabRecv>()?;
 
-        info!("MainRecv::SelectInteractive spawning");
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::SelectInteractive = msg {
