@@ -23,7 +23,7 @@ impl Service for MainGlobalShutdownService {
                 if let MainRecv::GlobalShutdown = msg {
                     tx.send(Request::GlobalShutdown).await?;
                     time::delay_for(Duration::from_millis(10)).await;
-                    tx_shutdown.send(MainShutdown {}).await?;
+                    tx_shutdown.send(MainShutdown(0)).await?;
                 }
             }
 

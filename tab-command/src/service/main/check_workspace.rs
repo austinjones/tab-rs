@@ -23,7 +23,7 @@ impl Service for MainCheckWorkspaceService {
                     let workspace = await_state(&mut rx_workspace).await?;
 
                     Self::echo_errors(&workspace.errors);
-                    tx_shutdown.send(MainShutdown {}).await.ok();
+                    tx_shutdown.send(MainShutdown(0)).await.ok();
                     break;
                 }
             }

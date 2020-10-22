@@ -28,7 +28,7 @@ impl Service for MainListTabsService {
                     }
 
                     Self::echo_tabs(&workspace.tabs);
-                    tx_shutdown.send(MainShutdown {}).await.ok();
+                    tx_shutdown.send(MainShutdown(0)).await.ok();
                     break;
                 }
             }

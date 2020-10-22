@@ -106,14 +106,14 @@ pub fn launch_pty() -> anyhow::Result<()> {
 /// Waits for either a ctrl-c signal, or a message on the given channel.
 ///
 /// Useful in main() functions.
-pub async fn wait_for_shutdown<T>(mut receiver: impl Receiver<T>) {
+pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Receiver<T>) -> T {
     loop {
         select! {
             _ = ctrl_c() => {
-                break;
+                return T::default();
             },
-            _ = receiver.recv() => {
-                break;
+            msg = receiver.recv() => {
+                return msg.unwrap_or(T::default());
             }
         }
     }

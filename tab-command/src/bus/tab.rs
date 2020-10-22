@@ -137,7 +137,7 @@ impl CarryFrom<MainBus> for TabBus {
             let mut tx = from.tx::<MainShutdown>()?;
             Self::try_task("forward_shutdown", async move {
                 rx.recv().await;
-                tx.send(MainShutdown {}).await.ok();
+                tx.send(MainShutdown(0)).await.ok();
                 Ok(())
             })
         };
@@ -201,7 +201,7 @@ impl CarryFrom<MainBus> for TabBus {
                             time::delay_for(Duration::from_millis(25)).await;
 
                             tx_shutdown
-                                .send(MainShutdown {})
+                                .send(MainShutdown(0))
                                 .await
                                 .context("tx MainShutdown")?;
                         }
@@ -212,7 +212,7 @@ impl CarryFrom<MainBus> for TabBus {
                         Response::Disconnect => {
                             eprintln!("\r\nTab disconnected.");
                             tx_shutdown
-                                .send(MainShutdown {})
+                                .send(MainShutdown(0))
                                 .await
                                 .context("tx MainShutdown")?;
                         }
@@ -220,7 +220,7 @@ impl CarryFrom<MainBus> for TabBus {
                     }
                 }
 
-                tx_shutdown.send(MainShutdown {}).await?;
+                tx_shutdown.send(MainShutdown(0)).await?;
 
                 Ok(())
             })

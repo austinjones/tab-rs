@@ -25,7 +25,7 @@ impl Service for MainAutocompleteTabsService {
                     let tabs = workspace.tabs.iter().map(|tab| &tab.name).collect();
                     Self::echo_completion(tabs);
 
-                    tx_shutdown.send(MainShutdown {}).await.ok();
+                    tx_shutdown.send(MainShutdown(0)).await.ok();
                 }
             }
 
