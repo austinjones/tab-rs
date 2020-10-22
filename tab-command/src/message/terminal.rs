@@ -1,22 +1,14 @@
-use crate::state::{terminal::TerminalMode, workspace::WorkspaceTab};
+use crate::state::terminal::TerminalMode;
 
 #[derive(Debug, Clone)]
 pub enum TerminalRecv {
-    FuzzyTabs(Vec<WorkspaceTab>),
     Mode(TerminalMode),
 }
 
 #[derive(Debug, Clone)]
 pub enum TerminalSend {
+    FuzzyRequest,
     FuzzySelection(String),
-}
-
-impl TerminalSend {
-    pub fn fuzzy_selection(&self) -> Option<String> {
-        match self {
-            TerminalSend::FuzzySelection(name) => Some(name.clone()),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

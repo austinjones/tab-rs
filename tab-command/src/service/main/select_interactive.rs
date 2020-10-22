@@ -1,7 +1,6 @@
 use crate::{
-    message::main::MainRecv, message::terminal::TerminalRecv, message::terminal::TerminalSend,
-    prelude::*, state::tabs::ActiveTabsState, state::terminal::TerminalMode,
-    state::workspace::WorkspaceState, utils::await_message, utils::await_state,
+    message::main::MainRecv, message::tabs::TabRecv, message::terminal::TerminalRecv, prelude::*,
+    state::terminal::TerminalMode,
 };
 
 pub struct MainSelectInteractiveService {
@@ -13,32 +12,21 @@ impl Service for MainSelectInteractiveService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_active_tabs = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
-        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
-        let mut rx_terminal = bus.rx::<TerminalSend>()?;
+        let mut rx = bus.rx::<MainRecv>()?.log();
 
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
-        let mut tx_main = bus.tx::<MainRecv>()?;
+        let mut tx_tab = bus.tx::<TabRecv>()?;
 
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::SelectInteractive = msg {
+                    info!("MainRecv::SelectInteractive running");
                     tx_terminal
                         .send(TerminalRecv::Mode(TerminalMode::FuzzyFinder))
                         .await?;
 
-                    let active_tabs = await_state(&mut rx_active_tabs).await?;
-                    let workspace = await_state(&mut rx_workspace)
-                        .await?
-                        .with_active_tabs(&active_tabs);
-
-                    tx_terminal
-                        .send(TerminalRecv::FuzzyTabs(workspace.tabs))
-                        .await?;
-
-                    let tab = await_message(&mut rx_terminal, |msg| msg.fuzzy_selection()).await?;
-                    tx_main.send(MainRecv::SelectTab(tab)).await?;
+                    tx_tab.send(TabRecv::DeselectTab).await?;
+                    tx_tab.send(TabRecv::ScanWorkspace).await?;
                 }
             }
 

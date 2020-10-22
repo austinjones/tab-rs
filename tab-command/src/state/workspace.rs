@@ -1,50 +1,20 @@
 use super::{
-    tabs::ActiveTabsState, workspace_err::ConfigVariantError, workspace_err::NoConfigVariantError,
+    workspace_err::ConfigVariantError, workspace_err::NoConfigVariantError,
     workspace_err::WorkspaceError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, collections::HashSet, path::Path, path::PathBuf};
+use std::{collections::HashMap, collections::HashSet, path::Path, path::PathBuf, sync::Arc};
 use tab_api::tab::normalize_name;
 use typed_builder::TypedBuilder;
 
 /// The client's view of the workspace configuration
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct WorkspaceState {
-    pub tabs: Vec<WorkspaceTab>,
+    pub tabs: Arc<Vec<WorkspaceTab>>,
     pub errors: Vec<String>,
 }
 
 impl WorkspaceState {
-    pub fn with_active_tabs(&self, active_tabs: &ActiveTabsState) -> WorkspaceState {
-        let mut tabs = self.tabs.clone();
-
-        let workspace_tabs = self.into_name_set();
-
-        for (_id, metadata) in active_tabs.tabs.iter() {
-            if workspace_tabs.contains(&metadata.name) {
-                continue;
-            }
-
-            let tab = WorkspaceTab {
-                name: metadata.name.clone(),
-                doc: metadata.doc.clone(),
-                directory: PathBuf::from(&metadata.dir),
-                shell: None,
-                env: None,
-            };
-
-            tabs.push(tab);
-        }
-
-        tabs.sort_by(|a, b| a.name.cmp(&b.name));
-        tabs.dedup_by_key(|tab| tab.name.clone());
-
-        WorkspaceState {
-            tabs,
-            errors: self.errors.clone(),
-        }
-    }
-
     pub fn into_name_set(&self) -> HashSet<String> {
         self.tabs.iter().map(|tab| tab.name.clone()).collect()
     }

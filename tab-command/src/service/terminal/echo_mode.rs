@@ -1,10 +1,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
-use crate::prelude::*;
+use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
+
+use super::echo_input::{Action, InputFilter, KeyBindings};
 
 static RAW_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
 
@@ -44,12 +46,12 @@ impl Service for TerminalEchoService {
         enable_raw_mode();
 
         let rx = bus.rx::<TerminalOutput>()?;
-        let tx = bus.tx::<TerminalInput>()?;
-        let tx_shutdown = bus.tx::<TerminalShutdown>()?;
-
         let _output = Self::try_task("stdout", print_stdout(rx));
 
-        let _input = Self::try_task("stdin", forward_stdin(tx, tx_shutdown));
+        let tx = bus.tx::<TerminalInput>()?;
+        let tx_terminal = bus.tx::<TerminalSend>()?;
+        let tx_shutdown = bus.tx::<TerminalShutdown>()?;
+        let _input = Self::try_task("stdin", forward_stdin(tx, tx_terminal, tx_shutdown));
 
         Ok(TerminalEchoService { _input, _output })
     }
@@ -63,36 +65,41 @@ impl Drop for TerminalEchoService {
 
 async fn forward_stdin(
     mut tx: impl Sender<TerminalInput>,
+    mut tx_terminal: impl Sender<TerminalSend>,
     mut tx_shutdown: impl Sender<TerminalShutdown>,
 ) -> anyhow::Result<()> {
     info!("listening for stdin");
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
+    let mut filter: InputFilter = KeyBindings::default().into();
 
     while let Ok(read) = stdin.read(buffer.as_mut_slice()).await {
         if read == 0 {
             continue;
         }
 
-        let mut buf = vec![0; read];
-        buf.copy_from_slice(&buffer[0..read]);
+        let input = filter.input(&buffer[0..read]);
 
-        // this is ctrl-w
-        if buf.contains(&23u8) {
-            // write a newline.
-            // this prevents a situation like this:
-            // $ child terminal <ctrl-W> $ parent terminal
-            tokio::io::stdout().write("\r\n".as_bytes()).await?;
-            tx_shutdown.send(TerminalShutdown {}).await?;
-            break;
-        }
+        let buf: Vec<u8> = input.data.into();
 
         trace!("stdin chunk of len {}", read);
-        // TODO: use selected tab
-        // TODO: better error handling for broadcast
+
         tx.send(TerminalInput::Stdin(buf))
             .await
             .context("tx TerminalSend::Stdin")?;
+
+        if let Some(action) = input.action {
+            match action {
+                Action::Disconnect => {
+                    tx_shutdown.send(TerminalShutdown {}).await?;
+                }
+                Action::SelectInteractive => {
+                    tx_terminal.send(TerminalSend::FuzzyRequest).await?;
+                }
+            }
+
+            break;
+        }
     }
 
     Ok(())

@@ -6,6 +6,7 @@ use tokio::sync::watch;
 #[error("state never resolved to a value")]
 pub struct StateUninitalizedError {}
 
+#[allow(dead_code)]
 pub async fn await_message<T: Clone, F, R>(
     channel: &mut impl Receiver<T>,
     mut condition: F,

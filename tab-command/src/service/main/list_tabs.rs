@@ -1,5 +1,5 @@
 use crate::{
-    message::main::MainRecv, message::main::MainShutdown, prelude::*, state::tabs::ActiveTabsState,
+    message::main::MainRecv, message::main::MainShutdown, prelude::*,
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab, utils::await_state,
 };
 
@@ -13,7 +13,6 @@ impl Service for MainListTabsService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
         let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
 
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
@@ -21,10 +20,7 @@ impl Service for MainListTabsService {
         let _run = Self::try_task("run", async move {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::ListTabs = msg {
-                    let active_tabs = await_state(&mut rx_active).await?;
-                    let workspace = await_state(&mut rx_workspace)
-                        .await?
-                        .with_active_tabs(&active_tabs);
+                    let workspace = await_state(&mut rx_workspace).await?;
 
                     if workspace.errors.len() > 0 {
                         eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.");

@@ -1,10 +1,10 @@
 use std::{io::Write, sync::Arc};
 
 use crate::{
-    env::terminal_size, message::fuzzy::FuzzyEvent, message::fuzzy::FuzzyRecv,
-    message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown, prelude::*,
-    state::fuzzy::FuzzyMatch, state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent,
-    state::fuzzy::FuzzyOutputMatch, state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState,
+    env::terminal_size, message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection,
+    message::fuzzy::FuzzyShutdown, prelude::*, state::fuzzy::FuzzyMatch,
+    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyOutputMatch,
+    state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState, state::fuzzy::FuzzyTabsState,
     state::fuzzy::TabEntry, state::fuzzy::Token, state::fuzzy::TokenJoin,
 };
 use crossterm::{
@@ -19,7 +19,7 @@ use crossterm::{
 };
 use crossterm::{event::Event, event::EventStream, event::KeyCode, terminal::enable_raw_mode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use tokio::{stream::Stream, stream::StreamExt};
+use tokio::{stream::Stream, stream::StreamExt, sync::watch};
 
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;
@@ -55,8 +55,8 @@ impl Service for FuzzyFinderService {
         };
 
         let _filter_state = {
-            let rx = bus.rx::<FuzzyRecv>()?;
-            let rx_query = bus.rx::<FuzzyQueryState>()?;
+            let rx = bus.rx::<Option<FuzzyTabsState>>()?.into_inner();
+            let rx_query = bus.rx::<FuzzyQueryState>()?.into_inner();
             let tx = bus.tx::<FuzzyMatchState>()?;
             Self::try_task("filter_state", Self::filter_state(rx, rx_query, tx))
         };
@@ -123,6 +123,11 @@ impl Service for FuzzyFinderService {
     }
 }
 
+enum FilterEvent {
+    Tabs(Option<FuzzyTabsState>),
+    Query(FuzzyQueryState),
+}
+
 impl FuzzyFinderService {
     async fn input(
         mut tx_event: impl Sender<FuzzyEvent>,
@@ -164,6 +169,11 @@ impl FuzzyFinderService {
                                 Self::clear_all()?;
                                 continue;
                             }
+
+                            if key.modifiers.eq(&KeyModifiers::CONTROL) {
+                                continue;
+                            }
+
                             tx_event.send(FuzzyEvent::Insert(ch)).await?;
                         }
                         KeyCode::Esc => {
@@ -238,69 +248,82 @@ impl FuzzyFinderService {
     }
 
     async fn filter_state(
-        mut rx: impl Receiver<FuzzyRecv>,
-        mut rx_query: impl Receiver<FuzzyQueryState>,
+        rx: watch::Receiver<Option<FuzzyTabsState>>,
+        rx_query: watch::Receiver<FuzzyQueryState>,
         mut tx: impl Sender<FuzzyMatchState>,
     ) -> anyhow::Result<()> {
         let matcher = SkimMatcherV2::default();
-        let mut last_query = None;
 
-        if let Some(db) = rx.recv().await {
-            let entries = TabEntry::build(db.tabs);
+        let mut rx = rx
+            .map(|event| FilterEvent::Tabs(event))
+            .merge(rx_query.map(|event| FilterEvent::Query(event)));
 
-            while let Some(state) = rx_query.recv().await {
-                if last_query.is_some() && last_query.as_ref().unwrap() == &state.query {
-                    continue;
-                }
+        let mut entries = TabEntry::build(&Vec::with_capacity(0));
+        let mut query = "".to_string();
+        let mut query_lowercase = "".to_string();
 
-                let mut matches = Vec::new();
-                if state.query == "" {
-                    for tab in entries.iter() {
-                        matches.push(FuzzyMatch {
-                            score: 0,
-                            indices: Vec::new(),
-                            tab: tab.clone(),
-                        });
-                    }
-
-                    last_query = Some(state.query);
-                    tx.send(FuzzyMatchState {
-                        matches,
-                        total: entries.len(),
-                    })
-                    .await?;
-                    continue;
-                }
-
-                let mut matches = Vec::new();
-                for entry in entries.iter() {
-                    // TODO: save lowercase strings for performance?
-                    let fuzzy_match = matcher.fuzzy_indices(
-                        entry.display.as_str().to_ascii_lowercase().as_str(),
-                        state.query.as_str().to_ascii_lowercase().as_str(),
-                    );
-
-                    if let Some((score, indices)) = fuzzy_match {
-                        let tab_match = FuzzyMatch {
-                            score,
-                            indices,
-                            tab: entry.clone(),
-                        };
-
-                        matches.push(tab_match);
+        while let Some(event) = rx.next().await {
+            match event {
+                FilterEvent::Tabs(state) => {
+                    if let Some(ref tabs) = state {
+                        entries = TabEntry::build(&tabs.tabs);
                     }
                 }
+                FilterEvent::Query(state) => {
+                    if state.query == query {
+                        continue;
+                    }
 
-                matches.sort_by_key(|elem| elem.score);
-                matches.reverse();
+                    query_lowercase = state.query.to_ascii_lowercase();
+                    query = state.query;
+                }
+            }
 
-                last_query = Some(state.query);
+            let mut matches = Vec::new();
+            if query == "" {
+                for tab in entries.iter() {
+                    matches.push(FuzzyMatch {
+                        score: 0,
+                        indices: Vec::new(),
+                        tab: tab.clone(),
+                    });
+                }
+
                 tx.send(FuzzyMatchState {
                     matches,
                     total: entries.len(),
                 })
                 .await?;
+                continue;
             }
+
+            let mut matches = Vec::new();
+            for entry in entries.iter() {
+                // TODO: save lowercase strings for performance?
+                let fuzzy_match = matcher.fuzzy_indices(
+                    entry.display.as_str().to_ascii_lowercase().as_str(),
+                    query_lowercase.as_str(),
+                );
+
+                if let Some((score, indices)) = fuzzy_match {
+                    let tab_match = FuzzyMatch {
+                        score,
+                        indices,
+                        tab: entry.clone(),
+                    };
+
+                    matches.push(tab_match);
+                }
+            }
+
+            matches.sort_by_key(|elem| elem.score);
+            matches.reverse();
+
+            tx.send(FuzzyMatchState {
+                matches,
+                total: entries.len(),
+            })
+            .await?;
         }
 
         Ok(())

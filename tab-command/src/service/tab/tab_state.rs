@@ -1,4 +1,4 @@
-use crate::state::tab::{SelectTab, TabState};
+use crate::state::tab::{DeselectTab, SelectTab, TabState};
 use crate::{prelude::*, state::terminal::TerminalSizeState};
 
 use std::collections::HashMap;
@@ -12,6 +12,7 @@ pub struct TabStateService {
 
 enum Event {
     Select(SelectTab),
+    Deselect(DeselectTab),
     Metadata(TabMetadata),
 }
 
@@ -21,6 +22,7 @@ impl Service for TabStateService {
 
     fn spawn(bus: &TabBus) -> Self::Lifeline {
         let rx_select = bus.rx::<SelectTab>()?;
+        let rx_deselect = bus.rx::<DeselectTab>()?;
         let rx_tab_metadata = bus
             .rx::<TabMetadata>()?
             .into_inner()
@@ -37,7 +39,8 @@ impl Service for TabStateService {
             let mut events = {
                 let tabs = rx_select.map(|elem| Event::Select(elem));
                 let tab_metadatas = rx_tab_metadata.map(|elem| Event::Metadata(elem));
-                tabs.merge(tab_metadatas)
+                let deselect = rx_deselect.map(|elem| Event::Deselect(elem));
+                tabs.merge(tab_metadatas).merge(deselect)
             };
 
             let mut tabs: HashMap<String, TabId> = HashMap::new();
@@ -87,6 +90,14 @@ impl Service for TabStateService {
                         let id = metadata.id;
                         let name = metadata.name;
                         tabs.insert(name, id);
+                    }
+                    Event::Deselect(_deselect) => {
+                        if let TabState::Selected(id) = state {
+                            tx_websocket.send(Request::Unsubscribe(id)).await?;
+                        }
+
+                        state = TabState::None;
+                        tx.send(state.clone()).await?;
                     }
                 }
             }

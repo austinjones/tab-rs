@@ -1,7 +1,18 @@
-use crate::{prelude::*, state::workspace::WorkspaceState};
-use lifeline::Service;
+use std::{
+    collections::HashSet,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-use self::loader::scan_config;
+use crate::{
+    message::tabs::ScanWorkspace, prelude::*, state::tabs::ActiveTabsState,
+    state::workspace::WorkspaceState, state::workspace::WorkspaceTab,
+};
+use lifeline::Service;
+use tokio::stream::StreamExt;
+
+use self::loader::{scan_config, WorkspaceTabs};
 
 mod loader;
 mod repo;
@@ -12,32 +23,128 @@ pub struct WorkspaceService {
     _scan: Lifeline,
 }
 
+enum Event {
+    ScanWorkspace,
+    ActiveState(Option<ActiveTabsState>),
+}
+
+impl Event {
+    pub fn scan(_event: ScanWorkspace) -> Self {
+        Self::ScanWorkspace
+    }
+
+    pub fn active(event: Option<ActiveTabsState>) -> Self {
+        Self::ActiveState(event)
+    }
+}
+
 impl Service for WorkspaceService {
     type Bus = TabBus;
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
+        let rx_scan = bus.rx::<ScanWorkspace>()?.into_inner();
+        let rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+
+        let mut rx = rx_scan.map(Event::scan).merge(rx_active.map(Event::active));
         let mut tx = bus.tx::<Option<WorkspaceState>>()?;
 
+        #[allow(unreachable_code)]
         let _scan = Self::try_task("scan", async move {
-            let dir = std::env::current_dir()?;
-            let state = scan_config(dir.as_path(), None);
+            let mut last_update = None;
+            let mut last_active = None;
 
-            let errors: Vec<String> = state
-                .errors()
-                .into_iter()
-                .map(|err| format!("{}", err))
-                .collect();
+            while let Some(event) = rx.next().await {
+                // for either event, we update the workspace
+                match event {
+                    Event::ScanWorkspace => {}
+                    Event::ActiveState(active) => {
+                        last_active = active;
+                    }
+                }
 
-            let tabs = state.ok();
+                if let Some(last_update) = last_update {
+                    if Instant::now() - last_update < Duration::from_secs(1) {
+                        continue;
+                    }
+                }
 
-            let state = WorkspaceState { tabs, errors };
-            tx.send(Some(state)).await.ok();
+                Self::update(&mut tx, last_active.as_ref()).await?;
+                last_update = Some(Instant::now());
+            }
 
             Ok(())
         });
 
         Ok(Self { _scan })
+    }
+}
+
+impl WorkspaceService {
+    async fn update(
+        tx: &mut impl Sender<Option<WorkspaceState>>,
+        active: Option<&ActiveTabsState>,
+    ) -> anyhow::Result<()> {
+        info!("Scanning workspace");
+        let dir = std::env::current_dir()?;
+        let scan = scan_config(dir.as_path(), None);
+
+        let errors: Vec<String> = scan
+            .errors()
+            .into_iter()
+            .map(|err| format!("{}", err))
+            .collect();
+
+        let tabs = if let Some(active) = active {
+            Self::with_active_tabs(scan, active)
+        } else {
+            scan.ok()
+        };
+
+        let state = WorkspaceState {
+            tabs: Arc::new(tabs),
+            errors,
+        };
+
+        tx.send(Some(state)).await.ok();
+
+        Ok(())
+    }
+
+    pub fn with_active_tabs(
+        scan: WorkspaceTabs,
+        active_tabs: &ActiveTabsState,
+    ) -> Vec<WorkspaceTab> {
+        // let workspace_tabs = scan.as_name_set();
+
+        let mut tabs = Vec::with_capacity(scan.len());
+        tabs.append(&mut scan.ok());
+        let scan_tab_names: HashSet<&String> = tabs.iter().map(|tab| &tab.name).collect();
+
+        let mut new_tabs = Vec::with_capacity(active_tabs.tabs.len());
+        for (_id, metadata) in active_tabs.tabs.iter() {
+            if scan_tab_names.contains(&metadata.name) {
+                continue;
+            }
+
+            let tab = WorkspaceTab {
+                name: metadata.name.clone(),
+                doc: metadata.doc.clone(),
+                directory: PathBuf::from(&metadata.dir),
+                shell: None,
+                env: None,
+            };
+
+            new_tabs.push(tab);
+        }
+
+        drop(scan_tab_names);
+        tabs.append(&mut new_tabs);
+
+        tabs.sort_by(|a, b| a.name.cmp(&b.name));
+        tabs.dedup_by_key(|tab| tab.name.clone());
+
+        tabs
     }
 }
 

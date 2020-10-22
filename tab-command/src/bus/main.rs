@@ -2,7 +2,6 @@ use crate::{
     message::main::{MainRecv, MainShutdown},
     message::tabs::TabRecv,
     message::terminal::TerminalRecv,
-    message::terminal::TerminalSend,
     state::tabs::ActiveTabsState,
     state::workspace::WorkspaceState,
 };
@@ -27,10 +26,6 @@ impl Message<MainBus> for MainRecv {
 // Terminal
 impl Message<MainBus> for TerminalRecv {
     type Channel = mpsc::Sender<Self>;
-}
-
-impl Message<MainBus> for TerminalSend {
-    type Channel = broadcast::Sender<Self>;
 }
 
 // Tabs / Tab State

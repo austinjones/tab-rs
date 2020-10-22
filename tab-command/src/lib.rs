@@ -60,28 +60,44 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
     let select_tab = matches.value_of("TAB-NAME");
     let shutdown = matches.is_present("SHUTDOWN");
 
-    let (mut tx, rx_shutdown, _service) = spawn(tab_version).await?;
+    let spawn_result = spawn(tab_version).await;
 
+    if let Err(e) = spawn_result {
+        error!("Failed to initialize the tab command: {}", e);
+        return Err(e);
+    }
+
+    let (mut tx, rx_shutdown, _service) = spawn_result.unwrap();
+
+    debug!("Parsing CLI arguments...");
     if shutdown {
+        info!("CLI Match: GlobalShutdown");
         tx.send(MainRecv::GlobalShutdown).await?;
     } else if completion {
+        info!("CLI Match: AutocompleteTab");
         tx.send(MainRecv::AutocompleteTab).await?;
     } else if close_completion {
+        info!("CLI Match: AutocompleteCloseTab");
         tx.send(MainRecv::AutocompleteCloseTab).await?;
     } else if check_workspace {
+        info!("CLI Match: CheckWorkspace");
         tx.send(MainRecv::CheckWorkspace).await?;
     } else if matches.is_present("LIST") {
+        info!("CLI Match: ListTabs");
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
-        info!("selecting tab: {}", tab);
+        info!("CLI Match: SelectTab({})", &tab);
         tx.send(MainRecv::SelectTab(tab.to_string())).await?;
     } else if let Some(tabs) = close_tabs {
+        info!("CLI Match: CloseTabs({:?})", &tabs);
         let tabs: Vec<String> = tabs.map(normalize_name).collect();
         tx.send(MainRecv::CloseTabs(tabs)).await?;
     } else if let Some(tabs) = disconnect_tabs {
+        info!("CLI Match: DisconnectTabs({:?})", &tabs);
         let tabs: Vec<String> = tabs.map(normalize_name).collect();
         tx.send(MainRecv::DisconnectTabs(tabs)).await?;
     } else {
+        info!("CLI Match: SelectInteractive");
         tx.send(MainRecv::SelectInteractive).await?;
     }
 
@@ -119,6 +135,8 @@ async fn spawn(
 
     let tx = bus.tx::<MainRecv>()?;
     let main_shutdown = bus.rx::<MainShutdown>()?;
+
+    debug!("Main spawn complete");
 
     Ok((tx, main_shutdown, service))
 }

@@ -2,11 +2,11 @@ use std::time::Duration;
 
 use crate::{
     message::{
-        fuzzy::FuzzyRecv,
         main::MainShutdown,
-        tabs::{CreateTabRequest, TabRecv, TabShutdown, TabsRecv},
+        tabs::{CreateTabRequest, ScanWorkspace, TabRecv, TabShutdown, TabsRecv},
     },
     prelude::*,
+    state::tab::DeselectTab,
     state::{
         tab::{SelectOrRetaskTab, SelectTab, TabState},
         tabs::ActiveTabsState,
@@ -33,6 +33,10 @@ impl Message<TabBus> for SelectTab {
 }
 
 impl Message<TabBus> for SelectOrRetaskTab {
+    type Channel = mpsc::Sender<Self>;
+}
+
+impl Message<TabBus> for DeselectTab {
     type Channel = mpsc::Sender<Self>;
 }
 
@@ -64,12 +68,12 @@ impl Message<TabBus> for CreateTabRequest {
     type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<TabBus> for Option<WorkspaceState> {
-    type Channel = watch::Sender<Self>;
+impl Message<TabBus> for ScanWorkspace {
+    type Channel = mpsc::Sender<Self>;
 }
 
-impl Message<TabBus> for FuzzyRecv {
-    type Channel = mpsc::Sender<Self>;
+impl Message<TabBus> for Option<WorkspaceState> {
+    type Channel = watch::Sender<Self>;
 }
 
 /// Carries messages between the MainBus, and the TabBus
@@ -77,14 +81,13 @@ impl Message<TabBus> for FuzzyRecv {
 /// Forwards Request messages, propagates shutdowns, and translates Response messages.
 /// Forwards TabState.
 pub struct MainTabCarrier {
-    pub(super) _tx_selected: Lifeline,
-    pub(super) _forward_recv: Lifeline,
-    pub(super) _forward_request: Lifeline,
-    pub(super) _forward_shutdown: Lifeline,
-    pub(super) _forward_active_tabs: Lifeline,
-    pub(super) _forward_workspace: Lifeline,
-    // pub(super) _create_tab: Lifeline,
-    pub(super) _rx_response: Lifeline,
+    _tx_selected: Lifeline,
+    _forward_recv: Lifeline,
+    _forward_request: Lifeline,
+    _forward_shutdown: Lifeline,
+    _forward_active_tabs: Lifeline,
+    _forward_workspace: Lifeline,
+    _rx_response: Lifeline,
 }
 
 impl CarryFrom<MainBus> for TabBus {
@@ -94,11 +97,20 @@ impl CarryFrom<MainBus> for TabBus {
         let _forward_recv = {
             let mut rx_tab = from.rx::<TabRecv>()?;
             let mut tx_select = self.tx::<SelectOrRetaskTab>()?;
+            let mut tx_deselect = self.tx::<DeselectTab>()?;
+            let mut tx_scan = self.tx::<ScanWorkspace>()?;
+
             Self::try_task("forward_create", async move {
                 while let Some(msg) = rx_tab.recv().await {
                     match msg {
                         TabRecv::SelectNamedTab { name, env_tab } => {
                             tx_select.send(SelectOrRetaskTab { name, env_tab }).await?;
+                        }
+                        TabRecv::DeselectTab => {
+                            tx_deselect.send(DeselectTab {}).await?;
+                        }
+                        TabRecv::ScanWorkspace => {
+                            tx_scan.send(ScanWorkspace {}).await?;
                         }
                     }
                 }

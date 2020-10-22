@@ -1,6 +1,18 @@
 use std::sync::Arc;
 
-use super::workspace::WorkspaceTab;
+use super::workspace::{WorkspaceState, WorkspaceTab};
+#[derive(Debug, Clone)]
+pub struct FuzzyTabsState {
+    pub tabs: Arc<Vec<WorkspaceTab>>,
+}
+
+impl From<WorkspaceState> for FuzzyTabsState {
+    fn from(workspace: WorkspaceState) -> Self {
+        Self {
+            tabs: workspace.tabs,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct FuzzyQueryState {
@@ -66,7 +78,7 @@ pub struct TabEntry {
 }
 
 impl TabEntry {
-    pub fn build(tabs: Vec<WorkspaceTab>) -> Vec<Arc<Self>> {
+    pub fn build(tabs: &Vec<WorkspaceTab>) -> Vec<Arc<Self>> {
         let mut entries = Vec::with_capacity(tabs.len());
         let prefix_len = Self::tab_len(&tabs);
 
@@ -84,8 +96,8 @@ impl TabEntry {
             }
 
             let tab = Self {
-                name: tab.name,
-                doc: tab.doc,
+                name: tab.name.clone(),
+                doc: tab.doc.clone(),
                 display,
             };
 

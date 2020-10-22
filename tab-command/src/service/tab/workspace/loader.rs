@@ -138,6 +138,10 @@ impl WorkspaceTabs {
 
         errors
     }
+
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
 }
 
 pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {
