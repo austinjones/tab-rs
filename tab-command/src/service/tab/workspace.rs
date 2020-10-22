@@ -1,13 +1,11 @@
-use std::{
-    collections::HashSet,
-    path::PathBuf,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{collections::HashSet, path::Path, path::PathBuf, sync::Arc};
 
 use crate::{
-    message::tabs::ScanWorkspace, prelude::*, state::tabs::ActiveTabsState,
-    state::workspace::WorkspaceState, state::workspace::WorkspaceTab,
+    message::tabs::ScanWorkspace,
+    prelude::*,
+    state::tabs::ActiveTabsState,
+    state::workspace::WorkspaceState,
+    state::{tab::TabMetadataState, workspace::WorkspaceTab},
 };
 use lifeline::Service;
 use tokio::stream::StreamExt;
@@ -25,12 +23,17 @@ pub struct WorkspaceService {
 
 enum Event {
     ScanWorkspace,
+    MetadataState(TabMetadataState),
     ActiveState(Option<ActiveTabsState>),
 }
 
 impl Event {
     pub fn scan(_event: ScanWorkspace) -> Self {
         Self::ScanWorkspace
+    }
+
+    pub fn metadata(event: TabMetadataState) -> Self {
+        Self::MetadataState(event)
     }
 
     pub fn active(event: Option<ActiveTabsState>) -> Self {
@@ -44,15 +47,20 @@ impl Service for WorkspaceService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let rx_scan = bus.rx::<ScanWorkspace>()?.into_inner();
+        let rx_metadata = bus.rx::<TabMetadataState>()?.into_inner();
         let rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
 
-        let mut rx = rx_scan.map(Event::scan).merge(rx_active.map(Event::active));
+        let mut rx = rx_scan
+            .map(Event::scan)
+            .merge(rx_active.map(Event::active))
+            .merge(rx_metadata.map(Event::metadata));
+
         let mut tx = bus.tx::<Option<WorkspaceState>>()?;
 
         #[allow(unreachable_code)]
         let _scan = Self::try_task("scan", async move {
-            let mut last_update = None;
             let mut last_active = None;
+            let mut current_dir = std::env::current_dir()?;
 
             while let Some(event) = rx.next().await {
                 // for either event, we update the workspace
@@ -61,16 +69,24 @@ impl Service for WorkspaceService {
                     Event::ActiveState(active) => {
                         last_active = active;
                     }
-                }
+                    Event::MetadataState(metadata) => {
+                        if let TabMetadataState::Selected(metadata) = metadata {
+                            let path = PathBuf::from(&metadata.dir);
 
-                if let Some(last_update) = last_update {
-                    if Instant::now() - last_update < Duration::from_secs(1) {
-                        continue;
+                            if !path.exists() {
+                                warn!(
+                                    "Tab metadata path ({}) does not exist: {}",
+                                    &metadata.name, &metadata.dir,
+                                );
+                                continue;
+                            }
+
+                            current_dir = path;
+                        }
                     }
                 }
 
-                Self::update(&mut tx, last_active.as_ref()).await?;
-                last_update = Some(Instant::now());
+                Self::update(&mut tx, last_active.as_ref(), current_dir.as_path()).await?;
             }
 
             Ok(())
@@ -84,10 +100,10 @@ impl WorkspaceService {
     async fn update(
         tx: &mut impl Sender<Option<WorkspaceState>>,
         active: Option<&ActiveTabsState>,
+        current_dir: &Path,
     ) -> anyhow::Result<()> {
         info!("Scanning workspace");
-        let dir = std::env::current_dir()?;
-        let scan = scan_config(dir.as_path(), None);
+        let scan = scan_config(current_dir, None);
 
         let errors: Vec<String> = scan
             .errors()

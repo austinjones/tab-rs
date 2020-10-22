@@ -8,6 +8,7 @@ use crate::{
     prelude::*,
     state::tab::DeselectTab,
     state::{
+        tab::TabMetadataState,
         tab::{SelectOrRetaskTab, SelectTab, TabState},
         tabs::ActiveTabsState,
         terminal::TerminalSizeState,
@@ -16,9 +17,8 @@ use crate::{
 };
 use anyhow::Context;
 
-use tab_api::tab::TabMetadata;
 use tokio::{
-    sync::{broadcast, mpsc, watch},
+    sync::{mpsc, watch},
     time,
 };
 
@@ -44,8 +44,8 @@ impl Message<TabBus> for TabState {
     type Channel = watch::Sender<Self>;
 }
 
-impl Message<TabBus> for TabMetadata {
-    type Channel = broadcast::Sender<Self>;
+impl Message<TabBus> for TabMetadataState {
+    type Channel = watch::Sender<Self>;
 }
 
 impl Message<TabBus> for TerminalSizeState {
@@ -168,7 +168,6 @@ impl CarryFrom<MainBus> for TabBus {
             let mut rx_response = from.rx::<Response>()?;
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;
-            let mut tx_tab_metadata = self.tx::<TabMetadata>()?;
             let mut tx_select_tab = self.tx::<SelectTab>()?;
 
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
@@ -183,11 +182,6 @@ impl CarryFrom<MainBus> for TabBus {
                                 .context("tx TabsRecv::Init")?;
                         }
                         Response::TabUpdate(tab) => {
-                            tx_tab_metadata
-                                .send(tab.clone())
-                                .await
-                                .context("send TabMetadata")?;
-
                             tx_tabs
                                 .send(TabsRecv::Update(tab))
                                 .await

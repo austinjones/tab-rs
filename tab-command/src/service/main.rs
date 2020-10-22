@@ -16,7 +16,6 @@ use crate::prelude::*;
 
 use lifeline::dyn_bus::DynBus;
 
-use tab_api::tab::TabMetadata;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
@@ -69,7 +68,6 @@ impl Service for MainService {
         let _main_select_tab = MainSelectTabService::spawn(main_bus)?;
 
         let tab_bus = TabBus::default();
-        tab_bus.capacity::<TabMetadata>(256)?;
 
         let _main_tab = tab_bus.carry_from(main_bus)?;
 

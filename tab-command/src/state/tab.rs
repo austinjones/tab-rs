@@ -1,4 +1,4 @@
-use tab_api::tab::TabId;
+use tab_api::tab::{TabId, TabMetadata};
 
 /// The select tab action, either by name or id
 #[derive(Debug, Clone, PartialEq)]
@@ -43,6 +43,19 @@ impl TabState {
 }
 
 impl Default for TabState {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+/// The client's selected tab state.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TabMetadataState {
+    None,
+    Selected(TabMetadata),
+}
+
+impl Default for TabMetadataState {
     fn default() -> Self {
         Self::None
     }
