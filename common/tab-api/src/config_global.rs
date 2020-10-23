@@ -1,8 +1,8 @@
 /// The full path to the global configuration file
-pub fn global_config_file() -> anyhow::Result<PathBuf> {
+pub fn global_config_file() -> Option<PathBuf> {
     if let Some(mut home_path) = dirs::home_dir() {
         home_path.push(".config");
-        home_path.push("tab.yml");
+        home_path.push("tab-config.yml");
 
         if home_path.exists() {
             return Some(home_path);
@@ -10,14 +10,14 @@ pub fn global_config_file() -> anyhow::Result<PathBuf> {
     }
 
     if let Some(mut config_path) = dirs::config_dir() {
-        config_path.push("tab.yml");
+        config_path.push("tab-config.yml");
 
         if config_path.exists() {
             return Some(config_path);
         }
     }
 
-    Ok(GlobalConfig::default())
+    None
 }
 
 pub fn global_config() -> anyhow::Result<GlobalConfig> {}
