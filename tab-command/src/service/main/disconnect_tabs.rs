@@ -58,7 +58,7 @@ impl MainDisconnectTabsService {
                 let id = tab.parse()?;
                 tx_websocket.send(Request::DisconnectTab(id)).await?;
             } else {
-                eprintln!("No arguments or current tab was detected.");
+                eprintln!("No arguments or current tab were detected.");
                 return Ok(1);
             }
 

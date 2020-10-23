@@ -1,0 +1,5 @@
+---
+source: tab/tests/remote_disconnect.rs
+expression: result.snapshot
+---
+$ $TAB_BIN --disconnect

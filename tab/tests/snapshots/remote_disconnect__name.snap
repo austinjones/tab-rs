@@ -1,0 +1,6 @@
+---
+source: tab/tests/remote_disconnect.rs
+expression: result.snapshot
+---
+$ TAB_ID='' $TAB_BIN --disconnect remote_disconnect_name/
+

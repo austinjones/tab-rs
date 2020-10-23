@@ -7,16 +7,16 @@ use common::*;
 /// Covers connection, ctrl-W, disconnection, and scrollback
 #[tokio::test]
 async fn reconnect() -> anyhow::Result<()> {
-    let mut session = TestSession::new()?;
+    let session = TestSession::new()?;
 
     for i in 0..10 {
-        reconnect_iter(&mut session, i).await?;
+        reconnect_iter(&session, i).await?;
     }
 
     Ok(())
 }
 
-async fn reconnect_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<()> {
+async fn reconnect_iter(session: &TestSession, iter: usize) -> anyhow::Result<()> {
     let tab = format!("reconnect/{}/", iter);
     let result = session
         .command()

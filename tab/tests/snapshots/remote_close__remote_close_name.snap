@@ -1,0 +1,6 @@
+---
+source: tab/tests/remote_close.rs
+expression: result.snapshot
+---
+$ TAB_ID='' $TAB_BIN --close remote_close_name/
+

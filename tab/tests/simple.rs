@@ -7,7 +7,7 @@ use common::*;
 /// Covers connection, ctrl-W, disconnection, and scrollback
 #[tokio::test]
 async fn reconnect() -> anyhow::Result<()> {
-    let mut session = TestSession::new()?;
+    let session = TestSession::new()?;
 
     let result = session
         .command()

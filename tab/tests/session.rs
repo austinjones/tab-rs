@@ -7,16 +7,16 @@ mod common;
 /// Covers connection, stdin/stdout, and pty shutdown/propagation.
 #[tokio::test]
 async fn session() -> anyhow::Result<()> {
-    let mut session = TestSession::new()?;
+    let session = TestSession::new()?;
 
     for i in 0..10 {
-        session_iter(&mut session, i).await?;
+        session_iter(&session, i).await?;
     }
 
     Ok(())
 }
 
-async fn session_iter(session: &mut TestSession, iter: usize) -> anyhow::Result<()> {
+async fn session_iter(session: &TestSession, iter: usize) -> anyhow::Result<()> {
     let tab = format!("session/{}/", iter);
 
     let result = session
