@@ -1,8 +1,12 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    io::Write,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
 use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
+use crossterm::QueueableCommand;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
 
@@ -27,8 +31,26 @@ pub fn disable_raw_mode() {
 
 pub fn reset_cursor() {
     if is_raw_mode() && RAW_MODE_ENABLED.load(Ordering::SeqCst) {
-        println!("{}", crossterm::cursor::Show {});
-        println!("{}", crossterm::cursor::DisableBlinking {});
+        let mut stdout = std::io::stdout();
+
+        stdout
+            .queue(crossterm::cursor::Show {})
+            .expect("failed to queue reset command")
+            .queue(crossterm::cursor::DisableBlinking {})
+            .expect("failed to queue reset command")
+            .queue(crossterm::terminal::LeaveAlternateScreen {})
+            .expect("failed to queue reset command");
+        // ansi escape sequence that exits alternate keypad mode
+
+        // this is the xterm rmkx value.
+        // taken from: https://invisible-island.net/xterm/terminfo-contents.html
+        // https://vi.stackexchange.com/questions/15324/up-arrow-key-code-why-a-becomes-oa
+        // https://github.com/austinjones/tab-rs/issues/215
+        stdout
+            .write("\x1b[?1l\x1b>".as_bytes())
+            .expect("failed to queue reset command");
+        stdout.flush().expect("failed to flush reset commands");
+
         debug!("cursor enabled");
     }
 }
