@@ -741,24 +741,9 @@ checksum = "2448f6066e80e3bfc792e9c98bf705b4b0fc6e8ef5b43e5889aff0eaa9c58743"
 
 [[package]]
 name = "lifeline"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ffec1c9827a455ba778012a58b4b2c2470e48d0b53b587681cc9ed6b2213e44"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures-util",
- "log",
- "pin-project",
- "regex",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "lifeline"
 version = "0.4.0"
-source = "git+https://github.com/austinjones/lifeline-rs.git#f89a2d68aa869b0bba4f40d70c22e121a331b71f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0de1b2d77a2fcdc810db29bd989ae18882e6b157370a56f4c778d8d6b1aca01e"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -1514,7 +1499,7 @@ dependencies = [
  "dialoguer",
  "dirs",
  "insta",
- "lifeline 0.3.3",
+ "lifeline",
  "log",
  "simplelog",
  "snailquote",
@@ -1536,7 +1521,7 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "dirs",
- "lifeline 0.4.0",
+ "lifeline",
  "log",
  "serde",
  "serde_yaml",
@@ -1555,7 +1540,7 @@ dependencies = [
  "crossterm",
  "dirs",
  "fuzzy-matcher",
- "lifeline 0.4.0",
+ "lifeline",
  "log",
  "maplit",
  "pretty_assertions",
@@ -1581,7 +1566,7 @@ dependencies = [
  "base64 0.13.0",
  "dirs",
  "http",
- "lifeline 0.4.0",
+ "lifeline",
  "log",
  "rand",
  "serde_yaml",
@@ -1605,7 +1590,7 @@ dependencies = [
  "bincode",
  "dirs",
  "futures 0.3.6",
- "lifeline 0.4.0",
+ "lifeline",
  "log",
  "rand",
  "serde_yaml",
@@ -1639,7 +1624,7 @@ dependencies = [
  "async-tungstenite",
  "bincode",
  "futures 0.3.6",
- "lifeline 0.4.0",
+ "lifeline",
  "log",
  "serde",
  "thiserror",
