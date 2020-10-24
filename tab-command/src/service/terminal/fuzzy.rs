@@ -21,7 +21,7 @@ use crossterm::{event::Event, event::EventStream, event::KeyCode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use tokio::{stream::Stream, stream::StreamExt, sync::watch};
 
-use super::echo_mode::enable_raw_mode;
+use super::{echo_mode::enable_raw_mode, reset_cursor};
 
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;
@@ -490,6 +490,7 @@ impl FuzzyFinderService {
 
     async fn output(mut rx: impl Receiver<FuzzyOutputEvent>) -> anyhow::Result<()> {
         enable_raw_mode();
+        reset_cursor();
 
         let mut stdout = std::io::stdout();
 
