@@ -1,6 +1,9 @@
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path, path::PathBuf};
 
+use serde::de::DeserializeOwned;
+
 use crate::state::{
+    workspace::Workspace,
     workspace::{Config, WorkspaceTab},
     workspace_err::LoadYamlError,
     workspace_err::WorkspaceError,
@@ -175,7 +178,32 @@ pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {
         working_dir = dir.parent();
     }
 
+    if let None = base {
+        scan_global_config(&mut builder);
+    }
+
     builder.build()
+}
+
+fn scan_global_config(builder: &mut WorkspaceBuilder) {
+    let global_config = match tab_api::config::global_config_file() {
+        Some(file) => file,
+        None => return,
+    };
+
+    let workdir = match dirs::home_dir().or_else(|| std::env::current_dir().ok()) {
+        Some(dir) => dir,
+        None => return,
+    };
+
+    let workspace: Result<Workspace, LoadYamlError> = load_file(global_config.as_path());
+
+    match workspace {
+        Ok(workspace) => build_workspace(builder, workdir.as_path(), workspace),
+        Err(e) => {
+            builder.err(WorkspaceError::load_error(e));
+        }
+    };
 }
 
 pub enum YmlResult {
@@ -230,7 +258,10 @@ fn yml_path(dir: &Path) -> Option<PathBuf> {
     None
 }
 
-fn load_file(path: &Path) -> Result<Config, LoadYamlError> {
+fn load_file<Conf>(path: &Path) -> Result<Conf, LoadYamlError>
+where
+    Conf: DeserializeOwned,
+{
     // TODO: figure out how to get rid fo the blocking IO
     let reader = File::open(path).map_err(|err| LoadYamlError::IoError(path.to_owned(), err))?;
 

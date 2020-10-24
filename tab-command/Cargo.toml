@@ -31,6 +31,9 @@ thiserror = "1.0"
 semver = "0.11"
 typed-builder = "0.7"
 
+# workspaces
+dirs = "3.0"
+
 # fuzzy
 fuzzy-matcher = "0.3"
 

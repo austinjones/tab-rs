@@ -10,7 +10,7 @@ use crossterm::QueueableCommand;
 use tab_api::env::is_raw_mode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
 
-use super::echo_input::{Action, InputFilter, KeyBindings};
+use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
 
 static RAW_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
 
@@ -93,7 +93,16 @@ async fn forward_stdin(
     info!("listening for stdin");
     let mut stdin = tokio::io::stdin();
     let mut buffer = vec![0u8; 512];
-    let mut filter: InputFilter = KeyBindings::default().into();
+
+    let key_bindings = match key_bindings() {
+        Ok(bindings) => bindings,
+        Err(e) => {
+            eprintln!("Warning: using default keybindings.  failed to parse key bindings in global config: {}", e);
+            KeyBindings::default()
+        }
+    };
+
+    let mut filter: InputFilter = key_bindings.into();
 
     while let Ok(read) = stdin.read(buffer.as_mut_slice()).await {
         if read == 0 {
