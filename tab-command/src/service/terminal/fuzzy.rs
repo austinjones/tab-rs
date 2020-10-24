@@ -17,9 +17,11 @@ use crossterm::{
     cursor::MoveTo, execute, style::Print, style::PrintStyledContent, terminal::Clear,
     terminal::ClearType, QueueableCommand,
 };
-use crossterm::{event::Event, event::EventStream, event::KeyCode, terminal::enable_raw_mode};
+use crossterm::{event::Event, event::EventStream, event::KeyCode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use tokio::{stream::Stream, stream::StreamExt, sync::watch};
+
+use super::echo_mode::enable_raw_mode;
 
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;
@@ -139,7 +141,6 @@ impl FuzzyFinderService {
         tx_event.send(FuzzyEvent::Resize(cols, rows)).await?;
 
         while let Some(event) = reader.next().await {
-            // println!("got event: {:?}", &event);
             if let Ok(event) = event {
                 match event {
                     Event::Key(key) => match key.code {
@@ -488,7 +489,7 @@ impl FuzzyFinderService {
     }
 
     async fn output(mut rx: impl Receiver<FuzzyOutputEvent>) -> anyhow::Result<()> {
-        enable_raw_mode()?;
+        enable_raw_mode();
 
         let mut stdout = std::io::stdout();
 
