@@ -89,6 +89,28 @@ pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
     Ok(Some(config))
 }
 
+/// The full path to the global configuration file
+pub fn global_config_file() -> Option<PathBuf> {
+    if let Some(mut home_path) = dirs::home_dir() {
+        home_path.push(".config");
+        home_path.push("tab.yml");
+
+        if home_path.exists() {
+            return Some(home_path);
+        }
+    }
+
+    if let Some(mut config_path) = dirs::config_dir() {
+        config_path.push("tab.yml");
+
+        if config_path.exists() {
+            return Some(config_path);
+        }
+    }
+
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::{daemon_file, data_path};

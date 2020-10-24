@@ -1553,6 +1553,7 @@ dependencies = [
  "anyhow",
  "clap",
  "crossterm",
+ "dirs",
  "fuzzy-matcher",
  "lifeline 0.4.0",
  "log",

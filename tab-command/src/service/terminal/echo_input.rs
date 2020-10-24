@@ -1,3 +1,96 @@
+use std::{fs::File, io::BufReader};
+
+use serde::Deserialize;
+use thiserror::Error;
+
+/// Parses the bindings in the global workspace config file.
+///
+/// If the config file does not exists, returns the default bindings.
+pub fn key_bindings() -> anyhow::Result<KeyBindings> {
+    let config = tab_api::config::global_config_file();
+    if let None = config {
+        return Ok(KeyBindings::default());
+    }
+
+    let file = File::open(config.unwrap())?;
+    let reader = BufReader::new(file);
+    let config: ConfigYml = serde_yaml::from_reader(reader)?;
+
+    let bindings = if let Some(bindings) = config.key_bindings {
+        let mut parsed_bindings = Vec::with_capacity(bindings.len());
+        for binding in bindings {
+            let sequence = parse(binding.keys.as_str())?;
+            let action = binding.action;
+            parsed_bindings.push(KeyBinding { sequence, action });
+        }
+
+        KeyBindings {
+            bindings: parsed_bindings,
+        }
+    } else {
+        KeyBindings::default()
+    };
+
+    Ok(bindings)
+}
+
+#[derive(Deserialize)]
+pub struct ConfigYml {
+    key_bindings: Option<Vec<KeyBindingYml>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct KeyBindingYml {
+    pub action: Action,
+    pub keys: String,
+}
+
+#[derive(Debug, Error, PartialEq)]
+pub enum KeyParseError {
+    #[error("Invalid `ctrl-X` sequence: {0} - char '{1}' is not an ASCII control character")]
+    InvalidCtrlCharacter(String, char),
+    #[error("Invalid sequence: '{0}' - use spaces to separate individual characters")]
+    InvalidSequence(String),
+}
+
+pub fn parse(seq: &str) -> Result<Vec<u8>, KeyParseError> {
+    let mut chars = String::new();
+
+    for entry in seq.split(' ') {
+        let entry = entry.trim().to_lowercase();
+
+        if entry.trim().len() == 0 {
+            continue;
+        }
+
+        if entry.len() == 1 {
+            let ch = entry.chars().next().unwrap().to_ascii_lowercase();
+            chars.push(ch);
+            continue;
+        }
+
+        if entry.to_ascii_lowercase() == "esc" {
+            chars.push('\x1b');
+            continue;
+        }
+
+        if entry.starts_with("ctrl-") && entry.len() == 6 {
+            let ch = entry.chars().nth(5).unwrap().to_ascii_uppercase();
+            if ch.is_ascii() && ch >= '@' && ch <= '_' {
+                let code = ch as u8 - 64;
+                chars.push(code as char);
+            } else {
+                return Err(KeyParseError::InvalidCtrlCharacter(entry, ch));
+            }
+        } else {
+            return Err(KeyParseError::InvalidSequence(entry));
+        }
+    }
+
+    Ok(chars.into_bytes())
+}
+
+#[derive(Debug, Clone)]
 pub struct KeyBindings {
     pub bindings: Vec<KeyBinding>,
 }
@@ -19,6 +112,7 @@ impl Default for KeyBindings {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct KeyBinding {
     pub sequence: Vec<u8>,
     pub action: Action,
@@ -96,7 +190,7 @@ impl InputFilter {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
 pub enum Action {
     Disconnect,
     SelectInteractive,
@@ -106,6 +200,74 @@ pub enum Action {
 pub struct Input<'a> {
     pub action: Option<Action>,
     pub data: &'a [u8],
+}
+
+#[cfg(test)]
+mod parse_tests {
+    use super::{parse, KeyParseError};
+
+    #[test]
+    fn single_char() {
+        let parsed = parse("a");
+        assert_eq!(Ok(vec![0x61]), parsed);
+    }
+
+    #[test]
+    fn upper_char() {
+        let parsed = parse("A");
+        assert_eq!(Ok(vec![0x61]), parsed);
+    }
+
+    #[test]
+    fn two_chars() {
+        let parsed = parse("a b");
+        assert_eq!(Ok(vec![0x61, 0x62]), parsed);
+    }
+
+    #[test]
+    fn ctrl_char() {
+        let parsed = parse("ctrl-A");
+        assert_eq!(Ok(vec![0x01]), parsed);
+    }
+
+    #[test]
+    fn ctrl_char_lowercase() {
+        let parsed = parse("ctrl-a");
+        assert_eq!(Ok(vec![0x01]), parsed);
+    }
+
+    #[test]
+    fn invalid_seq() {
+        let parsed = parse("bad");
+        assert_eq!(
+            Err(KeyParseError::InvalidSequence("bad".to_string())),
+            parsed
+        );
+    }
+
+    #[test]
+    fn invalid_ctrl_low() {
+        let parsed = parse("ctrl-?");
+        assert_eq!(
+            Err(KeyParseError::InvalidCtrlCharacter(
+                "ctrl-?".to_string(),
+                '?'
+            )),
+            parsed
+        );
+    }
+
+    #[test]
+    fn invalid_ctrl_high() {
+        let parsed = parse("ctrl-`");
+        assert_eq!(
+            Err(KeyParseError::InvalidCtrlCharacter(
+                "ctrl-`".to_string(),
+                '`'
+            )),
+            parsed
+        );
+    }
 }
 
 #[cfg(test)]
