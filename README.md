@@ -47,12 +47,12 @@ The `tab` binary can be installed using Homebrew, Cargo, or from binaries.
 
 **(Homebrew)**
 ```
-brew install austinjones/taps/tab
+❯ brew install austinjones/taps/tab
 ```
 
 **(Cargo)**
 ```
-cargo install tab
+❯ cargo install tab
 ```
 
 **(Binaries)**
@@ -126,11 +126,11 @@ foo/ ❯ tab bar
 bar/ ❯
 ```
 
-To switch to another tab while within a session, and drop back to the root shell:
+To switch to another tab while within a session, and exit the session:
 ```
 foo/ ❯ tab bar
 bar/ ❯ exit
-$ 
+❯ 
 ```
 
 To switch to another tab while within an interactive application:
