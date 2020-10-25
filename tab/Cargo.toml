@@ -19,7 +19,7 @@ name = "tab"
 path = "src/main.rs"
 
 [dependencies]
-tab-api = "0.4.0"
+tab-api = "0.5.0"
 tab-command = "0.4.0"
 tab-daemon =  "0.4.0"
 tab-pty = "0.4.0"
