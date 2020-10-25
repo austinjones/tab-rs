@@ -138,7 +138,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
 
         let _to_listener = {
             let rx_id = self.rx::<PtyState>()?.into_inner();
-            let mut rx_pty = self.rx::<PtySend>()?;
+            let mut rx_pty = self.rx::<PtySend>()?.log();
 
             let mut tx_tab = from.tx::<TabSend>()?;
             let mut tx_tab_manager = from.tx::<TabManagerRecv>()?;

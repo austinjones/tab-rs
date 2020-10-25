@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use message::pty::MainShutdown;
-use simplelog::{CombinedLogger, TermLogger, TerminalMode};
+use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
-use tab_api::{launch::*, log::get_level, pty::PtyWebsocketRequest};
+use tab_api::{config::pty_log, launch::*, log::get_level, pty::PtyWebsocketRequest};
 
 use lifeline::dyn_bus::DynBus;
 use service::main::MainService;
@@ -15,6 +15,8 @@ mod prelude;
 mod service;
 
 pub fn pty_main() -> anyhow::Result<()> {
+    init()?;
+
     debug!("pty process started");
     let mut runtime = tokio::runtime::Builder::new()
         .threaded_scheduler()
@@ -33,22 +35,24 @@ pub fn pty_main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn init() {
-    let level = get_level().unwrap_or(LevelFilter::Info);
+fn init() -> anyhow::Result<()> {
+    let log_file = pty_log()?;
 
-    CombinedLogger::init(vec![TermLogger::new(
-        level,
-        simplelog::ConfigBuilder::new()
-            .set_time_format_str("%H:%M:%S%.3f PTY")
-            .build(),
-        TerminalMode::Stderr,
-    )])
+    let config = simplelog::ConfigBuilder::new()
+        .set_time_format_str("%H:%M:%S%.3f DAE")
+        .build();
+
+    let level = get_level().unwrap_or(LevelFilter::Info);
+    CombinedLogger::init(vec![
+        TermLogger::new(level, config.clone(), TerminalMode::Stderr),
+        WriteLogger::new(level, config, std::fs::File::create(log_file)?),
+    ])
     .unwrap();
+
+    Ok(())
 }
 
 async fn main_async() -> anyhow::Result<()> {
-    let _matches = init();
-
     let (_tx, rx, _lifeline) = spawn().await?;
     wait_for_shutdown(rx).await;
     info!("PTY process terminated.");

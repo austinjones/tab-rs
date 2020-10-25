@@ -79,11 +79,15 @@ impl Service for TabAssignmentService {
                         .unwrap_or(true)
                     {
                         debug!("launching pty process");
-                        launch_pty()?;
+                        if let Err(e) = launch_pty() {
+                            error!("failed to launch initial pty process: {}", e);
+                        }
 
                         while let Ok(_) = rx.inner_mut().try_recv() {
                             debug!("launching pty process");
-                            launch_pty()?;
+                            if let Err(e) = launch_pty() {
+                                error!("failed to launch pty process: {}", e);
+                            }
                         }
 
                         last_spawn = Some(Instant::now());

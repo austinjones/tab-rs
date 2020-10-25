@@ -60,6 +60,13 @@ pub fn daemon_log() -> Result<PathBuf> {
     Ok(dir)
 }
 
+/// Returns the path to the pty's logfile.
+pub fn pty_log() -> Result<PathBuf> {
+    let mut dir = data_path()?;
+    dir.push("pty.log");
+    Ok(dir)
+}
+
 /// Returns the path to a unique logfile fro the given shell process, and tab name.
 pub fn history_path(shell: &str, name: &str) -> Result<PathBuf> {
     let mut path = data_path()?;

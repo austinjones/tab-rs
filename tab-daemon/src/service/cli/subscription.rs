@@ -16,14 +16,13 @@ impl Service for CliSubscriptionService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let _rx = {
-            let mut rx = bus.rx::<CliSubscriptionRecv>()?;
+            let mut rx = bus.rx::<CliSubscriptionRecv>()?.log();
             let mut tx = bus.tx::<CliSubscriptionSend>()?;
             let mut tx_daemon = bus.tx::<CliSend>()?;
 
             Self::try_task("rx", async move {
                 let mut state = SubscriptionState::None;
                 while let Some(msg) = rx.recv().await {
-                    debug!("subscription state: {:?}", &state);
                     match msg {
                         CliSubscriptionRecv::Subscribe(id) => {
                             if state.is_selected(id) {
@@ -45,6 +44,8 @@ impl Service for CliSubscriptionService {
 
                             if let SubscriptionState::AwaitingScrollback(id, buffer) = state {
                                 let mut index = 0usize;
+
+                                debug!("received scrollback for tab {}", id);
 
                                 for chunk in scrollback.scrollback().await {
                                     index = Self::send_output(id, index, chunk, &mut tx).await?;
@@ -99,6 +100,8 @@ impl Service for CliSubscriptionService {
                             tx.send(CliSubscriptionSend::Stopped(id)).await?;
                         }
                     }
+
+                    debug!("subscription state: {:?}", &state);
                 }
                 Ok(())
             })
@@ -118,6 +121,7 @@ impl CliSubscriptionService {
         let end = chunk.end();
 
         if chunk.is_before(index) {
+            warn!("ignoring chunk {:?} - before index: {:?}", &chunk, index);
             return Ok(index);
         }
 

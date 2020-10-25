@@ -185,7 +185,7 @@ impl CliService {
         msg: CliRecv,
         tx_websocket: &mut impl Sender<Response>,
     ) -> anyhow::Result<()> {
-        trace!("message from daemon: {:?}", &msg);
+        debug!("message from daemon: {:?}", &msg);
         match msg {
             CliRecv::TabStarted(metadata) => {
                 tx_websocket

@@ -29,12 +29,16 @@ impl Service for ClientService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
+        // this needs to be above the carrier spawn
+        // the pty_bus carrier forwards the websocket request messages,
+        // and the init message can get lost in debug mode due to debug slowness
+        let rx = bus.rx::<PtyWebsocketRequest>()?;
+
         let pty_bus = PtyBus::default();
         let _carrier = pty_bus.carry_from(bus)?;
         let tx_shutdown = bus.tx::<MainShutdown>()?;
 
         let _run = {
-            let rx = bus.rx::<PtyWebsocketRequest>()?;
             let tx = bus.tx::<PtyWebsocketResponse>()?;
             Self::try_task("run", Self::run(rx, tx, tx_shutdown, pty_bus))
         };

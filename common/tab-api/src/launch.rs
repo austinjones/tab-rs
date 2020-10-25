@@ -7,6 +7,7 @@ use crate::{
     env::is_raw_mode,
     log::get_level_str,
 };
+use anyhow::Context;
 use lifeline::prelude::*;
 use log::*;
 use std::{
@@ -80,7 +81,7 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
 
 /// Launches a new PTY process, which will connect to the running daemon.
 pub fn launch_pty() -> anyhow::Result<()> {
-    let exec = std::env::current_exe()?;
+    let exec = std::env::current_exe().context("failed to get current executable")?;
     debug!("launching `tab-pty` at {}", &exec.to_string_lossy());
 
     let mut child = Command::new(exec);
@@ -98,7 +99,7 @@ pub fn launch_pty() -> anyhow::Result<()> {
 
     crate::env::forward_env(&mut child);
 
-    let _child = child.spawn()?;
+    let _child = child.spawn().context("failed to spawn child process")?;
 
     Ok(())
 }
