@@ -2,6 +2,7 @@
 
 QUICKSTART:
     $ tab foo/        # to open a tab.
-    $ tab -w foo      # to close a tab.
+    $ tab -w bar      # to close a tab.
     $ tab -l          # to view the tabs
-    $ ctrl-W          # to disconnect the session
+    $ tab             # to open the fuzzy finder
+    $ ctrl-T          # to escape from interactive applications
