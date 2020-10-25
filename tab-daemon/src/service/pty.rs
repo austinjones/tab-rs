@@ -29,7 +29,7 @@ impl Service for PtyService {
         // notify the tab manager of status
 
         let _websocket = {
-            let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?;
+            let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?.log();
             let mut tx_daemon = bus.tx::<PtySend>()?;
             let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
@@ -37,6 +37,7 @@ impl Service for PtyService {
                 while let Some(msg) = rx_websocket.recv().await {
                     match msg {
                         PtyWebsocketResponse::Started(metadata) => {
+                            info!("PTY process has started on tab {}", metadata.id);
                             tx_daemon.send(PtySend::Started(metadata)).await?;
                         }
                         PtyWebsocketResponse::Output(output) => {

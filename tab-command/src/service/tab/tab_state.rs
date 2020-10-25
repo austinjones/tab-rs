@@ -42,6 +42,7 @@ impl Service for TabStateService {
                                 continue;
                             }
 
+                            debug!("awaiting tab: {}", name);
                             tx.send(TabState::Awaiting(name)).await?;
                         }
                         SelectTab::Tab(id) => {
@@ -49,6 +50,7 @@ impl Service for TabStateService {
                                 continue;
                             }
 
+                            debug!("selected tab: {}", id);
                             tx.send(TabState::Selected(id)).await?;
                         }
                     }
@@ -66,6 +68,7 @@ impl Service for TabStateService {
             Self::try_task("select_named", async move {
                 while let Some(state) = rx.recv().await {
                     if let TabState::Awaiting(name) = state {
+                        debug!("awaiting named tab: {}", &name);
                         let tabs = await_condition(&mut rx_active, |tabs| {
                             tabs.find_name(name.as_str()).is_some()
                         })
@@ -73,6 +76,7 @@ impl Service for TabStateService {
 
                         let id = tabs.find_name(name.as_str()).unwrap().id;
                         tx.send(TabState::Selected(id)).await?;
+                        debug!("await of tab {} resolved to {}", &name, id);
                     }
                 }
 
@@ -85,13 +89,15 @@ impl Service for TabStateService {
             let mut rx_tabs = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
             let mut tx = bus.tx::<TabMetadataState>()?;
 
-            Self::try_task("deselect", async move {
+            Self::try_task("tab_metadata", async move {
                 while let Some(state) = rx.recv().await {
                     if let TabState::Selected(id) = state {
+                        debug!("awaiting tab metadata: {}", id);
                         let state =
                             await_condition(&mut rx_tabs, |state| state.get(&id).is_some()).await?;
                         let tab = state.get(&id).unwrap();
                         tx.send(TabMetadataState::Selected(tab.clone())).await?;
+                        debug!("await resolved tab metadata: {:?}", tab);
                     } else if let TabState::None = state {
                         tx.send(TabMetadataState::None).await?;
                     }
@@ -107,6 +113,7 @@ impl Service for TabStateService {
 
             Self::try_task("deselect", async move {
                 while let Some(_deselect) = rx.recv().await {
+                    debug!("deselecting tab");
                     tx.send(TabState::None).await?;
                 }
 
@@ -115,7 +122,7 @@ impl Service for TabStateService {
         };
 
         let _publish = {
-            let mut tx = bus.tx::<TabState>()?;
+            let mut tx = bus.tx::<TabState>()?.log();
             Self::try_task("publish", async move {
                 while let Some(state) = rx_internal.recv().await {
                     tx.send(state).await?;
@@ -144,6 +151,10 @@ impl Service for TabStateService {
                     } else if let (TabState::Selected(prev_id), &TabState::None) =
                         (last_state, &state)
                     {
+                        debug!(
+                            "new state is none, unsubscribing from previous tab {}",
+                            prev_id
+                        );
                         tx_websocket.send(Request::Unsubscribe(prev_id)).await?;
                     }
 

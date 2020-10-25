@@ -36,7 +36,6 @@ pub struct FuzzyFinderService {
     _select_state: Lifeline,
     _select: Lifeline,
     _output_state: Lifeline,
-    _output: Lifeline,
 }
 
 impl Service for FuzzyFinderService {
@@ -75,22 +74,6 @@ impl Service for FuzzyFinderService {
             Self::try_task("select_state", Self::select_state(rx, rx_matches, tx))
         };
 
-        let _select = {
-            let rx = bus
-                .rx::<FuzzyEvent>()?
-                .into_inner()
-                .filter(Result::is_ok)
-                .map(Result::unwrap);
-            let rx_selection = bus.rx::<Option<FuzzySelectState>>()?.into_inner();
-            let tx = bus.tx::<FuzzySelection>()?;
-            let tx_shutdown = bus.tx::<FuzzyShutdown>()?;
-
-            Self::try_task(
-                "send_selected",
-                Self::send_selected(rx, rx_selection, tx, tx_shutdown),
-            )
-        };
-
         let _output_state = {
             let rx_query = bus.rx::<FuzzyQueryState>()?.into_inner();
             let rx_match = bus.rx::<FuzzyMatchState>()?.into_inner();
@@ -113,6 +96,22 @@ impl Service for FuzzyFinderService {
             Self::try_task("output", Self::output(rx))
         };
 
+        let _select = {
+            let rx = bus
+                .rx::<FuzzyEvent>()?
+                .into_inner()
+                .filter(Result::is_ok)
+                .map(Result::unwrap);
+            let rx_selection = bus.rx::<Option<FuzzySelectState>>()?.into_inner();
+            let tx = bus.tx::<FuzzySelection>()?;
+            let tx_shutdown = bus.tx::<FuzzyShutdown>()?;
+
+            Self::try_task(
+                "send_selected",
+                Self::send_selected(rx, rx_selection, tx, tx_shutdown, _output),
+            )
+        };
+
         Ok(Self {
             _input,
             _query_state,
@@ -120,7 +119,6 @@ impl Service for FuzzyFinderService {
             _select_state,
             _select,
             _output_state,
-            _output,
         })
     }
 }
@@ -391,6 +389,7 @@ impl FuzzyFinderService {
         rx_selection: impl Stream<Item = Option<FuzzySelectState>> + Unpin,
         mut tx: impl Sender<FuzzySelection>,
         mut tx_shutdown: impl Sender<FuzzyShutdown>,
+        output: Lifeline,
     ) -> anyhow::Result<()> {
         #[derive(Debug)]
         enum Recv {
@@ -409,13 +408,17 @@ impl FuzzyFinderService {
                 Recv::Event(FuzzyEvent::Enter) => {
                     let name = selection.map(|state| state.tab.name.clone());
 
+                    // cancel the output task
+                    drop(output);
+
+                    // then clear the terminal
+                    Self::clear_all()?;
+
                     if let Some(name) = name {
                         tx.send(FuzzySelection(name)).await?;
                     } else {
                         tx_shutdown.send(FuzzyShutdown {}).await?;
                     }
-
-                    Self::clear_all()?;
 
                     break;
                 }
@@ -482,7 +485,7 @@ impl FuzzyFinderService {
                 total,
             };
 
-            tx_state.send(event).await?;
+            tx_state.send(event).await.ok();
         }
 
         Ok(())

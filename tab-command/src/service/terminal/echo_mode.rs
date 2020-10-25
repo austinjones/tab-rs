@@ -37,9 +37,8 @@ pub fn reset_cursor() {
             .queue(crossterm::cursor::Show {})
             .expect("failed to queue reset command")
             .queue(crossterm::cursor::DisableBlinking {})
-            .expect("failed to queue reset command")
-            .queue(crossterm::terminal::LeaveAlternateScreen {})
             .expect("failed to queue reset command");
+
         // ansi escape sequence that exits alternate keypad mode
 
         // this is the xterm rmkx value.
@@ -76,12 +75,6 @@ impl Service for TerminalEchoService {
         let _input = Self::try_task("stdin", forward_stdin(tx, tx_terminal, tx_shutdown));
 
         Ok(TerminalEchoService { _input, _output })
-    }
-}
-
-impl Drop for TerminalEchoService {
-    fn drop(&mut self) {
-        disable_raw_mode();
     }
 }
 

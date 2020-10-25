@@ -71,7 +71,7 @@ impl CarryFrom<ListenerBus> for CliBus {
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
         let _forward = {
-            let rx_tab = from.rx::<TabSend>()?;
+            let rx_tab = from.rx::<TabSend>()?.log();
 
             let tx_conn = self.tx::<CliRecv>()?;
             let tx_subscription = self.tx::<CliSubscriptionRecv>()?;
