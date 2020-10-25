@@ -45,3 +45,26 @@ workspace:
   #
   # A workspace configuration is required at child-workspace/tab.yml
   - workspace: child-workspace/
+
+# - Global Workspace -
+# Tab supports a global workspace file, which can be placed at:
+#      ~/.config/tab.yml 
+#   or $XDG_CONFIG_HOME/tab.yml
+# The global workspace is always active, and can be used to pin links to other workspaces/repositories, 
+#   or define global tabs.
+
+# The global workspace file can also be used to configure key_bindings
+# Supported actions:
+# - Disconnect
+# - SelectInteractive (fuzzy finder)
+# Supported keys:
+# - ctrl-[A-Z]
+# - ESC
+# - visible characters, such as a-z, A-Z, 0-9, and special characters
+# - multi-key sequences separated by spaces
+key_bindings:
+  - action: Disconnect
+    keys: ctrl-A B C D
+
+  - action: SelectInteractive
+    keys: ctrl-T

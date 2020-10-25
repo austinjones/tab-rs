@@ -4,35 +4,36 @@
 
 <img align="right" width=400 height=400 src="./readme/tab-vectr.svg">
 
-**- Intuitive:**  Tabs are discovered, selected, and closed with a single command, `tab`, and _one_ escape sequence, `ctrl-W`.
+**- Intuitive:**  Tabs are discovered and selected with a built-in fuzzy finder, or with the command  `tab <name>`.  Tab has *one* escape sequence, `ctrl-T`.
 
 **- Config-driven:**  `tab` provides persistent, configurable tabs with unique command history, working directories, and docstrings.
 
 **- State-agnostic:**  Tab provides a simple, consistent interface that works anywhere, in any state.
 
-**- Autocompleted:**  Tab provides dynamic autocomplete, so you can get oriented, and context switch fast.
+**- Autocompleted:**  Tab provides an interactive fuzzy finder and dynamic autocomplete on the command line, so you can get oriented, and context switch fast.
 
 **- Fast:**  Tabs launch in 50ms, and reconnect in 10ms.  Keyboard latency (stdin to stdout) is under 5ms.
 
 # Quickstart
 Quick installation & usage instructions:
 ```
-$ brew install austinjones/taps/tab
+❯ brew install austinjones/taps/tab
   OR
-$ cargo install tab
+❯ cargo install tab
   THEN
-$ tab --install all 
+❯ tab --install all 
   # installs shell autocompletion scripts and statusline integrations
 
-$ tab foo/     # to open a tab.
-$ tab bar/     # to switch to another tab.  
+❯ tab foo/     # to open a tab.
+❯ tab bar/     # to switch to another tab.  
                  works within an active session!
-$ echo $TAB    # to view the active tab.  
+❯ echo $TAB    # to view the active tab.  
                  put this in your promptline, 
                  or get https://starship.rs/
-$ tab -w baz   # to close a tab (or many tabs).
-$ tab -l       # to view the tabs
-$ ctrl-W       # to disconnect the session
+❯ tab          # to open the fuzzy finder
+❯ tab -w baz   # to close a tab (or many tabs).
+❯ tab -l       # to view the tabs
+❯ ctrl-T       # to escape to the fuzzy finder
 ```
 
 Tab adds trailing slashes to tab names.  This improves autocomplete between tabs and subtabs (e.g. `tab/` and `tab/child/`).
@@ -74,16 +75,16 @@ Tab has a built-in script installer which provides a detailed explanation of the
 
 Tab can install completions for all shells & supported integration which are present on your system.
 ```
-tab --install all
+❯ tab --install all
 ```
 
 **(Bash | Fish | Zsh)**
 
 Tab can also install completions for a specific shell.
 ```
-tab --install bash
-tab --install fish
-tab --install zsh
+❯ tab --install bash
+❯ tab --install fish
+❯ tab --install zsh
 ```
 
 
@@ -94,7 +95,7 @@ tab --install zsh
 Tab integrates with the [starship](https://starship.rs/) prompt, and can auto-configure the integration:
 
 ```
-tab --install starship
+❯ tab --install starship
 ```
 
 You can also put the current tab before the directory in `~/.config/starship.toml`.  This is how I've configured my own shell:
@@ -112,40 +113,45 @@ You can also add a handcrafted statusline snippet to your shell's rc configurati
 or [zsh](https://github.com/austinjones/tab-rs/blob/main/tab/src/completions/zsh/statusline.zsh).
 
 # Navigation
-Tab is designed to provide quick navigation between tabs, and persistent navigation to workspaces or repositories.  In these examples, the prefix before the `$` is the selected tab.
+Tab is designed to provide quick navigation between tabs, and persistent navigation to workspaces or repositories.  In these examples, the prefix before the `❯` is the selected tab.
 
 To select a tab:
 ```
-$ tab foo
-foo/ $
+# opens the fuzzy finder
+❯ tab   
+foo/ ❯
+
+# selects a tab by name
+foo/ ❯ tab bar
+bar/ ❯
 ```
 
 To switch to another tab while within a session, and drop back to the root shell:
 ```
-foo/ $ tab bar
-bar/ $ exit
+foo/ ❯ tab bar
+bar/ ❯ exit
 $ 
 ```
 
 To switch to another tab while within an interactive application:
 ```
-monitor/ $ top
+monitor/ ❯ top
 ... top output ...
-[ctrl-W]
-$ tab foo
-foo/ $ 
+[ctrl-T]
+❯ foo
+foo/ ❯ 
 ```
 
 Each workspace has it's own tab.  You can use this to quickly reset the working directory within a workspace:
 ```
-repo/ $ tab workspace
-workspace/ $
+repo/ ❯ tab workspace
+workspace/ ❯
 ```
 
 To switch to another workspace (if a workspace link has been configured in the current workspace [tab.yml](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml)):
 ```
-workspace/ $ tab other-workspace
-other-workspace $
+workspace/ ❯ tab other-workspace
+other-workspace/ ❯
 ```
 
 # Configuration
@@ -187,6 +193,12 @@ Available tabs:
     workspace-tab/    (this is a top-level workspace tab)
     other-workspace/  (workspace tab for ~/other-workspace)
 ```
+
+## Global Workspace
+
+Tab also supports a global workspace configuration that can be placed at `~/.config/tab.yml` or `$XDG_CONFIG_HOME/tab.yml`. 
+
+The global workspace is always active, and can be used to 'pin' links to other workspaces, create global tabs, or configure keybindings.  See the [advanced-workspace](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml) example for more documentation.
 
 # Security
 Tab can execute commands in a terminal, so I take security seriously.  This is how I protect your machine in `tab`:
