@@ -8,7 +8,8 @@ use std::{collections::VecDeque, sync::Arc};
 use tab_api::chunk::OutputChunk;
 use tokio::sync::Mutex;
 
-static MIN_CAPACITY: usize = 32768;
+// 128MB memory limit
+static MIN_CAPACITY: usize = 134217728;
 static MAX_CHUNK_LEN: usize = 4096;
 
 /// Spawns with a pty connection, and maintains a scrollback buffer.  Provides scrollback for tab-command clients
@@ -112,11 +113,12 @@ impl ScrollbackBuffer {
                 self.size += chunk.len();
 
                 debug!(
-                    "scrollback appending stdout chunk {}..{} to existing chunk {}..{}",
+                    "scrollback appending stdout chunk {}..{} to existing chunk {}..{}, size {}",
                     chunk.start(),
                     chunk.end(),
                     back.start(),
-                    back.end()
+                    back.end(),
+                    self.size,
                 );
                 back.data.append(&mut chunk.data);
 
@@ -125,9 +127,10 @@ impl ScrollbackBuffer {
         }
 
         debug!(
-            "scrollback pushing new chunk {}..{}",
+            "scrollback pushing new chunk {}..{}, size {}",
             chunk.start(),
-            chunk.end()
+            chunk.end(),
+            self.size + chunk.len()
         );
 
         self.size += chunk.len();

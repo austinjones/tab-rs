@@ -169,7 +169,7 @@ async fn write_stdout(stdout: &mut Stdout, data: Vec<u8>) -> anyhow::Result<()> 
             let next = data[index];
 
             if next == b'\n' {
-                stdout.write("\r\n".as_bytes()).await?;
+                stdout.write("\n".as_bytes()).await?;
                 index += 1;
             }
         }
