@@ -1491,7 +1491,7 @@ dependencies = [
 
 [[package]]
 name = "tab"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1505,8 +1505,8 @@ dependencies = [
  "snailquote",
  "strip-ansi-escapes",
  "tab-api 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-command",
- "tab-daemon",
+ "tab-command 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-daemon 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
  "tokio",
@@ -1551,7 +1551,7 @@ dependencies = [
 
 [[package]]
 name = "tab-command"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -1575,8 +1575,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "tab-command"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d86099910d5ca618726ded1c871be1dab7dfed384e630f3ea4cd6296139cac04"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossterm",
+ "dirs",
+ "fuzzy-matcher",
+ "lifeline",
+ "log",
+ "semver",
+ "serde",
+ "serde_yaml",
+ "simplelog",
+ "tab-api 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "tokio",
+ "typed-builder",
+]
+
+[[package]]
 name = "tab-daemon"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1596,6 +1620,28 @@ dependencies = [
  "tokio-io",
  "tokio-test",
  "tungstenite",
+]
+
+[[package]]
+name = "tab-daemon"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73187f395e4275152a6f5ddb59b8afa05f92c7dca683b6f9605a1dab567e58df"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.13.0",
+ "dirs",
+ "lifeline",
+ "log",
+ "rand",
+ "serde_yaml",
+ "simplelog",
+ "tab-api 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "tokio",
+ "tokio-io",
 ]
 
 [[package]]

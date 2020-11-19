@@ -1,6 +1,6 @@
 [package]
 name = "tab-daemon"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the daemon module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
