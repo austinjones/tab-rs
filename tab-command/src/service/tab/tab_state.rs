@@ -1,7 +1,4 @@
-use crate::{
-    prelude::*,
-    state::{tab::TabMetadataState, terminal::TerminalSizeState},
-};
+use crate::{env::terminal_size, prelude::*, state::tab::TabMetadataState};
 use crate::{
     state::{
         tab::{DeselectTab, SelectTab, TabState},
@@ -134,7 +131,6 @@ impl Service for TabStateService {
 
         let _websocket = {
             let mut rx = bus.rx::<TabState>()?;
-            let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
 
             let mut tx_websocket = bus.tx::<Request>()?;
 
@@ -144,9 +140,9 @@ impl Service for TabStateService {
                     if let TabState::Selected(id) = state {
                         tx_websocket.send(Request::Subscribe(id)).await?;
 
-                        let terminal_size = rx_terminal_size.borrow().clone();
+                        let terminal_size = terminal_size()?;
                         tx_websocket
-                            .send(Request::ResizeTab(id, terminal_size.0))
+                            .send(Request::ResizeTab(id, terminal_size))
                             .await?;
                     } else if let (TabState::Selected(prev_id), &TabState::None) =
                         (last_state, &state)
