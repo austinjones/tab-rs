@@ -1,4 +1,5 @@
 use crate::{
+    env::terminal_size,
     message::tabs::CreateTabRequest,
     prelude::*,
     state::{
@@ -27,7 +28,6 @@ impl Service for CreateTabService {
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<CreateTabRequest>()?;
         let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
-        let rx_terminal_size = bus.rx::<TerminalSizeState>()?.into_inner();
         let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
         let mut tx_websocket = bus.tx::<Request>()?;
 
@@ -45,13 +45,7 @@ impl Service for CreateTabService {
                         if !tab_exists {
                             let workspace = await_state(&mut rx_workspace).await?;
 
-                            Self::create_named(
-                                name,
-                                workspace.tabs,
-                                &rx_terminal_size,
-                                &mut tx_websocket,
-                            )
-                            .await?;
+                            Self::create_named(name, workspace.tabs, &mut tx_websocket).await?;
                         }
                     }
                 }
@@ -68,13 +62,12 @@ impl CreateTabService {
     pub async fn create_named(
         name: String,
         workspace: Arc<Vec<WorkspaceTab>>,
-        rx_terminal_size: &watch::Receiver<TerminalSizeState>,
         tx_websocket: &mut impl Sender<Request>,
     ) -> anyhow::Result<()> {
         let name = normalize_name(name.as_str());
         let workspace_tab = workspace.iter().find(|tab| tab.name == name);
 
-        let dimensions = rx_terminal_size.borrow().0.clone();
+        let dimensions = terminal_size()?;
         let shell = Self::compute_shell(workspace_tab);
         let directory = Self::compute_directory(workspace_tab)?;
         let env = Self::compute_env(workspace_tab);

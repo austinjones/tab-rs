@@ -11,7 +11,6 @@ use crate::{
         tab::TabMetadataState,
         tab::{SelectOrRetaskTab, SelectTab, TabState},
         tabs::ActiveTabsState,
-        terminal::TerminalSizeState,
         workspace::WorkspaceState,
     },
 };
@@ -45,10 +44,6 @@ impl Message<TabBus> for TabState {
 }
 
 impl Message<TabBus> for TabMetadataState {
-    type Channel = watch::Sender<Self>;
-}
-
-impl Message<TabBus> for TerminalSizeState {
     type Channel = watch::Sender<Self>;
 }
 
