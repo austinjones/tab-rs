@@ -12,6 +12,7 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
+          - armv7-unknown-linux-gnueabihf
           # - x86_64-apple-darwin
           # - x86_64-pc-windows-msvc
         include:
@@ -19,6 +20,9 @@ jobs:
             os: ubuntu-latest
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            name: tab-armv7-unknown-linux-gnueabihf.tar.gz
           # - target: x86_64-apple-darwin
           #   os: macOS-latest
           # - target: x86_64-pc-windows-msvc
@@ -55,12 +59,19 @@ jobs:
         if: steps.cargo-cache.outputs.cache-hit != 'true' && matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt install -y musl-tools
 
+      - name: Setup | armv7 tools
+        if: steps.cargo-cache.outputs.cache-hit != 'true' && matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt install -y build-essential gcc-arm-linux-gnueabihf
+          echo '[target.armv7-unknown-linux-gnueabihf]' >> ~/.cargo/config
+          echo 'linker = "arm-linux-gnueabihf-gcc"' >> ~/.cargo/config
+
       - name: Build | Dependencies
         if: steps.cargo-cache.outputs.cache-hit != 'true' 
         run: cargo build --release --bin tab --target ${{ matrix.target }}
 
       - name: Build | Dev Dependencies
-        if: steps.cargo-cache.outputs.cache-hit != 'true' 
+        if: steps.cargo-cache.outputs.cache-hit != 'true' && matrix.target != 'armv7-unknown-linux-gnueabihf'
         run: cargo test --release --target ${{ matrix.target }} --no-run
 
   binaries:
@@ -72,6 +83,7 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
+          - armv7-unknown-linux-gnueabihf
           # - x86_64-apple-darwin
           # - x86_64-pc-windows-msvc
         include:
@@ -81,6 +93,9 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             name: tab-x86_64-unknown-linux-musl.tar.gz
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            name: tab-armv7-unknown-linux-gnueabihf.tar.gz
           # - target: x86_64-apple-darwin
           #   os: macOS-latest
           #   name: tab-x86_64-apple-darwin.tar.gz
@@ -117,7 +132,15 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt install -y musl-tools
 
+      - name: Setup | armv7 tools
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          sudo apt install -y build-essential gcc-arm-linux-gnueabihf
+          echo '[target.armv7-unknown-linux-gnueabihf]' >> ~/.cargo/config
+          echo 'linker = "arm-linux-gnueabihf-gcc"' >> ~/.cargo/config
+
       - name: Build | Integration Tests
+        if: matrix.target != 'armv7-unknown-linux-gnueabihf'
         run: cargo test --release --target ${{ matrix.target }} -- --nocapture
 
       - name: Build | Build
