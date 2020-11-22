@@ -52,8 +52,8 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt install -y musl-tools
 
-      - name: Build | Integration Tests
-        run: cargo test --release --target ${{ matrix.target }} -- --nocapture
+      # - name: Build | Integration Tests
+      #   run: cargo test --release --target ${{ matrix.target }} -- --nocapture
 
       - name: Build | Build
         run: cargo build --release --bin tab --target ${{ matrix.target }}
