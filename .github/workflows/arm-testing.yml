@@ -44,9 +44,9 @@ jobs:
       - name: Setup | armv7 tools
         if: matrix.target == 'armv7-unknown-linux-gnueabihf'
         run: |
-          sudo apt install -y gcc-4.7-multilib-arm-linux-gnueabihf
+          sudo apt install -y build-essential gcc-arm-linux-gnueabihf
           echo '[target.armv7-unknown-linux-gnueabihf]' >> ~/.cargo/config
-          echo 'linker = "arm-linux-gnueabihf-gcc-4.7"' >> ~/.cargo/config
+          echo 'linker = "arm-linux-gnueabihf-gcc"' >> ~/.cargo/config
         
       - name: Setup | musl tools
         if: matrix.target == 'x86_64-unknown-linux-musl'
