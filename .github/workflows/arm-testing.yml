@@ -42,7 +42,7 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Setup | armv7 tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
         run: |
           sudo apt install -y gcc-4.7-multilib-arm-linux-gnueabihf
           echo '[target.armv7-unknown-linux-gnueabihf]' >> ~/.cargo/config
