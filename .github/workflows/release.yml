@@ -154,10 +154,17 @@ jobs:
       #     cd -
 
       - name: Post Setup | Prepare artifacts [-nix]
-        # if: matrix.os != 'windows-latest'
+        if: matrix.target != 'armv7-unknown-linux-gnueabihf'
         run: |
           cd target/${{ matrix.target }}/release
           strip tab
+          tar czvf ../../../${{ matrix.name }} tab
+          cd -
+
+      - name: Post Setup | Prepare artifacts [-nix]
+        if: matrix.target == 'armv7-unknown-linux-gnueabihf'
+        run: |
+          cd target/${{ matrix.target }}/release
           tar czvf ../../../${{ matrix.name }} tab
           cd -
 
