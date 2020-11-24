@@ -98,6 +98,15 @@ impl ScrollbackBuffer {
     }
 
     pub fn push(&mut self, mut chunk: OutputChunk) {
+        // replace ESC [ 6n, Device Status Report
+        // tbis sequence is echoed as keyboard characters,
+        // and the tab session may not be running the same application as it was before
+        replace_slice(
+            chunk.data.as_mut_slice(),
+            &['\x1b' as u8, '[' as u8, '6' as u8, 'n' as u8],
+            &[],
+        );
+
         if let Some(front_len) = self.queue.front().map(OutputChunk::len) {
             if self.size - front_len + chunk.len() > MIN_CAPACITY {
                 self.size -= front_len;
@@ -139,5 +148,13 @@ impl ScrollbackBuffer {
 
     pub fn clone_queue(&self) -> VecDeque<OutputChunk> {
         self.queue.clone()
+    }
+}
+
+fn replace_slice(buf: &mut [u8], from: &[u8], to: &[u8]) {
+    for i in 0..=buf.len() - from.len() {
+        if buf[i..].starts_with(from) {
+            buf[i..(i + from.len())].clone_from_slice(to);
+        }
     }
 }

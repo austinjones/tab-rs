@@ -37,6 +37,8 @@ pub fn reset_cursor() {
             .queue(crossterm::cursor::Show {})
             .expect("failed to queue reset command")
             .queue(crossterm::cursor::DisableBlinking {})
+            .expect("failed to queue reset command")
+            .queue(crossterm::terminal::LeaveAlternateScreen {})
             .expect("failed to queue reset command");
 
         // ansi escape sequence that exits alternate keypad mode
@@ -48,6 +50,7 @@ pub fn reset_cursor() {
         stdout
             .write("\x1b[?1l\x1b>".as_bytes())
             .expect("failed to queue reset command");
+
         stdout.flush().expect("failed to flush reset commands");
 
         debug!("cursor enabled");
