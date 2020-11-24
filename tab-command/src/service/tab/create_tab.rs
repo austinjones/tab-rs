@@ -4,7 +4,6 @@ use crate::{
     prelude::*,
     state::{
         tabs::ActiveTabsState,
-        terminal::TerminalSizeState,
         workspace::{WorkspaceState, WorkspaceTab},
     },
     utils::await_state,
@@ -13,7 +12,6 @@ use anyhow::anyhow;
 use std::path::PathBuf;
 use std::{collections::HashMap, sync::Arc};
 use tab_api::tab::{normalize_name, CreateTabMetadata};
-use tokio::sync::watch;
 
 /// Receives CreateTabRequests, and decides whether to send the daemon issue a create request.
 /// Assembles the CreateTabMetadata.
