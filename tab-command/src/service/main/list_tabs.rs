@@ -4,6 +4,7 @@ use crate::{
 };
 use std::env;
 use std::io::{stdout, Write};
+use std::path::PathBuf;
 
 use crossterm::{
     execute,
@@ -60,17 +61,13 @@ impl MainListTabsService {
         let target_len = len + 4;
 
         println!("Available tabs:");
-        let cwd: String = env::current_dir()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default()
-            .to_owned();
+        let cwd: PathBuf = env::current_dir().unwrap_or_default();
 
         for tab in tabs.iter() {
             let name = &tab.name;
             print!("    ");
 
-            if is_active(tab, &cwd) && *name == get_working_tab() {
+            if *name == get_working_tab() {
                 color_active_tabs(name, Color::Yellow)
             } else if is_active(tab, &cwd) {
                 color_active_tabs(name, Color::Blue)
@@ -90,15 +87,8 @@ impl MainListTabsService {
     }
 }
 
-fn is_active(tab: &WorkspaceTab, cwd: &str) -> bool {
-    let name = &tab.name;
-    if tab.doc == None && *name == get_working_tab() {
-        true
-    } else if tab.doc != None && cwd.contains(&tab.directory.display().to_string()) {
-        true
-    } else {
-        false
-    }
+fn is_active(tab: &WorkspaceTab, cwd: &PathBuf) -> bool {
+    cwd.starts_with(tab.directory.as_path())
 }
 
 fn color_active_tabs(name: &str, color: Color) {
