@@ -2,6 +2,14 @@ use crate::{
     message::main::MainRecv, message::main::MainShutdown, prelude::*,
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab, utils::await_state,
 };
+use std::env;
+use std::io::{stdout, Write};
+use std::path::PathBuf;
+
+use crossterm::{
+    execute,
+    style::{Color, Print, ResetColor, SetForegroundColor},
+};
 
 pub struct MainListTabsService {
     _run: Lifeline,
@@ -53,10 +61,19 @@ impl MainListTabsService {
         let target_len = len + 4;
 
         println!("Available tabs:");
+        let cwd: PathBuf = env::current_dir().unwrap_or_default();
 
         for tab in tabs.iter() {
             let name = &tab.name;
-            print!("    {}", name);
+            print!("    ");
+
+            if *name == get_working_tab() {
+                color_active_tabs(name, Color::Yellow)
+            } else if is_active(tab, &cwd) {
+                color_active_tabs(name, Color::Blue)
+            } else {
+                print!("{}", name);
+            }
 
             if let Some(ref doc) = tab.doc {
                 for _ in name.len()..target_len {
@@ -68,4 +85,20 @@ impl MainListTabsService {
             }
         }
     }
+}
+
+fn is_active(tab: &WorkspaceTab, cwd: &PathBuf) -> bool {
+    cwd.starts_with(tab.directory.as_path())
+}
+
+fn color_active_tabs(name: &str, color: Color) {
+    execute!(stdout(), SetForegroundColor(color), Print(name), ResetColor).ok();
+}
+
+fn get_working_tab() -> String {
+    env::var_os("TAB")
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or_default()
+        .to_string()
 }
