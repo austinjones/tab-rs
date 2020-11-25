@@ -61,11 +61,7 @@ impl MainListTabsService {
 
         println!("Available tabs:");
         let cwd: String = env::current_dir()
-            .unwrap_or_else(|_| {
-                let mut path = std::path::PathBuf::new();
-                path.push("/");
-                path
-            })
+            .unwrap_or_default()
             .to_str()
             .unwrap_or_default()
             .to_owned();
