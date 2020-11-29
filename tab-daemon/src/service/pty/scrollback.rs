@@ -90,9 +90,6 @@ impl ScrollbackManager {
                 .into_iter()
                 .copied()
                 .collect(),
-            // vec!['\x1b' as u8, '[' as u8, '6' as u8, 'n' as u8],
-            // replace the BEL character, so the terminal doesn't re-play the bell
-            vec![7u8],
         ])
     }
 
@@ -210,6 +207,15 @@ impl AnsiFilter {
 
         while index <= buf.len() {
             if seq_index >= sequence.len() {
+                debug!(
+                    "a filtered ansi sequence was matched by the scrollback processor: {:?}",
+                    sequence
+                );
+                debug!(
+                    "the folowing data will be removed: {:?}",
+                    &buf[index - sequence.len()..index]
+                );
+
                 buf.drain(index - sequence.len()..index);
                 index -= sequence.len();
                 seq_index = 0;
@@ -219,6 +225,8 @@ impl AnsiFilter {
                 && (sequence[seq_index] == 0u8 || buf[index] == sequence[seq_index])
             {
                 seq_index += 1;
+            } else {
+                seq_index = 0;
             }
 
             index += 1;
@@ -268,6 +276,16 @@ mod tests {
 
         assert_eq!(buf, vec![1, 4])
     }
+
+    #[test]
+    fn test_separated_matches() {
+        let filter = AnsiFilter::from_sequence(vec![2, 4]);
+
+        let mut buf = vec![1, 2, 3, 4, 5];
+        filter.filter(&mut buf);
+
+        assert_eq!(buf, vec![1, 2, 3, 4, 5])
+    }
 }
 
 /// Specific sequences that tab must remove from scrollback buffers
@@ -301,5 +319,15 @@ mod sequence_tests {
         filter.filter(&mut sequence);
 
         assert_eq!("start--end".as_bytes(), sequence);
+    }
+
+    #[test]
+    fn bug_open_source() {
+        let filter = ScrollbackManager::ansi_filter();
+
+        let mut sequence = "open-source".as_bytes().into_iter().copied().collect();
+        filter.filter(&mut sequence);
+
+        assert_eq!("open-source".as_bytes(), sequence);
     }
 }
