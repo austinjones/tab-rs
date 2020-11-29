@@ -67,11 +67,6 @@ struct ScrollbackManager {
     filter: AnsiFilter,
 }
 
-enum AnsiPattern {
-    Char(char),
-    Wildcard,
-}
-
 impl ScrollbackManager {
     pub fn new() -> Self {
         Self {
