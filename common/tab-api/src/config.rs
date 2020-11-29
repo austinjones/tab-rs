@@ -3,7 +3,7 @@ use lifeline::impl_storage_clone;
 use serde::Deserialize;
 use serde::Serialize;
 use std::{env, fs::File, io::BufReader, path::PathBuf};
-use sysinfo::{RefreshKind, SystemExt};
+use sysinfo::{ProcessExt, RefreshKind, SystemExt};
 
 /// Config created for each daemon process
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,7 +50,14 @@ pub fn is_running(config: &DaemonConfig) -> bool {
     let mut system = sysinfo::System::new_with_specifics(RefreshKind::new());
     system.refresh_process(config.pid);
 
-    system.get_process(config.pid).is_some()
+    match system.get_process(config.pid) {
+        Some(proc) => {
+            let command = proc.cmd();
+
+            command.contains(&"--_launch".to_string()) && command.contains(&"daemon".to_string())
+        }
+        None => false,
+    }
 }
 
 /// Returns the path to the daemon's logfile.
