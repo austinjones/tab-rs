@@ -1517,7 +1517,7 @@ dependencies = [
 
 [[package]]
 name = "tab-api"
-version = "0.5.0"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "dirs",
