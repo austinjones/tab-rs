@@ -1504,7 +1504,7 @@ dependencies = [
  "simplelog",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api",
+ "tab-api 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-command",
  "tab-daemon",
  "tab-pty 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1518,6 +1518,24 @@ dependencies = [
 [[package]]
 name = "tab-api"
 version = "0.5.2"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lifeline",
+ "log",
+ "serde",
+ "serde_yaml",
+ "snailquote",
+ "sysinfo",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "tab-api"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab09dfc244dcdc57eb841ea686bb3e0989682b2d3d1cc96016e5bb624260d809"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1548,7 +1566,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1571,7 +1589,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1595,7 +1613,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty-process 0.2.0",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
@@ -1620,7 +1638,7 @@ dependencies = [
  "rand",
  "serde_yaml",
  "simplelog",
- "tab-api",
+ "tab-api 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
