@@ -1,7 +1,16 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Values;
 use dialoguer::Confirm;
-use std::{fs::File, io::BufReader, io::BufWriter, io::Read, io::Write, path::Path, path::PathBuf};
+use std::{
+    fs::{File, Permissions},
+    io::BufReader,
+    io::BufWriter,
+    io::Read,
+    io::Write,
+    os::unix::prelude::PermissionsExt,
+    path::Path,
+    path::PathBuf,
+};
 
 mod bash;
 mod fish;
@@ -47,8 +56,10 @@ pub fn run<'a>(commands: Values<'a>) -> anyhow::Result<()> {
 
         // apply packages
         for package in packages {
+            let name = package.name.clone();
+
             eprintln!("Installing {}...", package.name.as_str());
-            install_package(package)?;
+            install_package(package).context(format!("{} installation failed:", name))?;
         }
 
         eprintln!("");
@@ -86,20 +97,29 @@ fn install_package(package: Package) -> anyhow::Result<()> {
 
     for clean in package.clean_files {
         if clean.is_file() {
-            std::fs::remove_file(clean)?;
+            std::fs::remove_file(clean.as_path()).context(format!(
+                "Failed to remove '{}'",
+                clean.to_string_lossy().to_string()
+            ))?;
         } else if clean.is_dir() {
             eprintln!("WARN: directory removal is unsupported");
         }
     }
 
     for write in package.write_files {
-        safe_write(write.path, write.contents)?;
+        safe_write(write.path.as_path(), write.contents, write.permissions).context(format!(
+            "Failed to write '{}'",
+            write.path.to_string_lossy().to_string()
+        ))?;
     }
 
     for edit in package.edit_files {
         let contents = read_file(edit.path.as_path())?;
         let edited = (edit.apply)(contents);
-        safe_write(edit.path, edited)?;
+        safe_write(edit.path.as_path(), edited, edit.permissions).context(format!(
+            "Failed to edit '{}'",
+            edit.path.to_string_lossy().to_string()
+        ))?
     }
 
     for post in package.post_actions {
@@ -123,7 +143,7 @@ fn read_file(path: &Path) -> anyhow::Result<Option<String>> {
 }
 
 /// Writes the contents to the target path, using a tempfile and a filesystem copy
-fn safe_write(path: PathBuf, contents: String) -> anyhow::Result<()> {
+fn safe_write(path: &Path, contents: String, new_permissions: Permissions) -> anyhow::Result<()> {
     if path.is_dir() {
         bail!(format!(
             "tab needs to write a file to {}, but it is a directory",
@@ -135,7 +155,7 @@ fn safe_write(path: PathBuf, contents: String) -> anyhow::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let mut temp_path = path.clone();
+    let mut temp_path = path.to_path_buf();
     if !temp_path.set_extension("tabtmp") {
         bail!(format!(
             "failed to set file extension for: {}",
@@ -160,8 +180,10 @@ fn safe_write(path: PathBuf, contents: String) -> anyhow::Result<()> {
     }
 
     if path.is_file() {
-        let permissions = File::open(path.as_path())?.metadata()?.permissions();
+        let permissions = File::open(path)?.metadata()?.permissions();
         std::fs::set_permissions(temp_path.as_path(), permissions)?;
+    } else {
+        std::fs::set_permissions(temp_path.as_path(), new_permissions)?;
     }
 
     std::fs::copy(temp_path.as_path(), path)?;
@@ -191,7 +213,7 @@ impl PackageEnv {
         ))?;
 
         let data = dirs::data_dir().ok_or(anyhow!(
-            "A home directory is required for package installation, and none could be found."
+            "A data directory is required for package installation, and none could be found."
         ))?;
 
         Ok(Self { home, data })
@@ -243,9 +265,11 @@ impl PackageBuilder {
         path: PathBuf,
         contents: T,
         description: D,
+        permissions: Permissions,
     ) -> &mut Self {
         let write = PackageWrite {
             path,
+            permissions,
             contents: contents.to_string(),
             description: description.to_string(),
         };
@@ -255,7 +279,13 @@ impl PackageBuilder {
     }
 
     /// Edits a file.  Reads the file if it exists, then uses the provided apply function, and writes it to disk.
-    pub fn edit<F, Desc>(&mut self, path: PathBuf, apply: F, description: Desc) -> &mut Self
+    pub fn edit<F, Desc>(
+        &mut self,
+        path: PathBuf,
+        permissions: Permissions,
+        apply: F,
+        description: Desc,
+    ) -> &mut Self
     where
         F: FnOnce(Option<String>) -> String + 'static,
         Desc: ToString,
@@ -264,6 +294,7 @@ impl PackageBuilder {
             path,
             apply: Box::new(apply),
             description: description.to_string(),
+            permissions,
         };
 
         self.package.edit_files.push(edit);
@@ -334,6 +365,7 @@ impl<'b> ScriptBuilder<'b> {
 
         let edit = PackageEdit {
             path: self.path.clone(),
+            permissions: Permissions::from_mode(0o755),
             apply: Box::new(apply),
             description,
         };
@@ -347,12 +379,14 @@ pub struct PackageEdit {
     pub path: PathBuf,
     pub apply: Box<dyn FnOnce(Option<String>) -> String>,
     pub description: String,
+    pub permissions: Permissions,
 }
 
 pub struct PackageWrite {
     pub path: PathBuf,
     pub contents: String,
     pub description: String,
+    pub permissions: Permissions,
 }
 
 pub struct PackageInstallAction {
@@ -459,7 +493,12 @@ pub enum Shell {
 }
 
 pub enum ScriptAction {
+    /// Sources the script file
     SourceFile(PathBuf),
+    /// Exports an env var with the given name, and the contents
+    Export(String, String),
+    /// Runs a shell-specific command
+    Command(String),
 }
 
 impl ScriptAction {
@@ -471,6 +510,13 @@ impl ScriptAction {
             (ScriptAction::SourceFile(path), Shell::Zsh) => {
                 format!("source \"{}\"", path.to_string_lossy())
             }
+            (ScriptAction::Export(var, contents), Shell::Bash) => {
+                format!("export {}=\"{}\"", var, contents)
+            }
+            (ScriptAction::Export(var, contents), Shell::Zsh) => {
+                format!("export {}=\"{}\"", var, contents)
+            }
+            (ScriptAction::Command(command), _) => command.clone(),
         }
     }
 }

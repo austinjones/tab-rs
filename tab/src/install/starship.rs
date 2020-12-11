@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs::Permissions, os::unix::prelude::PermissionsExt, path::PathBuf};
 
 use toml_edit::{table, value, Array, Document};
 
@@ -10,6 +10,7 @@ pub fn starship_package(env: &PackageEnv) -> Package {
     let config = starship_toml(env);
     package.edit(
         config,
+        Permissions::from_mode(0o644),
         edit,
         "add [custom.tab] section which invokes `tab --starship`",
     );
