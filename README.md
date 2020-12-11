@@ -62,6 +62,8 @@ Download binaries from:
 
 **(Known Issues)**
 
+The zsh installer fails if the `/usr/local/share/zsh/site-functions` directory is not writable (and you don't use oh-my-zsh)  See [#221](https://github.com/austinjones/tab-rs/issues/221).
+
 After you upgrade tab or move the tab binary, you may want to run the `tab --shutdown` command to restart the daemon.  See [#163](https://github.com/austinjones/tab-rs/issues/163).
 
 If you get the message `tab: unsupported terminal app`, you fix it by removing the `osx` plugin from your `~/.zshrc`.  See [#156](https://github.com/austinjones/tab-rs/issues/156).
@@ -69,7 +71,7 @@ If you get the message `tab: unsupported terminal app`, you fix it by removing t
 ## 2. Install autocompletions for your shell
 Tab works best when configured with shell autocompletions.  
 
-Tab has a built-in script installer which provides a detailed explanation of the changes, and prompts for your confirmation.
+Tab has a built-in script installer which provides a detailed explanation of the changes, and prompts for your confirmation.  You should run it as your standard user account, as it manages files within your home directory.
 
 **(All)**
 
@@ -155,11 +157,28 @@ other-workspace/ ❯
 ```
 
 # Configuration
-Tab supports persistent `tab.yml` configurations.  There are two types of configurations:
+Tab supports configurable sessions, which can be written in YAML.  There are a few types of configurations:
+- User configuration (`~/.config/tab.yml`), where you can define tabs that are always available.  It can also be used to [override keybindings](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml#L65).
 - Workspace configurations, which are active within any subdirectory, and link to repositories.
 - Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`.
 
 Detailed documentation is available in the [examples](https://github.com/austinjones/tab-rs/tree/main/examples/) directory, but here are some starter configurations:
+
+
+```
+~/.config/tab.yml:
+
+workspace:
+  # this is a global tab, that is always available, and initializes in ~/tab-dir
+  - tab: global-tab
+    doc: "my global tab doc"
+    directory: tab-dir
+
+  # this links to a workspace config in ~/my-workspace
+  #   workspaces are only active within the workspace directory
+  #   this creates a link to that workspace, so you can always activate it with `tab my-workspace`
+  - workspace: my-workspace
+```
 
 ```
 ~/workspace/tab.yml:
@@ -188,6 +207,7 @@ With these configurations, `tab -l` provides the following:
 ```
 $ tab -l
 Available tabs:
+    global-tab/       (my global tab doc)
     proj/             (my project)
     proj/run/         (runs the project server)
     workspace-tab/    (this is a top-level workspace tab)
