@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::Command};
+use std::{fs::Permissions, os::unix::prelude::PermissionsExt, path::PathBuf, process::Command};
 
 use anyhow::bail;
 
@@ -25,9 +25,15 @@ pub fn zsh_package(env: &PackageEnv) -> anyhow::Result<Package> {
             ohmyzsh,
             tab_completions,
             "the tab completion script for the oh-my-zsh package manager",
+            Permissions::from_mode(0o755),
         );
     } else if let Some(usrlocal) = completion_usr_local {
-        package.write_file(usrlocal, tab_completions, "the tab completion script");
+        package.write_file(
+            usrlocal,
+            tab_completions,
+            "the tab completion script",
+            Permissions::from_mode(0o755),
+        );
     } else {
         bail!("tab could not find a suitable completion directory.  supported directories are: '~/.oh-my-zsh/completions' and '/usr/local/share/zsh/site-functions'");
     }
@@ -39,6 +45,7 @@ pub fn zsh_package(env: &PackageEnv) -> anyhow::Result<Package> {
         history_script.clone(),
         include_str!("../completions/zsh/history.zsh"),
         "script which sets a tab-unique $HISTFILE when within a session",
+        Permissions::from_mode(0o755),
     );
 
     package
