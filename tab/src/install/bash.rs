@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs::Permissions, os::unix::prelude::PermissionsExt, path::PathBuf};
 
 use super::{Package, PackageBuilder, PackageEnv, ScriptAction, Shell};
 
@@ -10,6 +10,7 @@ pub fn bash_package(env: &PackageEnv) -> Package {
         completion.clone(),
         include_str!("../completions/bash/tab.bash"),
         "an autocompletion script for the bash shell",
+        Permissions::from_mode(0o755),
     );
 
     package
