@@ -17,3 +17,6 @@ members = [
 # tab-command = { path = './tab-command/' }
 # tab-daemon = { path = './tab-daemon/' }
 # tab-pty = { path = './tab-pty/' }
+
+[profile.release]
+lto = true
