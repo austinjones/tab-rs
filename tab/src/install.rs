@@ -492,6 +492,7 @@ pub enum Shell {
     Zsh,
 }
 
+#[allow(dead_code)]
 pub enum ScriptAction {
     /// Sources the script file
     SourceFile(PathBuf),
