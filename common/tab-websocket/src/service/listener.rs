@@ -12,7 +12,7 @@ use log::{debug, error};
 
 use lifeline::prelude::*;
 use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, UnixListener, UnixStream};
 
 /// An established listener service, which transmits WebsocketConnectionMessages over the listener bus.
 pub struct WebsocketListenerService {
@@ -36,7 +36,7 @@ impl Service for WebsocketListenerService {
 
 /// The main runloop for the WebsocketListenerService
 async fn accept_connections(
-    mut listener: TcpListener,
+    mut listener: UnixListener,
     mut tx: impl Sender<WebsocketConnectionMessage>,
     auth_token: WebsocketAuthToken,
 ) -> anyhow::Result<()> {
@@ -73,21 +73,16 @@ async fn accept_connections(
 #[cfg(test)]
 pub(crate) async fn serve(
     token: &str,
-) -> anyhow::Result<(
-    WebsocketListenerBus,
-    WebsocketListenerService,
-    std::net::SocketAddr,
-)> {
+) -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, UnixStream)> {
     let bus = WebsocketListenerBus::default();
     bus.store_resource::<WebsocketAuthToken>(token.into());
 
-    let server = TcpListener::bind("127.0.0.1:0").await?;
-    let addr = server.local_addr()?;
+    let (server, client) = UnixStream::pair()?;
     let websocket = WebsocketListenerResource(server);
     bus.store_resource(websocket);
 
     let lifeline = WebsocketListenerService::spawn(&bus)?;
-    Ok((bus, lifeline, addr))
+    Ok((bus, lifeline, client))
 }
 
 #[cfg(test)]

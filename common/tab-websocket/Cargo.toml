@@ -15,7 +15,7 @@ lifeline = "0.4.0"
 
 tungstenite = { version = "0.11", default-features = false }
 async-tungstenite = { version = "0.8", features = ["tokio-runtime"] }
-tokio = { version = "0.2", features = ["macros", "sync", "stream", "signal"] }
+tokio = { version = "0.2", features = ["macros", "sync", "stream", "net", "signal"] }
 futures = { version = "0.3", features = [] }
 anyhow = "1.0"
 thiserror = "1.0"

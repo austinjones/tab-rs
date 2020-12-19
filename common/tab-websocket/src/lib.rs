@@ -1,10 +1,12 @@
+use std::path::Path;
+
 use async_tungstenite::{
-    tokio::{connect_async, TokioAdapter},
+    tokio::{client_async, connect_async, TokioAdapter},
     WebSocketStream,
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-use tokio::net::TcpStream;
+use tokio::net::{TcpStream, UnixListener, UnixStream};
 
 use auth::AuthHandler;
 
@@ -18,36 +20,43 @@ pub mod message;
 pub mod resource;
 pub mod service;
 
-pub type WebsocketConnection = WebSocketStream<TokioAdapter<TcpStream>>;
+pub type WebsocketConnection = WebSocketStream<TokioAdapter<UnixStream>>;
 
 /// Connects to the provided URL, with no authentication token
-pub async fn connect(url: String) -> Result<WebsocketConnection, tungstenite::Error> {
-    let tuple = connect_async(url).await?;
+pub async fn connect(socket: &Path) -> Result<WebsocketConnection, tungstenite::Error> {
+    let conn = UnixStream::connect(socket).await?;
+    let request = Request::builder()
+        // .uri(url)
+        .body(())?;
+
+    let tuple = client_async(request, conn).await?;
     Ok(tuple.0)
 }
 
 /// Connects to the provided URL, given an authentication token
 pub async fn connect_authorized(
-    url: String,
+    socket: &Path,
     token: String,
 ) -> Result<WebsocketConnection, tungstenite::Error> {
+    let conn = UnixStream::connect(socket).await?;
+
     let request = Request::builder()
-        .uri(url)
+        // .uri(url)
         .header("Authorization", token.trim())
         .body(())?;
 
-    let (stream, _resp) = connect_async(request).await?;
-    Ok(stream)
+    let tuple = client_async(request, conn).await?;
+    Ok(tuple.0)
 }
 
 /// Binds to the TCP stream as a server, requring the auth token, and capturing request metadata via a lifeline request.
 pub async fn bind(
-    tcp: TcpStream,
+    unix: UnixStream,
     auth_token: WebsocketAuthToken,
     request_metadata: lifeline::request::Request<(), RequestMetadata>,
 ) -> Result<WebsocketConnection, tungstenite::Error> {
     let auth = AuthHandler::with_metadata(auth_token, Some(request_metadata));
-    async_tungstenite::tokio::accept_hdr_async(tcp, auth).await
+    async_tungstenite::tokio::accept_hdr_async(unix, auth).await
 }
 
 /// Decodes the bincode-serialized message

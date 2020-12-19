@@ -1,9 +1,11 @@
+use std::os::unix::net::UnixStream;
+
 use lifeline::{impl_storage_clone, impl_storage_take};
-use tokio::net::TcpListener;
+use tokio::net::UnixListener;
 
 /// A resource which wraps an established TCP listener.  Taken from the bus
 #[derive(Debug)]
-pub struct WebsocketListenerResource(pub TcpListener);
+pub struct WebsocketListenerResource(pub UnixListener);
 
 impl_storage_take!(WebsocketListenerResource);
 
