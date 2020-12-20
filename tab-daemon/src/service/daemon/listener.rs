@@ -12,7 +12,7 @@ use crate::{
 use crate::{prelude::*, service::cli::subscription::CliSubscriptionService};
 
 use lifeline::dyn_bus::DynBus;
-use tab_api::pty::PtyWebsocketRequest;
+use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketListenerBus},
     message::listener::WebsocketConnectionMessage,
