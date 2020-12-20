@@ -161,6 +161,18 @@ impl FuzzyFinderService {
                             tx_event.send(FuzzyEvent::Enter).await?;
                         }
                         KeyCode::Char(ch) => {
+                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'k' || ch == 'p')
+                            {
+                                tx_event.send(FuzzyEvent::MoveUp {}).await?;
+                                continue;
+                            }
+
+                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'j' || ch == 'n')
+                            {
+                                tx_event.send(FuzzyEvent::MoveDown {}).await?;
+                                continue;
+                            }
+
                             if key.modifiers.eq(&KeyModifiers::CONTROL)
                                 && (ch == 'c' || ch == 'x' || ch == 'w')
                             {
