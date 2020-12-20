@@ -17,3 +17,6 @@ tab-websocket = { path = './common/tab-websocket/' }
 tab-command = { path = './tab-command/' }
 tab-daemon = { path = './tab-daemon/' }
 tab-pty = { path = './tab-pty/' }
+
+[profile.dev]
+opt-level = 3
