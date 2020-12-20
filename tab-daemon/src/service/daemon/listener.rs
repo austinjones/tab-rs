@@ -121,8 +121,8 @@ impl ListenerService {
                     let pty_bus = PtyBus::default();
                     pty_bus.capacity::<PtySend>(128)?;
                     pty_bus.capacity::<PtyRecv>(128)?;
-                    pty_bus.capacity::<PtyWebsocketRequest>(2048);
-                    pty_bus.capacity::<PtyWebsocketResponse>(2048);
+                    pty_bus.capacity::<PtyWebsocketRequest>(128)?;
+                    pty_bus.capacity::<PtyWebsocketResponse>(128)?;
 
                     let _listener_carrier = pty_bus.carry_from(&bus)?;
                     let _websocket_carrier = pty_bus.carry_into(&msg.bus)?;

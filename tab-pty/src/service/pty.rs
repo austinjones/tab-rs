@@ -2,7 +2,10 @@ use crate::message::pty::{PtyOptions, PtyOutputBarrier, PtyRequest, PtyResponse,
 use crate::prelude::*;
 
 use lifeline::{barrier::*, Receiver, Sender};
-use std::process::{Command, Stdio};
+use std::{
+    process::{Command, Stdio},
+    time::Duration,
+};
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
     env::forward_env_std,
@@ -11,9 +14,12 @@ use tab_pty_process::CommandExt;
 use tab_pty_process::{
     AsyncPtyMaster, AsyncPtyMasterReadHalf, AsyncPtyMasterWriteHalf, Child, PtyMaster,
 };
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    time,
+};
 
-static CHUNK_LEN: usize = 2048;
+static CHUNK_LEN: usize = 4096;
 static OUTPUT_CHANNEL_SIZE: usize = 32;
 static STDIN_CHANNEL_SIZE: usize = 256;
 
@@ -132,6 +138,8 @@ impl PtyService {
 
             tx.send(response).await.ok();
             index += read;
+
+            time::delay_for(Duration::from_micros(500)).await;
         }
     }
 
