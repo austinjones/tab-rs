@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+use anyhow::bail;
 use message::pty::MainShutdown;
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
@@ -70,8 +71,16 @@ async fn spawn() -> anyhow::Result<(
     let bus = MainBus::default();
     bus.capacity::<PtyWebsocketRequest>(64)?;
 
-    let ws_url = format!("ws://127.0.0.1:{}/pty", config.port);
-    let websocket = tab_websocket::connect_authorized(ws_url, config.auth_token.clone()).await?;
+    if config.socket.is_none() {
+        bail!("Daemon does not have a socket");
+    }
+
+    let websocket = tab_websocket::connect_authorized(
+        config.socket.as_ref().unwrap().as_path(),
+        "/pty".into(),
+        config.auth_token.clone(),
+    )
+    .await?;
     bus.store_resource(WebsocketResource(websocket));
     bus.store_resource(config);
 

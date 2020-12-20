@@ -2,7 +2,6 @@ use crate::WebsocketConnection;
 use futures::executor::block_on;
 use lifeline::impl_storage_take;
 use log::error;
-use tokio::net::UnixStream;
 
 /// A resource which wraps an established TCP websocket connection
 #[derive(Debug)]

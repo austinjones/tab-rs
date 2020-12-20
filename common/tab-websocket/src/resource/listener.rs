@@ -1,5 +1,3 @@
-use std::os::unix::net::UnixStream;
-
 use lifeline::{impl_storage_clone, impl_storage_take};
 use tokio::net::UnixListener;
 

@@ -18,6 +18,7 @@ dirs = "3.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 snailquote = "0.3"
+rand = "0.8"
 
 # logging
 log = "0.4"

@@ -12,7 +12,7 @@ use log::{debug, error};
 
 use lifeline::prelude::*;
 use lifeline::{dyn_bus::DynBus, request::Request as LifelineRequest};
-use tokio::net::{TcpListener, UnixListener, UnixStream};
+use tokio::net::UnixListener;
 
 /// An established listener service, which transmits WebsocketConnectionMessages over the listener bus.
 pub struct WebsocketListenerService {
@@ -71,23 +71,46 @@ async fn accept_connections(
 }
 
 #[cfg(test)]
+use std::path::PathBuf;
+
+#[cfg(test)]
+use tempfile::{tempdir, TempDir};
+
+#[cfg(test)]
+pub(crate) fn test_socket() -> anyhow::Result<(PathBuf, TempDir)> {
+    let dir = tempdir()?;
+
+    let mut path = dir.path().to_path_buf();
+    path.push("tab-sock");
+
+    Ok((path, dir))
+}
+
+#[cfg(test)]
 pub(crate) async fn serve(
     token: &str,
-) -> anyhow::Result<(WebsocketListenerBus, WebsocketListenerService, UnixStream)> {
+) -> anyhow::Result<(
+    WebsocketListenerBus,
+    WebsocketListenerService,
+    (PathBuf, TempDir),
+)> {
     let bus = WebsocketListenerBus::default();
     bus.store_resource::<WebsocketAuthToken>(token.into());
 
-    let (server, client) = UnixStream::pair()?;
-    let websocket = WebsocketListenerResource(server);
+    let socket = test_socket()?;
+
+    let listener = UnixListener::bind(socket.0.as_path())?;
+    let websocket = WebsocketListenerResource(listener);
     bus.store_resource(websocket);
 
     let lifeline = WebsocketListenerService::spawn(&bus)?;
-    Ok((bus, lifeline, client))
+
+    Ok((bus, lifeline, socket))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{serve, WebsocketListenerService};
+    use super::{serve, test_socket, WebsocketListenerService};
     use crate::{
         bus::*,
         message::{
@@ -101,18 +124,18 @@ mod tests {
         service::WebsocketService,
     };
     use lifeline::{assert_completes, dyn_bus::DynBus, prelude::*};
-    use std::net::SocketAddr;
-    use tokio::net::TcpListener;
+    use std::path::Path;
+    use tokio::net::UnixListener;
 
     async fn connect(
-        addr: SocketAddr,
+        socket: &Path,
         token: &str,
     ) -> anyhow::Result<(WebsocketConnectionBus, WebsocketService)> {
         let bus = WebsocketConnectionBus::default();
         bus.store_resource::<WebsocketAuthToken>(token.into());
 
         let connection =
-            crate::connect_authorized(format!("ws://{}", addr), token.to_string()).await?;
+            crate::connect_authorized(socket, "/".to_string(), token.to_string()).await?;
         bus.store_resource(WebsocketResource(connection));
 
         let lifeline = WebsocketService::spawn(&bus)?;
@@ -124,8 +147,9 @@ mod tests {
         let bus = WebsocketListenerBus::default();
         bus.store_resource(WebsocketAuthToken::unauthenticated());
 
-        let server = TcpListener::bind("127.0.0.1:0").await?;
-        let websocket = WebsocketListenerResource(server);
+        let (socket, _dir) = test_socket()?;
+        let listener = UnixListener::bind(socket)?;
+        let websocket = WebsocketListenerResource(listener);
         bus.store_resource(websocket);
 
         let _listener = WebsocketListenerService::spawn(&bus)?;
@@ -135,11 +159,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_listener_accepts_connection() -> anyhow::Result<()> {
-        let (listener_bus, _listener, addr) = serve("TOKEN").await?;
+        let (listener_bus, _listener, (socket, _tempdir)) = serve("TOKEN").await?;
 
         let bus = WebsocketConnectionBus::default();
         let connection =
-            crate::connect_authorized(format!("ws://{}", addr), "TOKEN".to_string()).await?;
+            crate::connect_authorized(socket.as_path(), "/".to_string(), "TOKEN".to_string())
+                .await?;
         bus.store_resource(WebsocketResource(connection));
 
         let _sender = WebsocketService::spawn(&bus)?;
@@ -156,8 +181,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_request() -> anyhow::Result<()> {
-        let (listener_bus, _serve, addr) = serve("TOKEN").await?;
-        let (bus, _connect) = connect(addr, "TOKEN").await?;
+        let (listener_bus, _serve, (socket, _tempdir)) = serve("TOKEN").await?;
+        let (bus, _connect) = connect(socket.as_path(), "TOKEN").await?;
 
         let mut rx_conn = listener_bus
             .rx::<WebsocketConnectionMessage>()?
@@ -185,8 +210,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_response() -> anyhow::Result<()> {
-        let (listener_bus, _serve, addr) = serve("TOKEN").await?;
-        let (bus, _connect) = connect(addr, "TOKEN").await?;
+        let (listener_bus, _serve, (socket, _tempdir)) = serve("TOKEN").await?;
+        let (bus, _connect) = connect(socket.as_path(), "TOKEN").await?;
 
         let mut rx_conn = listener_bus
             .rx::<WebsocketConnectionMessage>()?

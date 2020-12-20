@@ -14,7 +14,7 @@ use tab_api::{
     log::get_level,
 };
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
-use tokio::net::TcpListener;
+use tokio::net::UnixListener;
 
 mod auth;
 mod bus;
@@ -42,9 +42,9 @@ pub fn daemon_main(tab_version: &'static str) -> anyhow::Result<()> {
 }
 
 pub async fn new_bus(tab_version: &'static str) -> anyhow::Result<DaemonBus> {
-    let server = TcpListener::bind("127.0.0.1:0").await?;
-    let port = server.local_addr()?.port();
-    let websocket = WebsocketListenerResource(server);
+    let socket = tab_api::config::new_daemon_socket()?;
+    let listener = UnixListener::bind(socket.as_path())?;
+    let websocket = WebsocketListenerResource(listener);
 
     let auth_token = auth::gen_token();
     let pid = std::process::id();
@@ -55,8 +55,8 @@ pub async fn new_bus(tab_version: &'static str) -> anyhow::Result<DaemonBus> {
 
     let config = DaemonConfig {
         pid: pid as i32,
-        port,
         executable,
+        socket: Some(socket),
         tab_version: Some(tab_version.to_string()),
         auth_token: auth_token.clone(),
     };
@@ -89,7 +89,6 @@ async fn main_async(tab_version: &'static str) -> anyhow::Result<()> {
     let daemon_file = DaemonFile::new(&config)?;
     info!("Daemon started.");
     info!("Daemon pid: {}", config.pid);
-    info!("Daemon port: {}", config.port);
 
     let _service = DaemonService::spawn(&bus)?;
     let shutdown = bus.rx::<DaemonShutdown>()?;

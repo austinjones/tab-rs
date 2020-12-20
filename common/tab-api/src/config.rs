@@ -1,5 +1,6 @@
 use anyhow::Result;
 use lifeline::impl_storage_clone;
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::Deserialize;
 use serde::Serialize;
 use std::{env, fs::File, io::BufReader, path::PathBuf};
@@ -9,8 +10,8 @@ use sysinfo::{ProcessExt, RefreshKind, SystemExt};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonConfig {
     pub pid: i32,
-    pub port: u16,
     pub executable: Option<String>,
+    pub socket: Option<PathBuf>,
     pub tab_version: Option<String>,
     pub auth_token: String,
 }
@@ -34,6 +35,18 @@ pub fn data_path() -> Result<PathBuf> {
 
     dir.push("tab");
 
+    Ok(dir)
+}
+
+/// Constructs a new daemon socket path.
+pub fn new_daemon_socket() -> Result<PathBuf> {
+    let mut dir = data_path()?;
+    let id: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(6)
+        .map(|e| e as char)
+        .collect();
+    dir.push(format!("daemon-{}.sock", id));
     Ok(dir)
 }
 

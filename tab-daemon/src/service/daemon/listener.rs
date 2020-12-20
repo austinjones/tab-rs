@@ -176,13 +176,14 @@ impl ListenerService {
 mod tests {
     use super::ListenerService;
 
-    use async_tungstenite::tokio::connect_async;
+    use async_tungstenite::tokio::client_async;
     use http::StatusCode;
     use lifeline::{dyn_bus::DynBus, prelude::*};
     use std::fmt::Debug;
     use tab_api::config::DaemonConfig;
     use tab_websocket::bus::WebsocketConnectionBus;
     use tab_websocket::{resource::connection::WebsocketResource, service::WebsocketService};
+    use tokio::net::UnixStream;
     use tungstenite::{handshake::client::Request, http};
 
     #[tokio::test]
@@ -202,7 +203,11 @@ mod tests {
 
         let websocket_bus = WebsocketConnectionBus::default();
         let connection = tab_websocket::connect_authorized(
-            format!("ws://127.0.0.1:{}", config.port),
+            config
+                .socket
+                .expect("Daemon does not have a socket")
+                .as_path(),
+            "/".into(),
             config.auth_token,
         )
         .await?;
@@ -233,7 +238,14 @@ mod tests {
         let config = bus.resource::<DaemonConfig>()?;
         let _listener = ListenerService::spawn(&bus)?;
 
-        let connection = tab_websocket::connect(format!("ws://127.0.0.1:{}", config.port)).await;
+        let connection = tab_websocket::connect(
+            config
+                .socket
+                .expect("Daemon does not have a socket")
+                .as_path(),
+            "/".into(),
+        )
+        .await;
         assert!(connection.is_err());
         assert_status_err(StatusCode::UNAUTHORIZED, connection);
 
@@ -247,7 +259,11 @@ mod tests {
         let _listener = ListenerService::spawn(&bus)?;
 
         let connection = tab_websocket::connect_authorized(
-            format!("ws://127.0.0.1:{}", config.port),
+            config
+                .socket
+                .expect("Daemon does not have a socket")
+                .as_path(),
+            "/".into(),
             "BAD TOKEN".into(),
         )
         .await;
@@ -264,11 +280,15 @@ mod tests {
         let _listener = ListenerService::spawn(&bus)?;
 
         let request = Request::builder()
-            .uri(format!("ws://127.0.0.1:{}", config.port))
+            .uri("ws://127.0.0.1/".to_string())
             .header("Authorization", config.auth_token)
             .header("Origin", "http://badwebsite.com")
             .body(())?;
-        let result = connect_async(request).await;
+
+        let socket =
+            UnixStream::connect(config.socket.expect("Daemon does not have a socket")).await?;
+
+        let result = client_async(request, socket).await;
 
         assert!(result.is_err());
         assert_status_err(StatusCode::FORBIDDEN, result);

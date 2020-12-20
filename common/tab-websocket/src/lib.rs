@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use async_tungstenite::{
-    tokio::{client_async, connect_async, TokioAdapter},
+    tokio::{client_async, TokioAdapter},
     WebSocketStream,
 };
 use serde::{de::DeserializeOwned, Serialize};
 
-use tokio::net::{TcpStream, UnixListener, UnixStream};
+use tokio::net::UnixStream;
 
 use auth::AuthHandler;
 
@@ -23,10 +23,13 @@ pub mod service;
 pub type WebsocketConnection = WebSocketStream<TokioAdapter<UnixStream>>;
 
 /// Connects to the provided URL, with no authentication token
-pub async fn connect(socket: &Path) -> Result<WebsocketConnection, tungstenite::Error> {
+pub async fn connect(
+    socket: &Path,
+    path: String,
+) -> Result<WebsocketConnection, tungstenite::Error> {
     let conn = UnixStream::connect(socket).await?;
     let request = Request::builder()
-        // .uri(url)
+        .uri(format!("ws://127.0.0.1{}", path))
         .body(())?;
 
     let tuple = client_async(request, conn).await?;
@@ -36,12 +39,13 @@ pub async fn connect(socket: &Path) -> Result<WebsocketConnection, tungstenite::
 /// Connects to the provided URL, given an authentication token
 pub async fn connect_authorized(
     socket: &Path,
+    path: String,
     token: String,
 ) -> Result<WebsocketConnection, tungstenite::Error> {
     let conn = UnixStream::connect(socket).await?;
 
     let request = Request::builder()
-        // .uri(url)
+        .uri(format!("ws://127.0.0.1{}", path))
         .header("Authorization", token.trim())
         .body(())?;
 

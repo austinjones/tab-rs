@@ -155,10 +155,10 @@ mod test {
 
     #[tokio::test]
     async fn connect_authenticated() -> anyhow::Result<()> {
-        let (listener_bus, _lifeline, addr) = listener::serve("TOKEN").await?;
+        let (listener_bus, _lifeline, (socket, _tempdir)) = listener::serve("TOKEN").await?;
 
-        let url = format!("ws://{}", addr);
-        let connect = connect_authorized(url, "TOKEN".to_string()).await?;
+        let connect =
+            connect_authorized(socket.as_path(), "/".to_string(), "TOKEN".to_string()).await?;
 
         let bus = WebsocketConnectionBus::default();
         bus.store_resource::<WebsocketAuthToken>("TOKEN".into());

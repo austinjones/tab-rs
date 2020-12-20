@@ -1,3 +1,4 @@
+use anyhow::bail;
 use clap::ArgMatches;
 use semver::Version;
 
@@ -117,16 +118,24 @@ async fn spawn(
 )> {
     let daemon_file = launch_daemon().await?;
     validate_daemon(&daemon_file, tab_version);
-    let ws_url = format!("ws://127.0.0.1:{}/cli", daemon_file.port);
 
-    debug!("daemon is ready");
+    debug!("Daemon is ready. connecting...");
+
+    if daemon_file.socket.is_none() {
+        bail!("Daemon does not have a socket, please run `tab --shutdown` or `pkill tab`");
+    }
 
     let bus = MainBus::default();
     bus.capacity::<Request>(128)?;
     bus.capacity::<Response>(256)?;
 
-    let websocket =
-        tab_websocket::connect_authorized(ws_url, daemon_file.auth_token.clone()).await?;
+    let websocket = tab_websocket::connect_authorized(
+        daemon_file.socket.as_ref().unwrap().as_path(),
+        "/cli".into(),
+        daemon_file.auth_token.clone(),
+    )
+    .await?;
+
     let websocket = WebsocketResource(websocket);
     bus.store_resource(websocket);
 
