@@ -12,6 +12,7 @@ use crate::{
 use crate::{prelude::*, service::cli::subscription::CliSubscriptionService};
 
 use lifeline::dyn_bus::DynBus;
+use tab_api::pty::PtyWebsocketRequest;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketListenerBus},
     message::listener::WebsocketConnectionMessage,
@@ -120,6 +121,8 @@ impl ListenerService {
                     let pty_bus = PtyBus::default();
                     pty_bus.capacity::<PtySend>(128)?;
                     pty_bus.capacity::<PtyRecv>(128)?;
+                    pty_bus.capacity::<PtyWebsocketRequest>(2048);
+                    pty_bus.capacity::<PtyWebsocketResponse>(2048);
 
                     let _listener_carrier = pty_bus.carry_from(&bus)?;
                     let _websocket_carrier = pty_bus.carry_into(&msg.bus)?;
