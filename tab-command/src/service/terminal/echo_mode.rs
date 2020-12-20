@@ -1,6 +1,7 @@
 use std::{
     io::Write,
     sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
 };
 
 use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
@@ -8,7 +9,10 @@ use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
 use crossterm::QueueableCommand;
 use tab_api::env::is_raw_mode;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, Stdout};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt, Stdout},
+    time,
+};
 
 use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
 
@@ -127,6 +131,8 @@ async fn forward_stdin(
 
             break;
         }
+
+        time::delay_for(Duration::from_micros(150)).await;
     }
 
     Ok(())

@@ -139,7 +139,7 @@ impl PtyService {
             tx.send(response).await.ok();
             index += read;
 
-            time::delay_for(Duration::from_micros(500)).await;
+            time::delay_for(Duration::from_micros(150)).await;
         }
     }
 
