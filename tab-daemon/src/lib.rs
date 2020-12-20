@@ -83,6 +83,8 @@ async fn main_async(tab_version: &'static str) -> anyhow::Result<()> {
     ])
     .unwrap();
 
+    log_panics::init();
+
     let bus = new_bus(tab_version).await?;
     let config = bus.resource::<DaemonConfig>()?;
 
