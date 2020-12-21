@@ -49,7 +49,12 @@ pub fn zsh_package(env: &PackageEnv) -> anyhow::Result<Package> {
     );
 
     package
-        .script(Shell::Zsh, zshrc, "source the history.zsh script")
+        .script(
+            Shell::Zsh,
+            zshrc,
+            Permissions::from_mode(0o644),
+            "source the history.zsh script",
+        )
         .action(ScriptAction::SourceFile(history_script))
         .build();
 

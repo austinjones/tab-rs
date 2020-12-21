@@ -302,11 +302,17 @@ impl PackageBuilder {
     }
 
     /// Edits a shell script (e.g. .bashrc or .zshrc), given a shell variant
-    pub fn script<Desc>(&mut self, shell: Shell, path: PathBuf, description: Desc) -> ScriptBuilder
+    pub fn script<Desc>(
+        &mut self,
+        shell: Shell,
+        path: PathBuf,
+        permissions: Permissions,
+        description: Desc,
+    ) -> ScriptBuilder
     where
         Desc: ToString,
     {
-        ScriptBuilder::new(self, shell, path, description.to_string())
+        ScriptBuilder::new(self, shell, path, permissions, description.to_string())
     }
 
     /// Applies an action after all other steps have completed successfully
@@ -333,6 +339,7 @@ impl PackageBuilder {
 pub struct ScriptBuilder<'b> {
     package_builder: &'b mut PackageBuilder,
     path: PathBuf,
+    permissions: Permissions,
     script: ScriptConfig,
     description: String,
 }
@@ -343,11 +350,13 @@ impl<'b> ScriptBuilder<'b> {
         package_builder: &'b mut PackageBuilder,
         shell: Shell,
         path: PathBuf,
+        permissions: Permissions,
         description: String,
     ) -> Self {
         Self {
             package_builder,
             path,
+            permissions,
             description,
             script: ScriptConfig::new(shell),
         }
@@ -365,7 +374,7 @@ impl<'b> ScriptBuilder<'b> {
 
         let edit = PackageEdit {
             path: self.path.clone(),
-            permissions: Permissions::from_mode(0o755),
+            permissions: self.permissions.clone(),
             apply: Box::new(apply),
             description,
         };

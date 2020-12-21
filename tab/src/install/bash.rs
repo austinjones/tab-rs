@@ -14,7 +14,12 @@ pub fn bash_package(env: &PackageEnv) -> Package {
     );
 
     package
-        .script(Shell::Bash, bashrc(env), "source the tab.bash script")
+        .script(
+            Shell::Bash,
+            bashrc(env),
+            Permissions::from_mode(0o644),
+            "source the tab.bash script",
+        )
         .action(ScriptAction::SourceFile(completion))
         .build();
 
