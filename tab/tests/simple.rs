@@ -12,7 +12,7 @@ async fn reconnect() -> anyhow::Result<()> {
     let result = session
         .command()
         .tab("simple/")
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin("exit\n")
         .await_stdout("exit", 300)
         .complete_snapshot()

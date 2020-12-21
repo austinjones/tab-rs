@@ -23,7 +23,7 @@ async fn remote_disconnect_env(session: &TestSession) -> anyhow::Result<()> {
     let result = session
         .command()
         .tab(tab.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin("$TAB_BIN --disconnect\n")
         .await_stdout("disconnect", 300)
         // TODO: extend snapshot to cover the message printed by tab bin
