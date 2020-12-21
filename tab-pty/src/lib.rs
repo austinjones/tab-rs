@@ -49,6 +49,8 @@ fn init() -> anyhow::Result<()> {
     ])
     .unwrap();
 
+    log_panics::init();
+
     Ok(())
 }
 
