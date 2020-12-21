@@ -70,6 +70,8 @@ impl ClientService {
 
                     let shell = resolve_shell(create.shell.as_str());
                     debug!("shell detection: {:?}", shell);
+
+                    // configure history files
                     match shell {
                         Shell::Sh => {
                             let home = history_path("sh", create.name.as_str())?;
@@ -104,9 +106,22 @@ impl ClientService {
 
                     let mut args = vec![];
 
-                    // todo: better resolution of shells
-                    if let Shell::Fish = shell {
-                        args.push("--interactive".to_string());
+                    // configure shell args
+                    match shell {
+                        Shell::Sh => {
+                            args.push("--login".to_string());
+                        }
+                        Shell::Zsh => {
+                            args.push("--login".to_string());
+                        }
+                        Shell::Bash => {
+                            args.push("--login".to_string());
+                        }
+                        Shell::Fish => {
+                            args.push("--interactive".to_string());
+                            args.push("--login".to_string());
+                        }
+                        Shell::Unknown => {}
                     }
 
                     if !is_raw_mode() {
