@@ -34,6 +34,7 @@ base64 = "0.12"
 # logging
 log = "0.4"
 simplelog = "0.8"
+log-panics = "2.0"
 
 # error management
 anyhow = "1.0"
