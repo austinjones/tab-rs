@@ -258,7 +258,7 @@ impl ClientSessionService {
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {
-                PtyResponse::Output(mut out) => {
+                PtyResponse::Output(out) => {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
                 PtyResponse::Terminated => {
