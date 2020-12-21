@@ -105,6 +105,11 @@ pub fn load_daemon_file() -> anyhow::Result<Option<DaemonConfig>> {
 
 /// The full path to the global configuration file
 pub fn global_config_file() -> Option<PathBuf> {
+    // Use $TAB_CONFIG as the config file if available
+    if let Ok(path) = env::var("TAB_CONFIG") {
+        return Some(PathBuf::from(path));
+    }
+
     if let Some(mut home_path) = dirs::home_dir() {
         home_path.push(".config");
         home_path.push("tab.yml");

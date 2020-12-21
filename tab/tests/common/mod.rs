@@ -60,6 +60,7 @@ pub struct TestCommand {
     context: Arc<TestContext>,
     pub tab: String,
     pub actions: Vec<Action>,
+    pub strict_timeout: bool,
 }
 
 #[allow(dead_code)]
@@ -82,6 +83,12 @@ impl TestCommand {
         let vec = value.into_iter().copied().collect();
         let action = Action::Stdin(vec);
         self.actions.push(action);
+        self
+    }
+
+    /// Panics if any timeout is exceeded
+    pub fn strict_timeout(&mut self) -> &mut Self {
+        self.strict_timeout = true;
         self
     }
 
@@ -218,10 +225,12 @@ impl TestCommand {
                                     match_target.as_slice(),
                                 ) {
                                     info!(
-                                        "Stdout match for {} found at index [{}..{}]",
+                                        "Stdout match for {} found at index [{}..{}] after {} ms",
                                         string,
                                         search_index + index,
-                                        search_index + index + match_target.len()
+                                        search_index + index + match_target.len(),
+                                        Instant::now().duration_since(start_time).as_secs_f64()
+                                            * 1000.
                                     );
                                     debug!(
                                         "Stdout match found at text: '{}'",
@@ -235,6 +244,10 @@ impl TestCommand {
                                 }
 
                                 if Instant::now().duration_since(start_time) > *timeout {
+                                    if self.strict_timeout {
+                                        panic!("Await timeout for stdout: {}", string);
+                                    }
+
                                     error!("Await timeout for stdout: {}", string);
                                     error!(
                                         "Current buffer: {}",
@@ -359,6 +372,7 @@ impl TestSession {
             context: self.context.clone(),
             tab: "tab".into(),
             actions: Vec::new(),
+            strict_timeout: false,
         }
     }
 }
