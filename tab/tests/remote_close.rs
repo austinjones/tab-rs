@@ -23,7 +23,7 @@ async fn remote_close_env(session: &TestSession) -> anyhow::Result<()> {
     let result = session
         .command()
         .tab(tab.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin("$TAB_BIN --close\n")
         .await_stdout("close", 300)
         .complete_snapshot()
@@ -42,7 +42,7 @@ async fn remote_close_name(session: &TestSession) -> anyhow::Result<()> {
     let result = session
         .command()
         .tab(tab.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin(format!("TAB_ID='' $TAB_BIN --close {}\n", tab))
         .await_stdout("close remote_close_name/", 300)
         .complete_snapshot()

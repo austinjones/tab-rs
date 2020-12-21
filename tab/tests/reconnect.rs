@@ -21,7 +21,7 @@ async fn reconnect_iter(session: &TestSession, iter: usize) -> anyhow::Result<()
     let result = session
         .command()
         .tab(tab.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin("echo foo\n")
         .await_stdout("echo foo", 300)
         .await_stdout("$", 300)

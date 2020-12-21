@@ -9,7 +9,7 @@ pub fn fish_package(env: &PackageEnv) -> Package {
         completion_path(env),
         include_str!("../completions/fish/tab.fish"),
         "an autocompletion script for the fish shell",
-        Permissions::from_mode(0o755),
+        Permissions::from_mode(0o644),
     );
 
     package.build()
