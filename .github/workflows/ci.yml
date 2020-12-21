@@ -33,14 +33,14 @@ jobs:
         if: steps.cargo-cache.outputs.cache-hit != 'true'
         with:
           command: build
-          args: --locked --release
+          args: --locked
 
       - name: cargo build | dev dependencies
         uses: actions-rs/cargo@v1
         if: steps.cargo-cache.outputs.cache-hit != 'true'
         with:
           command: test
-          args: --locked --release --no-run
+          args: --locked --no-run
         
   check:
     name: cargo check
@@ -63,13 +63,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --release
 
       - name: cargo clippy
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --release
 
       - name: cargo fmt
         uses: actions-rs/cargo@v1
@@ -98,4 +96,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --release -- --nocapture
+          args: -- --nocapture
