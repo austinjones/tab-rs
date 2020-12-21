@@ -7,7 +7,6 @@ use std::{
     io::BufWriter,
     io::Read,
     io::Write,
-    os::unix::prelude::PermissionsExt,
     path::Path,
     path::PathBuf,
 };
