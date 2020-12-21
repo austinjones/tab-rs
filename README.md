@@ -158,7 +158,7 @@ other-workspace/ ❯
 
 # Configuration
 Tab supports configurable sessions, which can be written in YAML.  There are a few types of configurations:
-- User configuration (`~/.config/tab.yml`), where you can define tabs that are always available.  It can also be used to [override keybindings](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml#L65).
+- User configuration, which can be placed at `~/.config/tab.yml` or `$TAB_CONFIG`.  This configuration is always active, and can be used to define global tabs, or pin links to workspaces for easy access.  It can also be used to [override keybindings](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml#L65).
 - Workspace configurations, which are active within any subdirectory, and link to repositories.
 - Repository configurations, which define tab endpoints.  Your typical `tab` interaction would be switching to one of these repositories via `tab myproj/`.
 
@@ -166,7 +166,7 @@ Detailed documentation is available in the [examples](https://github.com/austinj
 
 
 ```
-~/.config/tab.yml:
+~/.config/tab.yml or $TAB_CONFIG
 
 workspace:
   # this is a global tab, that is always available, and initializes in ~/tab-dir
@@ -181,7 +181,7 @@ workspace:
 ```
 
 ```
-~/workspace/tab.yml:
+~/workspace/tab.yml
 
 workspace:
   - repo: my-project/
@@ -190,9 +190,8 @@ workspace:
   - workspace: ../other-workspace
 ```
 
-
 ```
-~/workspace/my-project/tab.yml:
+~/workspace/my-project/tab.yml
 
 repo: proj
 doc: "my project"
@@ -213,12 +212,6 @@ Available tabs:
     workspace-tab/    (this is a top-level workspace tab)
     other-workspace/  (workspace tab for ~/other-workspace)
 ```
-
-## Global Workspace
-
-Tab also supports a global workspace configuration that can be placed at `~/.config/tab.yml` or `$XDG_CONFIG_HOME/tab.yml`. 
-
-The global workspace is always active, and can be used to 'pin' links to other workspaces, create global tabs, or configure keybindings.  See the [advanced-workspace](https://github.com/austinjones/tab-rs/blob/main/examples/advanced-workspace/tab.yml) example for more documentation.
 
 # Security
 Tab can execute commands in a terminal, so I take security seriously.  This is how I protect your machine in `tab`:
