@@ -18,6 +18,8 @@ jobs:
       - id: cargo-cache
         name: cache
         uses: austinjones/rust-cache@v1
+        with:
+          key: ci
 
       - name: cargo build | dependencies
         uses: actions-rs/cargo@v1
@@ -44,6 +46,8 @@ jobs:
       - id: cargo-cache
         name: cache
         uses: austinjones/rust-cache@v1
+        with:
+          key: ci
 
       - name: cargo check
         uses: actions-rs/cargo@v1
@@ -72,6 +76,8 @@ jobs:
       - id: cargo-cache
         name: cache
         uses: austinjones/rust-cache@v1
+        with:
+          key: ci
 
       - name: cargo test
         uses: actions-rs/cargo@v1
