@@ -7,9 +7,6 @@ on:
 
 name: Continuous Integration
 
-env:
-  CARGO_INCREMENTAL: 'false'
-
 jobs:
   dependencies:
     name: cargo build | dependencies
@@ -21,10 +18,6 @@ jobs:
       - id: cargo-cache
         name: cache
         uses: austinjones/rust-cache@v1
-
-      - name: cargo build | clean
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: rm -rf target/release && rm -rf target/debug/incremental
 
       - name: cargo build | dependencies
         uses: actions-rs/cargo@v1
