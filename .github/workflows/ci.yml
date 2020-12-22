@@ -32,6 +32,7 @@ jobs:
             ${{ runner.os }}-cargo-debug-
 
       - name: cargo build | clean
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
         run: rm -rf target/release && rm -rf target/debug/incremental
 
       - name: cargo build | dependencies
