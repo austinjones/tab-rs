@@ -7,6 +7,9 @@ on:
 
 name: Continuous Integration
 
+env:
+  CARGO_INCREMENTAL: 'false'
+
 jobs:
   dependencies:
     name: cargo build | dependencies
@@ -27,6 +30,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo-debug-
+
+      - name: cargo build | clean
+        run: rm -rf target/release && rm -rf target/debug/incremental
 
       - name: cargo build | dependencies
         uses: actions-rs/cargo@v1
