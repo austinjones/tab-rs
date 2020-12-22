@@ -9,8 +9,8 @@ use crate::{
     utils::await_state,
 };
 use anyhow::anyhow;
-use std::{env, path::PathBuf};
 use std::{collections::HashMap, sync::Arc};
+use std::{env, path::PathBuf};
 use tab_api::tab::{normalize_name, CreateTabMetadata};
 
 /// Receives CreateTabRequests, and decides whether to send the daemon issue a create request.
@@ -104,7 +104,8 @@ impl CreateTabService {
     }
 
     fn compute_env(tab: Option<&WorkspaceTab>) -> HashMap<String, String> {
-        let mut env = tab.map(|tab| tab.env.clone())
+        let mut env = tab
+            .map(|tab| tab.env.clone())
             .flatten()
             .unwrap_or(HashMap::with_capacity(0));
 
