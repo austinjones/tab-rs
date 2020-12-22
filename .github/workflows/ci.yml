@@ -17,16 +17,9 @@ jobs:
 
       - id: cargo-cache
         name: cache
-        uses: actions/cache@v2
+        uses: austinjones/rust-cache@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
-            ${{ runner.os }}-cargo-debug-
+          key: ci
 
       - name: cargo build | dependencies
         uses: actions-rs/cargo@v1
@@ -50,14 +43,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: cache
-        uses: actions/cache@v2
+      - id: cargo-cache
+        name: cache
+        uses: austinjones/rust-cache@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          key: ci
 
       - name: cargo check
         uses: actions-rs/cargo@v1
@@ -83,14 +73,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: cache
-        uses: actions/cache@v2
+      - id: cargo-cache
+        name: cache
+        uses: austinjones/rust-cache@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          key: ci
 
       - name: cargo test
         uses: actions-rs/cargo@v1
