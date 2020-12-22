@@ -9,7 +9,7 @@ use crate::{
     utils::await_state,
 };
 use anyhow::anyhow;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 use std::{collections::HashMap, sync::Arc};
 use tab_api::tab::{normalize_name, CreateTabMetadata};
 
@@ -104,9 +104,26 @@ impl CreateTabService {
     }
 
     fn compute_env(tab: Option<&WorkspaceTab>) -> HashMap<String, String> {
-        tab.map(|tab| tab.env.clone())
+        let mut env = tab.map(|tab| tab.env.clone())
             .flatten()
-            .unwrap_or(HashMap::with_capacity(0))
+            .unwrap_or(HashMap::with_capacity(0));
+
+        Self::copy_env(&mut env, "TERM");
+        Self::copy_env(&mut env, "COLORTERM");
+
+        env
+    }
+
+    /// Copies the environment variable from the current environment,
+    /// if it does not already exist in the map
+    fn copy_env(env_map: &mut HashMap<String, String>, var: &str) {
+        let var = var.to_string();
+
+        if !env_map.contains_key(&var) {
+            if let Ok(value) = env::var(&var) {
+                env_map.insert(var.clone(), value);
+            }
+        }
     }
 
     fn compute_directory(tab: Option<&WorkspaceTab>) -> anyhow::Result<PathBuf> {
