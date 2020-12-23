@@ -9,7 +9,7 @@ use tab_api::chunk::OutputChunk;
 use tokio::sync::Mutex;
 
 // 128MB memory limit
-static MIN_CAPACITY: usize = 134217728;
+static MAX_CAPACITY: usize = 134217728;
 static MAX_CHUNK_LEN: usize = 4096;
 
 /// Spawns with a pty connection, and maintains a scrollback buffer.  Provides scrollback for tab-command clients
@@ -109,7 +109,7 @@ impl ScrollbackManager {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScrollbackBuffer {
     size: usize,
-    pub(super) queue: VecDeque<OutputChunk>,
+    queue: VecDeque<OutputChunk>,
 }
 
 impl ScrollbackBuffer {
@@ -121,10 +121,13 @@ impl ScrollbackBuffer {
     }
 
     pub fn push(&mut self, mut chunk: OutputChunk) {
-        if let Some(front_len) = self.queue.front().map(OutputChunk::len) {
-            if self.size - front_len + chunk.len() > MIN_CAPACITY {
-                self.size -= front_len;
-                self.queue.pop_front();
+        while self.size > MAX_CAPACITY {
+            if let Some(chunk) = self.queue.pop_front() {
+                let front_len = chunk.len();
+
+                // it seems that bad hardware can sometimes make mistakes in the size calculation over time.
+                // even though size shouldn't be smaller than front_len, we guard against an underflow that would trigger a purge
+                let _ = self.size.saturating_sub(front_len);
             }
         }
 
@@ -143,8 +146,8 @@ impl ScrollbackBuffer {
                     back.end(),
                     self.size,
                 );
-                back.data.append(&mut chunk.data);
 
+                back.data.append(&mut chunk.data);
                 return;
             }
         }
