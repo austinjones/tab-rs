@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use tab_api::{chunk::OutputChunk, tab::TabId};
-use tokio::time;
 
 use crate::{
     message::cli::CliSend, message::cli::CliSubscriptionRecv, message::cli::CliSubscriptionSend,
