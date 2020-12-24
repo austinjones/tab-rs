@@ -125,8 +125,7 @@ impl ScrollbackBuffer {
             if let Some(chunk) = self.queue.pop_front() {
                 let front_len = chunk.len();
 
-                // it seems that bad hardware can sometimes make mistakes in the size calculation over time.
-                // even though size shouldn't be smaller than front_len, we guard against an underflow that would trigger a purge
+                // use saturating sub, just in case there was a calculation error and front_len is larger than size
                 let _ = self.size.saturating_sub(front_len);
             }
         }
