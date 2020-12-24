@@ -68,6 +68,8 @@ After you upgrade tab or move the tab binary, you may want to run the `tab --shu
 
 If you get the message `tab: unsupported terminal app`, you fix it by removing the `osx` plugin from your `~/.zshrc`.  See [#156](https://github.com/austinjones/tab-rs/issues/156).
 
+Invoking `tab` with no arguments within a session causes your shell history to be cleared by fuzzy finder output.  When reconnecting to the session, it may require `<enter>` for the shell prompt to appear.  See [#262](https://github.com/austinjones/tab-rs/issues/262).
+
 ## 2. Install autocompletions for your shell
 Tab works best when configured with shell autocompletions.  
 
