@@ -193,8 +193,12 @@ impl FuzzyFinderService {
                         }
                         KeyCode::Home => {}
                         KeyCode::End => {}
-                        KeyCode::PageUp => {}
-                        KeyCode::PageDown => {}
+                        KeyCode::PageUp => {
+                            tx_event.send(FuzzyEvent::MoveFirst).await?;
+                        }
+                        KeyCode::PageDown => {
+                            tx_event.send(FuzzyEvent::MoveLast).await?;
+                        }
                         KeyCode::Tab => {
                             tx_event.send(FuzzyEvent::MoveDown).await?;
                         }
@@ -380,6 +384,14 @@ impl FuzzyFinderService {
                     }
                     FuzzyEvent::MoveDown => {
                         index += 1;
+                    }
+                    FuzzyEvent::MoveFirst => {
+                        index = 0;
+                    }
+                    FuzzyEvent::MoveLast => {
+                        if matches.len() > 0 {
+                            index = matches.len() - 1;
+                        }
                     }
                     FuzzyEvent::Resize(_rows, cols) => {
                         terminal_height = cols as usize;
