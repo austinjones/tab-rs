@@ -19,6 +19,7 @@ use crossterm::{
 };
 use crossterm::{event::Event, event::EventStream, event::KeyCode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use tab_api::tab::normalize_name;
 use tokio::{stream::Stream, stream::StreamExt, sync::watch};
 
 use super::{echo_mode::enable_raw_mode, reset_cursor};
@@ -273,9 +274,8 @@ impl FuzzyFinderService {
             .map(|event| FilterEvent::Tabs(event))
             .merge(rx_query.map(|event| FilterEvent::Query(event)));
 
-        let mut entries = vec![];
+        let mut entries: Vec<Arc<TabEntry>> = vec![];
         let mut query = None;
-        let mut create_entry = None;
 
         while let Some(event) = rx.next().await {
             match event {
@@ -286,10 +286,6 @@ impl FuzzyFinderService {
                         for item in tabs.tabs.iter().map(TabEntry::from) {
                             entries.push(Arc::new(item));
                         }
-
-                        if entries.is_empty() {
-                            entries.push(Arc::new(TabEntry::entry_tutorial()));
-                        }
                     }
                 }
                 FilterEvent::Query(state) => {
@@ -298,24 +294,23 @@ impl FuzzyFinderService {
                     }
 
                     if state.query.len() > 0 {
-                        create_entry = Some(Arc::new(TabEntry::entry_new(state.query.as_str())));
                         query = Some(state.query);
                     } else {
-                        create_entry = None;
                         query = None;
                     }
                 }
             }
 
-            let entries_with_create = entries.iter().chain(create_entry.iter());
+            let create_entry = Self::create_tab_entry(&entries, &query).map(Arc::new);
 
             let mut matches = Vec::new();
             let mut pattern = "".to_string();
-            for entry in entries_with_create {
+            for entry in entries.iter().chain(create_entry.iter()) {
                 if entry.sticky {
+                    let name_len = entry.name.len();
                     matches.push(FuzzyMatch {
                         score: std::i64::MIN + 1,
-                        name_indices: Vec::new(),
+                        name_indices: (0..name_len).collect(),
                         doc_indices: Vec::new(),
                         tab: entry.clone(),
                     });
@@ -358,12 +353,30 @@ impl FuzzyFinderService {
 
             tx.send(FuzzyMatchState {
                 matches,
-                total: entries.len(),
+                total: entries.len() + create_entry.iter().count(),
             })
             .await?;
         }
 
         Ok(())
+    }
+
+    /// Creates a 'new tab' entry, if the user has entered a query, or entries is empty.
+    /// Does not create an entry if the name conflicts with an element of entries
+    fn create_tab_entry(entries: &Vec<Arc<TabEntry>>, query: &Option<String>) -> Option<TabEntry> {
+        // if we don't have a query, and some entries exist, don't suggest a new tab.
+        if entries.len() > 0 && query.is_none() {
+            return None;
+        }
+
+        let name = query.as_ref().map(String::as_str).unwrap_or("tab");
+        let name = normalize_name(name);
+
+        if entries.iter().find(|tab| tab.name == name).is_some() {
+            return None;
+        }
+
+        Some(TabEntry::entry_new(name.as_str()))
     }
 
     async fn select_state(
