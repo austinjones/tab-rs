@@ -105,7 +105,7 @@ impl TabEntry {
 
     pub fn create_tab_entry(query: &str, prefix_len: usize) -> TabEntry {
         let name = normalize_name(query);
-        let doc = "create tab";
+        let doc = "new tab";
 
         let display = Self::display(name.as_str(), Some(doc), prefix_len);
 

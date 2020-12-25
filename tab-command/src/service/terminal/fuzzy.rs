@@ -271,7 +271,7 @@ impl FuzzyFinderService {
 
         let (mut entries, mut prefix_len) = TabEntry::build(&Vec::with_capacity(0));
         let mut query = "".to_string();
-        let mut create_tab_entry = None;
+        let mut create_match = None;
 
         while let Some(event) = rx.next().await {
             match event {
@@ -288,10 +288,13 @@ impl FuzzyFinderService {
                     }
 
                     query = state.query;
-                    create_tab_entry = Some(Arc::new(TabEntry::create_tab_entry(
-                        query.as_str(),
-                        prefix_len,
-                    )));
+                    let create = TabEntry::create_tab_entry(query.as_str(), prefix_len);
+
+                    create_match = Some(FuzzyMatch {
+                        score: 0i64,
+                        indices: (0..create.name.len()).collect(),
+                        tab: Arc::new(create),
+                    });
                 }
             }
 
@@ -332,13 +335,10 @@ impl FuzzyFinderService {
 
             matches.sort_by_key(|elem| -elem.score);
 
-            if let Some(ref create) = create_tab_entry {
-                if let None = entries.iter().find(|cmp| cmp.name == create.name) {
-                    matches.push(FuzzyMatch {
-                        score: 0i64,
-                        indices: vec![],
-                        tab: Arc::clone(create),
-                    });
+            if let Some(ref create) = create_match {
+                let name = &create.tab.name;
+                if let None = entries.iter().find(|cmp| &cmp.name == name) {
+                    matches.push(create.clone());
                 }
             }
 
