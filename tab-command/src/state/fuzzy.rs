@@ -55,7 +55,8 @@ pub struct FuzzySelectState {
 #[derive(Debug, Clone)]
 pub struct FuzzyMatch {
     pub score: i64,
-    pub indices: Vec<usize>,
+    pub name_indices: Vec<usize>,
+    pub doc_indices: Vec<usize>,
     pub tab: Arc<TabEntry>,
 }
 
@@ -69,61 +70,67 @@ pub struct FuzzyOutputEvent {
 
 #[derive(Debug, Clone)]
 pub struct FuzzyOutputMatch {
-    pub tokens: Vec<Token>,
+    pub name: Vec<Token>,
+    pub doc: Option<Vec<Token>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FuzzyEntryState {
+    pub entries: Vec<Arc<TabEntry>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct TabEntry {
     pub name: String,
     pub doc: Option<String>,
-    pub display: String,
+    pub sticky: bool,
+}
+
+impl From<&WorkspaceTab> for TabEntry {
+    fn from(tab: &WorkspaceTab) -> Self {
+        Self {
+            name: tab.name.clone(),
+            doc: tab.doc.clone().map(|mut doc| {
+                doc.insert(0, '(');
+                doc.push(')');
+                doc
+            }),
+            sticky: false,
+        }
+    }
 }
 
 impl TabEntry {
-    pub fn build(tabs: &Vec<WorkspaceTab>) -> (Vec<Arc<Self>>, usize) {
-        let mut entries = Vec::with_capacity(tabs.len());
-        let prefix_len = Self::tab_len(&tabs);
-
-        for tab in tabs {
-            let display = Self::display(
-                tab.name.as_str(),
-                tab.doc.as_ref().map(String::as_str),
-                prefix_len,
-            );
-
-            let tab = Self {
-                name: tab.name.clone(),
-                doc: tab.doc.clone(),
-                display,
-            };
-
-            entries.push(Arc::new(tab));
-        }
-
-        (entries, prefix_len)
-    }
-
-    pub fn create_tab_entry(query: &str, prefix_len: usize) -> TabEntry {
+    pub fn entry_new(query: &str) -> TabEntry {
         let name = normalize_name(query);
-        let doc = "new tab";
-
-        let display = Self::display(name.as_str(), Some(doc), prefix_len);
+        let doc = "(new tab)";
 
         TabEntry {
             name,
             doc: Some(doc.to_string()),
-            display,
+            sticky: true,
         }
     }
 
-    fn display(name: &str, doc: Option<&str>, prefix_len: usize) -> String {
-        let mut display = name.to_string();
+    pub fn entry_tutorial() -> TabEntry {
+        let name = "tab/";
+        let doc = "(write a tab name to get started, or press enter to use this one)";
 
-        while display.len() < prefix_len {
+        TabEntry {
+            name: name.to_string(),
+            doc: Some(doc.to_string()),
+            sticky: true,
+        }
+    }
+
+    pub fn display(&self, doc_index: usize) -> String {
+        let mut display = self.name.to_string();
+
+        while display.len() < doc_index {
             display += " ";
         }
 
-        if let Some(ref doc) = doc {
+        if let Some(ref doc) = self.doc {
             display += "(";
             display += doc;
             display += ")";
@@ -132,20 +139,14 @@ impl TabEntry {
         display
     }
 
-    fn tab_len(tabs: &Vec<WorkspaceTab>) -> usize {
-        let max_len = tabs
-            .iter()
-            .map(|tab| tab.name.len())
-            .max()
-            .map(|len| len + 2);
+    pub fn tab_len<'a>(tabs: impl Iterator<Item = &'a Self>) -> usize {
+        let max_len = tabs.map(|tab| tab.name.len()).max().map(|len| len + 2);
         max_len.unwrap_or(0)
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Token {
-    UnmatchedTab(String),
-    MatchedTab(String),
     Unmatched(String),
     Matched(String),
 }
@@ -158,14 +159,6 @@ pub enum TokenJoin {
 impl Token {
     pub fn join(self, other: Token) -> TokenJoin {
         match (self, other) {
-            (Token::UnmatchedTab(mut a), Token::UnmatchedTab(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::UnmatchedTab(a))
-            }
-            (Token::MatchedTab(mut a), Token::MatchedTab(b)) => {
-                a += b.as_str();
-                TokenJoin::Same(Token::MatchedTab(a))
-            }
             (Token::Unmatched(mut a), Token::Unmatched(b)) => {
                 a += b.as_str();
                 TokenJoin::Same(Token::Unmatched(a))
