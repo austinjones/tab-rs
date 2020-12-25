@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tab_api::tab::normalize_name;
+
 use super::workspace::{WorkspaceState, WorkspaceTab};
 #[derive(Debug, Clone)]
 pub struct FuzzyTabsState {
@@ -78,22 +80,16 @@ pub struct TabEntry {
 }
 
 impl TabEntry {
-    pub fn build(tabs: &Vec<WorkspaceTab>) -> Vec<Arc<Self>> {
+    pub fn build(tabs: &Vec<WorkspaceTab>) -> (Vec<Arc<Self>>, usize) {
         let mut entries = Vec::with_capacity(tabs.len());
         let prefix_len = Self::tab_len(&tabs);
 
         for tab in tabs {
-            let mut display = tab.name.clone();
-
-            while display.len() < prefix_len {
-                display += " ";
-            }
-
-            if let Some(ref doc) = tab.doc {
-                display += "(";
-                display += doc;
-                display += ")";
-            }
+            let display = Self::display(
+                tab.name.as_str(),
+                tab.doc.as_ref().map(String::as_str),
+                prefix_len,
+            );
 
             let tab = Self {
                 name: tab.name.clone(),
@@ -104,7 +100,36 @@ impl TabEntry {
             entries.push(Arc::new(tab));
         }
 
-        entries
+        (entries, prefix_len)
+    }
+
+    pub fn create_tab_entry(query: &str, prefix_len: usize) -> TabEntry {
+        let name = normalize_name(query);
+        let doc = "create tab";
+
+        let display = Self::display(name.as_str(), Some(doc), prefix_len);
+
+        TabEntry {
+            name,
+            doc: Some(doc.to_string()),
+            display,
+        }
+    }
+
+    fn display(name: &str, doc: Option<&str>, prefix_len: usize) -> String {
+        let mut display = name.to_string();
+
+        while display.len() < prefix_len {
+            display += " ";
+        }
+
+        if let Some(ref doc) = doc {
+            display += "(";
+            display += doc;
+            display += ")";
+        }
+
+        display
     }
 
     fn tab_len(tabs: &Vec<WorkspaceTab>) -> usize {

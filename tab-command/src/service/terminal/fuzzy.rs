@@ -269,14 +269,17 @@ impl FuzzyFinderService {
             .map(|event| FilterEvent::Tabs(event))
             .merge(rx_query.map(|event| FilterEvent::Query(event)));
 
-        let mut entries = TabEntry::build(&Vec::with_capacity(0));
+        let (mut entries, mut prefix_len) = TabEntry::build(&Vec::with_capacity(0));
         let mut query = "".to_string();
+        let mut create_tab_entry = None;
 
         while let Some(event) = rx.next().await {
             match event {
                 FilterEvent::Tabs(state) => {
                     if let Some(ref tabs) = state {
-                        entries = TabEntry::build(&tabs.tabs);
+                        let new_entries = TabEntry::build(&tabs.tabs);
+                        entries = new_entries.0;
+                        prefix_len = new_entries.1;
                     }
                 }
                 FilterEvent::Query(state) => {
@@ -285,6 +288,10 @@ impl FuzzyFinderService {
                     }
 
                     query = state.query;
+                    create_tab_entry = Some(Arc::new(TabEntry::create_tab_entry(
+                        query.as_str(),
+                        prefix_len,
+                    )));
                 }
             }
 
@@ -307,6 +314,7 @@ impl FuzzyFinderService {
             }
 
             let mut matches = Vec::new();
+
             for entry in entries.iter() {
                 // TODO: save lowercase strings for performance?
                 let fuzzy_match = matcher.fuzzy_indices(entry.display.as_str(), query.as_str());
@@ -323,6 +331,16 @@ impl FuzzyFinderService {
             }
 
             matches.sort_by_key(|elem| -elem.score);
+
+            if let Some(ref create) = create_tab_entry {
+                if let None = entries.iter().find(|cmp| cmp.name == create.name) {
+                    matches.push(FuzzyMatch {
+                        score: 0i64,
+                        indices: vec![],
+                        tab: Arc::clone(create),
+                    });
+                }
+            }
 
             tx.send(FuzzyMatchState {
                 matches,
