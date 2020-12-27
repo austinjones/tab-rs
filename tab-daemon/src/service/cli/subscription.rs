@@ -26,14 +26,18 @@ impl Service for CliSubscriptionService {
                     match msg {
                         CliSubscriptionRecv::Subscribe(id) => {
                             if state.is_selected(id) {
+                                debug!("Ignoring subscription request for {:?}", id);
                                 continue;
                             }
+
+                            info!("Subscribing to {:?}", id);
 
                             tx_daemon.send(CliSend::RequestScrollback(id)).await?;
                             state = SubscriptionState::AwaitingScrollback(id, Vec::new());
                         }
                         CliSubscriptionRecv::Unsubscribe(id) => {
                             if state.is_selected(id) {
+                                info!("Unsubscribing from {:?}", id);
                                 state = SubscriptionState::None;
                             }
                         }
@@ -45,7 +49,7 @@ impl Service for CliSubscriptionService {
                             if let SubscriptionState::AwaitingScrollback(id, buffer) = state {
                                 let mut index = 0usize;
 
-                                debug!("received scrollback for tab {}", id);
+                                info!("Received scrollback for tab {}", id);
 
                                 for chunk in scrollback.scrollback().await {
                                     index = Self::send_output(id, index, chunk, &mut tx).await?;
@@ -121,7 +125,7 @@ impl CliSubscriptionService {
         let end = chunk.end();
 
         if chunk.is_before(index) {
-            warn!("ignoring chunk {:?} - before index: {:?}", &chunk, index);
+            debug!("ignoring chunk {:?} - before index: {:?}", &chunk, index);
             return Ok(index);
         }
 
