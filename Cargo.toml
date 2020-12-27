@@ -19,7 +19,6 @@ tab-command = { path = './tab-command/' }
 # tab-pty = { path = './tab-pty/' }
 
 [profile.dev]
-opt-level = 3
 
 [profile.release]
 lto = true

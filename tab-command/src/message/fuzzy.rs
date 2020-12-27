@@ -4,6 +4,8 @@ pub enum FuzzyEvent {
     MoveRight,
     MoveUp,
     MoveDown,
+    MoveFirst,
+    MoveLast,
     Insert(char),
     Delete,
     Enter,
