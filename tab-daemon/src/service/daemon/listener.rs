@@ -4,6 +4,7 @@ use super::{
 use crate::{
     message::{
         cli::CliShutdown,
+        listener::ListenerShutdown,
         pty::{PtyRecv, PtySend, PtyShutdown},
         tab::{TabRecv, TabSend},
     },
@@ -88,8 +89,8 @@ impl ListenerService {
 
         let mut rx_conn = bus.rx::<WebsocketConnectionMessage>()?;
 
-        // let tx_create_tab = bus.tx::<CreateTab>()?;
-        // let tx_close_tab = bus.tx::<CloseTab>()?;
+        let mut tx_terminate_tabs = bus.tx::<TabRecv>()?;
+        let mut tx_shutdown = bus.tx::<ListenerShutdown>()?;
 
         while let Some(msg) = rx_conn.recv().await {
             let name = format!("connection_{}", index);
@@ -135,6 +136,11 @@ impl ListenerService {
                         (name + "/pty").as_str(),
                         Self::run_pty(pty_bus, _pty_lifeline),
                     )
+                }
+                "/shutdown" => {
+                    tx_terminate_tabs.send(TabRecv::TerminateAll).await?;
+                    tx_shutdown.send(ListenerShutdown {}).await?;
+                    break;
                 }
                 _ => {
                     error!("unknown endpoint: {}", msg.request.uri);
