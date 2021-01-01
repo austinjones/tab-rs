@@ -46,7 +46,7 @@ pub fn reset_terminal_state() {
 
         RESET_ENABLED.store(false, Ordering::SeqCst);
 
-        debug!("cursor enabled");
+        debug!("terminal state reset");
     }
 }
 
