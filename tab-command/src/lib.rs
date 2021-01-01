@@ -2,7 +2,7 @@ use clap::ArgMatches;
 use semver::Version;
 
 use crate::prelude::*;
-use service::{main::*, terminal::disable_raw_mode, terminal::reset_cursor};
+use service::{main::*, terminal::disable_raw_mode, terminal::reset_terminal_state};
 
 use simplelog::{TermLogger, TerminalMode};
 
@@ -103,7 +103,7 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
 
     let exit = wait_for_shutdown(rx_shutdown).await;
     disable_raw_mode();
-    reset_cursor();
+    reset_terminal_state();
 
     Ok(exit.0)
 }

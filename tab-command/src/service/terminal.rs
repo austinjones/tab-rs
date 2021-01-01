@@ -17,7 +17,7 @@ mod fuzzy;
 mod terminal_event;
 
 pub use echo_mode::disable_raw_mode;
-pub use echo_mode::reset_cursor;
+pub use echo_mode::reset_terminal_state;
 
 use self::fuzzy::FuzzyFinderService;
 
