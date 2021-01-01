@@ -49,26 +49,26 @@ impl Service for TerminalService {
         let mut rx = terminal_bus.rx::<TerminalMode>()?;
 
         let _terminal_mode = Self::try_task("dispatch_mode", async move {
+            let mut current_mode = TerminalMode::None;
             let mut service = ServiceLifeline::None;
 
             while let Some(mode) = rx.recv().await {
+                if mode == current_mode {
+                    continue;
+                }
+
+                drop(service);
+                reset_terminal_state();
+
                 service = match mode {
                     TerminalMode::None => ServiceLifeline::None,
-                    TerminalMode::Echo => {
-                        if let ServiceLifeline::Echo(ref _echo) = service {
-                            continue;
-                        }
-
-                        info!("TerminalService switching to echo mode");
+                    TerminalMode::Echo(ref name) => {
+                        info!("TerminalService switching to echo mode for tab {}", name);
 
                         let service = TerminalEchoService::spawn(&terminal_bus)?;
                         ServiceLifeline::Echo(service)
                     }
                     TerminalMode::FuzzyFinder => {
-                        if let ServiceLifeline::FuzzyFinder(ref _fuzzy, ref _carrier) = service {
-                            continue;
-                        }
-
                         info!("TerminalService switching to fuzzy finder mode");
 
                         let fuzzy_bus = FuzzyBus::default();
@@ -77,7 +77,9 @@ impl Service for TerminalService {
                         let service = FuzzyFinderService::spawn(&fuzzy_bus)?;
                         ServiceLifeline::FuzzyFinder(service, carrier)
                     }
-                }
+                };
+
+                current_mode = mode;
             }
 
             Ok(())

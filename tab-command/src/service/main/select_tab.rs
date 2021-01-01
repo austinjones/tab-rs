@@ -57,7 +57,7 @@ impl MainSelectTabService {
         info!("selecting tab: {}", name);
 
         tx_terminal
-            .send(TerminalRecv::Mode(TerminalMode::Echo))
+            .send(TerminalRecv::Mode(TerminalMode::Echo(name.clone())))
             .await?;
 
         let message = TabRecv::SelectNamedTab { name, env_tab };
