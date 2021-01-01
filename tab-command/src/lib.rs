@@ -44,6 +44,7 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 
     let result = runtime.block_on(async { main_async(args, tab_version).await });
 
+    info!("tab-command runtime stopped");
     runtime.shutdown_timeout(Duration::from_millis(25));
 
     let code = result?;
@@ -106,6 +107,8 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
     let exit = wait_for_shutdown(rx_shutdown).await;
     disable_raw_mode();
     reset_terminal_state();
+
+    debug!("tab-command shutdown.");
 
     Ok(exit.0)
 }

@@ -28,12 +28,12 @@ futures = { version = "0.3", features = [] }
 async-trait = "0.1"
 
 # authentication / tokens
-rand = "0.7"
-base64 = "0.12"
+rand = "0.8"
+base64 = "0.13"
 
 # logging
 log = "0.4"
-simplelog = "0.8"
+simplelog = "0.9"
 log-panics = "2.0"
 
 # error management

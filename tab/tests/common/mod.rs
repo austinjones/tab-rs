@@ -137,7 +137,7 @@ impl TestCommand {
 
         let mut run = tokio::process::Command::new(self.context.binary.as_path());
         run.arg("--log")
-            .arg("info")
+            .arg("debug")
             .arg(self.tab.as_str())
             .env("SHELL", "/bin/bash")
             .env(

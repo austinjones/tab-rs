@@ -203,6 +203,7 @@ impl CarryFrom<MainBus> for TabBus {
                                 .context("tx TabsRecv::Update")?;
                         }
                         Response::TabTerminated(_id) => {
+                            debug!("Received termination notice on tab {:?}", _id);
                             // wait just a few moments for messages to settle.
                             // if we terminate immediately, there could be terminal I/O going on.
                             // example:
