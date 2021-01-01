@@ -22,7 +22,7 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use tab_api::tab::normalize_name;
 use tokio::{stream::Stream, stream::StreamExt, sync::watch};
 
-use super::{echo_mode::enable_raw_mode, reset_terminal_state};
+use super::echo_mode::enable_raw_mode;
 
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;

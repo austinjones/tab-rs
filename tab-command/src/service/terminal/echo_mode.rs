@@ -7,7 +7,6 @@ use std::{
 use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
 use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
-use crossterm::QueueableCommand;
 use tab_api::env::is_raw_mode;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, Stdout},
@@ -18,10 +17,10 @@ use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
 
 static RESET_ENABLED: AtomicBool = AtomicBool::new(false);
 
-pub fn enable_raw_mode(reset: bool) {
+pub fn enable_raw_mode(reset_enabled: bool) {
     if is_raw_mode() {
         crossterm::terminal::enable_raw_mode().expect("failed to enable raw mode");
-        if reset {
+        if reset_enabled {
             RESET_ENABLED.store(true, Ordering::SeqCst);
             debug!("raw mode enabled");
         }
