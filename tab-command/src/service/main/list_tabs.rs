@@ -3,7 +3,7 @@ use crate::{
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab, utils::await_state,
 };
 use std::env;
-use std::io::{stdout, Write};
+use std::io::stdout;
 use std::path::PathBuf;
 
 use crossterm::{
