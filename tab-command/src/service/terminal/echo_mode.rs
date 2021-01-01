@@ -16,46 +16,35 @@ use tokio::{
 
 use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
 
-static RAW_MODE_ENABLED: AtomicBool = AtomicBool::new(false);
+static RESET_ENABLED: AtomicBool = AtomicBool::new(false);
 
-pub fn enable_raw_mode() {
+pub fn enable_raw_mode(reset: bool) {
     if is_raw_mode() {
         crossterm::terminal::enable_raw_mode().expect("failed to enable raw mode");
-        RAW_MODE_ENABLED.store(true, Ordering::SeqCst);
-        debug!("raw mode enabled");
+        if reset {
+            RESET_ENABLED.store(true, Ordering::SeqCst);
+            debug!("raw mode enabled");
+        }
     }
 }
 
 pub fn disable_raw_mode() {
-    if is_raw_mode() && RAW_MODE_ENABLED.load(Ordering::SeqCst) {
-        crossterm::terminal::disable_raw_mode().expect("failed to disable raw mode");
-        debug!("raw mode disabled");
-    }
+    crossterm::terminal::disable_raw_mode().expect("failed to disable raw mode");
+    debug!("raw mode disabled");
 }
 
-pub fn reset_cursor() {
-    if is_raw_mode() && RAW_MODE_ENABLED.load(Ordering::SeqCst) {
+pub fn reset_terminal_state() {
+    if is_raw_mode() && RESET_ENABLED.load(Ordering::SeqCst) {
         let mut stdout = std::io::stdout();
 
+        // fully reset the terminal state ESC c
         stdout
-            .queue(crossterm::cursor::Show {})
-            .expect("failed to queue reset command")
-            .queue(crossterm::cursor::DisableBlinking {})
-            .expect("failed to queue reset command")
-            .queue(crossterm::terminal::LeaveAlternateScreen {})
-            .expect("failed to queue reset command");
-
-        // ansi escape sequence that exits alternate keypad mode
-
-        // this is the xterm rmkx value.
-        // taken from: https://invisible-island.net/xterm/terminfo-contents.html
-        // https://vi.stackexchange.com/questions/15324/up-arrow-key-code-why-a-becomes-oa
-        // https://github.com/austinjones/tab-rs/issues/215
-        stdout
-            .write("\x1b[?1l\x1b>".as_bytes())
+            .write("\x1bc".as_bytes())
             .expect("failed to queue reset command");
 
         stdout.flush().expect("failed to flush reset commands");
+
+        RESET_ENABLED.store(false, Ordering::SeqCst);
 
         debug!("cursor enabled");
     }
@@ -71,7 +60,7 @@ impl Service for TerminalEchoService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TerminalBus) -> anyhow::Result<Self> {
-        enable_raw_mode();
+        enable_raw_mode(true);
 
         let rx = bus.rx::<TerminalOutput>()?;
         let _output = Self::try_task("stdout", print_stdout(rx));
