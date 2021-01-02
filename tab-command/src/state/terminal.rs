@@ -1,3 +1,5 @@
+use tab_api::tab::TabId;
+
 use crate::env::terminal_size;
 
 /// The client's view of the current terminal size
@@ -13,12 +15,14 @@ impl Default for TerminalSizeState {
 }
 
 /// The current terminal mode.
+/// This type is used to guarantee consistency of the terminal state.
+/// When the terminal mode is changed, the terminal state is fully reset.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TerminalMode {
     /// No terminal program is active
     None,
     /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout (for the given tab name)
-    Echo(String),
+    Echo(TabId),
     /// Terminal is in interactive finder mode, using Crossterm.
     FuzzyFinder,
 }
