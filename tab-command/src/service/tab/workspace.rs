@@ -1,4 +1,9 @@
-use std::{collections::HashSet, path::Path, path::PathBuf, sync::Arc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    path::Path,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use crate::{
     message::tabs::ScanWorkspace,
@@ -8,6 +13,7 @@ use crate::{
     state::{tab::TabMetadataState, workspace::WorkspaceTab},
 };
 use lifeline::Service;
+use tab_api::tab::TabMetadata;
 
 use self::loader::{scan_config, WorkspaceTabs};
 
@@ -136,33 +142,49 @@ impl WorkspaceService {
         active_tabs: &ActiveTabsState,
     ) -> Vec<WorkspaceTab> {
         // let workspace_tabs = scan.as_name_set();
+        let mut tabs = Vec::with_capacity(scan.len() + active_tabs.tabs.len());
 
-        let mut tabs = Vec::with_capacity(scan.len());
-        tabs.append(&mut scan.ok());
-        let scan_tab_names: HashSet<&String> = tabs.iter().map(|tab| &tab.name).collect();
+        let mut active_tabs: HashMap<String, &TabMetadata> = active_tabs
+            .tabs
+            .values()
+            .map(|tab| (tab.name.clone(), tab))
+            .collect();
 
-        let mut new_tabs = Vec::with_capacity(active_tabs.tabs.len());
-        for (_id, metadata) in active_tabs.tabs.iter() {
-            if scan_tab_names.contains(&metadata.name) {
-                continue;
-            }
+        let mut workspace_tabs: HashMap<String, WorkspaceTab> = scan
+            .ok()
+            .into_iter()
+            .map(|tab| (tab.name.clone(), tab))
+            .collect();
 
-            let tab = WorkspaceTab {
-                name: metadata.name.clone(),
-                doc: metadata.doc.clone(),
-                directory: PathBuf::from(&metadata.dir),
-                shell: None,
-                env: None,
+        let keys: BTreeSet<String> = active_tabs
+            .keys()
+            .chain(workspace_tabs.keys())
+            .map(String::clone)
+            .collect();
+
+        for tab in keys {
+            let active_tab = active_tabs.remove(&tab);
+            let workspace_tab = workspace_tabs.remove(&tab);
+
+            let tab = match (active_tab, workspace_tab) {
+                (Some(active), Some(mut workspace)) => {
+                    workspace.last_selected = Some(active.selected);
+                    workspace
+                }
+                (Some(metadata), None) => WorkspaceTab {
+                    name: metadata.name.clone(),
+                    doc: metadata.doc.clone(),
+                    directory: PathBuf::from(&metadata.dir),
+                    shell: None,
+                    env: None,
+                    last_selected: Some(metadata.selected),
+                },
+                (None, Some(workspace)) => workspace,
+                (None, None) => continue,
             };
 
-            new_tabs.push(tab);
+            tabs.push(tab)
         }
-
-        drop(scan_tab_names);
-        tabs.append(&mut new_tabs);
-
-        tabs.sort_by(|a, b| a.name.cmp(&b.name));
-        tabs.dedup_by_key(|tab| tab.name.clone());
 
         tabs
     }

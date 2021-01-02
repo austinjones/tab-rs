@@ -134,6 +134,7 @@ mod websocket_tests {
             env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
+            selected: 0,
         };
         tx.send(PtyWebsocketResponse::Started(tab.clone())).await?;
 
@@ -243,6 +244,7 @@ mod daemon_tests {
             env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
+            selected: 0,
         };
         tx.send(PtyRecv::Init(tab.clone())).await?;
 

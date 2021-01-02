@@ -148,11 +148,17 @@ impl CliBus {
                 CliSend::CloseTab(id) => {
                     tx_manager.send(TabManagerRecv::CloseTab(id)).await?;
                 }
-                CliSend::RequestScrollback(id) => {
+                CliSend::Subscribe(id) => {
                     debug!(
                         "ListenerConnectionCarrier forwarding scrollback request on tab {:?}",
                         id
                     );
+
+                    tx_manager
+                        .send(TabManagerRecv::UpdateTimestamp(id))
+                        .await
+                        .context("tx TabManagerRecv::UpdateTimestamp")?;
+
                     tx.send(TabRecv::Scrollback(id))
                         .await
                         .context("tx TabRecv::Scrollback")?;
@@ -195,10 +201,8 @@ impl CliBus {
         mut tx_subscription: impl Sink<Item = CliSubscriptionRecv> + Unpin,
     ) -> anyhow::Result<()> {
         match msg {
-            TabSend::Started(tab) => {
-                debug!("Got tab started: {:?}", &tab);
-                tx.send(CliRecv::TabStarted(tab)).await?
-            }
+            TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
+            TabSend::Updated(tab) => tx.send(CliRecv::TabUpdated(tab)).await?,
             TabSend::Stopped(id) => {
                 tx_subscription
                     .send(CliSubscriptionRecv::Stopped(id))
@@ -262,6 +266,7 @@ mod forward_tests {
             env: HashMap::new(),
             shell: "bash".into(),
             dir: "dir".into(),
+            selected: 0,
         };
 
         tx.send(TabSend::Started(started.clone())).await?;
@@ -520,13 +525,20 @@ mod reverse_tests {
 
         let mut tx = cli_bus.tx::<CliSend>()?;
         let mut rx = listener_bus.rx::<TabRecv>()?;
+        let mut rx_manager = listener_bus.rx::<TabManagerRecv>()?;
 
-        tx.send(CliSend::RequestScrollback(TabId(0))).await?;
+        tx.send(CliSend::Subscribe(TabId(0))).await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
             assert_eq!(TabRecv::Scrollback(TabId(0)), msg.unwrap());
+        });
+
+        assert_completes!(async move {
+            let msg = rx_manager.recv().await;
+            assert!(msg.is_some());
+            assert_eq!(TabManagerRecv::UpdateTimestamp(TabId(0)), msg.unwrap());
         });
 
         Ok(())

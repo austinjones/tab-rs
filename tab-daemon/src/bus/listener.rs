@@ -5,7 +5,7 @@ use crate::{
         listener::ListenerShutdown,
         tab::{TabRecv, TabSend},
         tab_assignment::{AssignTab, TabAssignmentRetraction},
-        tab_manager::{TabManagerRecv, TabManagerSend},
+        tab_manager::TabManagerRecv,
     },
     state::tab::TabsState,
 };
@@ -29,10 +29,6 @@ impl Message<ListenerBus> for TabSend {
 }
 
 impl Message<ListenerBus> for TabRecv {
-    type Channel = broadcast::Sender<Self>;
-}
-
-impl Message<ListenerBus> for TabManagerSend {
     type Channel = broadcast::Sender<Self>;
 }
 

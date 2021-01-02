@@ -123,6 +123,7 @@ impl TabScrollback {
 #[derive(Debug, Clone)]
 pub enum TabSend {
     Started(TabMetadata),
+    Updated(TabMetadata),
     Scrollback(TabScrollback),
     /// Instructs clients on the first tab to retask to the second
     /// If the second argument is None, clients should disconnect

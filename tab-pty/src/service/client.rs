@@ -373,6 +373,7 @@ mod tests {
             env: HashMap::new(),
             shell: "/usr/bin/env sh".into(),
             dir: current_dir.to_string_lossy().into(),
+            selected: 0,
         }))
         .await?;
 
@@ -387,6 +388,7 @@ mod tests {
                     env: HashMap::new(),
                     shell: "/usr/bin/env sh".into(),
                     dir: current_dir.to_string_lossy().into(),
+                    selected: 0,
                 })),
                 created
             );

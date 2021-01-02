@@ -11,17 +11,6 @@ use tab_api::tab::{CreateTabMetadata, TabId};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TabManagerRecv {
     CreateTab(CreateTabMetadata),
+    UpdateTimestamp(TabId),
     CloseTab(TabId),
-}
-
-/// A message sent by the `TabManagerService`, which notifies CLI connections of a closing tab.
-///
-/// Carried over the `ListenerBus`
-///
-/// Usage:
-/// - Tx from the `TabManagerService` on tab lifecycle events
-/// - Rx into the `ListenerConnectionCarrier`, to notify CLI connections of tab lifecycle events.
-#[derive(Debug, Clone)]
-pub enum TabManagerSend {
-    TabTerminated(TabId),
 }

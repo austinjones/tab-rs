@@ -22,7 +22,7 @@ pub enum CliSend {
     /// Requests that any clients who are subscribed to the given tab be retasked, to the second tab
     Retask(TabId, TabId),
     /// Requests the scrollback buffer be read, and replied to as a CliRecv::Scrollback message.
-    RequestScrollback(TabId),
+    Subscribe(TabId),
     /// Resizes the tab to the given number of (cols, rows)
     ResizeTab(TabId, (u16, u16)),
     /// Closes the tab with the given ID
@@ -46,6 +46,8 @@ pub enum CliSend {
 pub enum CliRecv {
     /// A notification that a tab with the given metadata has started, and is ready for subscriptions.
     TabStarted(TabMetadata),
+    /// A notification that a tab with the given metadata has been updated.
+    TabUpdated(TabMetadata),
 }
 
 /// A message sent to the command client's tab subscription service

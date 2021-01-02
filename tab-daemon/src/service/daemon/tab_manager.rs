@@ -1,10 +1,10 @@
-use crate::{message::tab_assignment::AssignTab, prelude::*};
 use crate::{
-    message::{
-        tab::TabRecv,
-        tab_manager::{TabManagerRecv, TabManagerSend},
-    },
+    message::{tab::TabRecv, tab_manager::TabManagerRecv},
     state::tab::TabsState,
+};
+use crate::{
+    message::{tab::TabSend, tab_assignment::AssignTab},
+    prelude::*,
 };
 use anyhow::Context;
 use postage::sink::Sink;
@@ -34,7 +34,7 @@ impl Service for TabManagerService {
         let _recv = {
             let mut rx = bus.rx::<TabManagerRecv>()?;
 
-            let mut tx = bus.tx::<TabManagerSend>()?;
+            let mut tx = bus.tx::<TabSend>()?;
             let mut tx_tabs = bus.tx::<TabRecv>()?;
             let mut tx_tabs_state = bus.tx::<TabsState>()?.log(Level::Debug);
             let mut tx_assign_tab = bus.tx::<AssignTab>()?;
@@ -61,6 +61,13 @@ impl Service for TabManagerService {
                             tabs.insert(tab_id, tab_metadata);
                             tx_tabs_state.send(TabsState::new(&tabs)).await?;
                         }
+                        TabManagerRecv::UpdateTimestamp(id) => {
+                            if let Some(metadata) = tabs.get_mut(&id) {
+                                metadata.mark_selected();
+
+                                tx.send(TabSend::Updated(metadata.clone())).await?;
+                            }
+                        }
                         TabManagerRecv::CloseTab(close) => {
                             Self::close_tab(
                                 close,
@@ -85,14 +92,14 @@ impl TabManagerService {
     async fn close_tab(
         id: TabId,
         tabs: &mut HashMap<TabId, TabMetadata>,
-        mut tx: impl Sink<Item = TabManagerSend> + Unpin,
+        mut tx: impl Sink<Item = TabSend> + Unpin,
         mut tx_close: impl Sink<Item = TabRecv> + Unpin,
         mut tx_tabs_state: impl Sink<Item = TabsState> + Unpin,
     ) -> anyhow::Result<()> {
         info!("TabManager terminating tab {}", id);
         tabs.remove(&id);
 
-        tx.send(TabManagerSend::TabTerminated(id))
+        tx.send(TabSend::Stopped(id))
             .await
             .context("tx TabTerminated")
             .ok();

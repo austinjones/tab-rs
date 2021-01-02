@@ -2,6 +2,7 @@
 
 use lifeline::impl_storage_clone;
 use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{collections::HashMap, fmt::Display, num::ParseIntError, str::FromStr};
 
 pub fn normalize_name(name: &str) -> String {
@@ -53,6 +54,13 @@ impl Display for TabId {
     }
 }
 
+fn unix_time() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|dur| dur.as_millis())
+        .unwrap_or(0)
+}
+
 /// Tracked information about a running tab.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct TabMetadata {
@@ -63,6 +71,7 @@ pub struct TabMetadata {
     pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,
+    pub selected: u128,
 }
 
 impl TabMetadata {
@@ -75,7 +84,12 @@ impl TabMetadata {
             env: create.env,
             shell: create.shell,
             dir: create.dir,
+            selected: unix_time(),
         }
+    }
+
+    pub fn mark_selected(&mut self) {
+        self.selected = unix_time();
     }
 }
 
