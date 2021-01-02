@@ -4,6 +4,7 @@ use crate::{
     message::{
         main::MainShutdown,
         tabs::{CreateTabRequest, ScanWorkspace, TabRecv, TabShutdown, TabsRecv},
+        terminal::TerminalRecv,
     },
     prelude::*,
     state::tab::DeselectTab,
@@ -11,6 +12,7 @@ use crate::{
         tab::TabMetadataState,
         tab::{SelectOrRetaskTab, SelectTab, TabState},
         tabs::ActiveTabsState,
+        terminal::TerminalMode,
         workspace::WorkspaceState,
     },
 };
@@ -82,6 +84,7 @@ pub struct MainTabCarrier {
     _forward_shutdown: Lifeline,
     _forward_active_tabs: Lifeline,
     _forward_workspace: Lifeline,
+    _reply_terminal_echo: Lifeline,
     _rx_response: Lifeline,
 }
 
@@ -156,6 +159,23 @@ impl CarryFrom<MainBus> for TabBus {
                 while let Some(msg) = rx.recv().await {
                     tx.send(msg).await.ok();
                 }
+            })
+        };
+
+        let _reply_terminal_echo = {
+            let mut rx = self.rx::<TabState>()?;
+            let mut tx = from.tx::<TerminalRecv>()?;
+
+            Self::try_task("forward_request", async move {
+                while let Some(state) = rx.recv().await {
+                    if let TabState::Selected(id) = state {
+                        tx.send(TerminalRecv::Mode(TerminalMode::Echo(id)))
+                            .await
+                            .context("tx TerminalMode")?;
+                    }
+                }
+
+                Ok(())
             })
         };
 
@@ -235,6 +255,7 @@ impl CarryFrom<MainBus> for TabBus {
             _forward_shutdown,
             _forward_active_tabs,
             _forward_workspace,
+            _reply_terminal_echo,
             _rx_response,
         })
     }

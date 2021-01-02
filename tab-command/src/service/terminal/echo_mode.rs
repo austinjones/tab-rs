@@ -1,54 +1,14 @@
-use std::{
-    io::Write,
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::time::Duration;
 
 use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
 use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
-use tab_api::env::is_raw_mode;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, Stdout},
     time,
 };
 
 use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
-
-static RESET_ENABLED: AtomicBool = AtomicBool::new(false);
-
-pub fn enable_raw_mode(reset_enabled: bool) {
-    if is_raw_mode() {
-        crossterm::terminal::enable_raw_mode().expect("failed to enable raw mode");
-        if reset_enabled {
-            RESET_ENABLED.store(true, Ordering::SeqCst);
-            debug!("raw mode enabled");
-        }
-    }
-}
-
-pub fn disable_raw_mode() {
-    crossterm::terminal::disable_raw_mode().expect("failed to disable raw mode");
-    debug!("raw mode disabled");
-}
-
-pub fn reset_terminal_state() {
-    if is_raw_mode() && RESET_ENABLED.load(Ordering::SeqCst) {
-        let mut stdout = std::io::stdout();
-
-        // fully reset the terminal state: ESC c
-        // then clear the terminal: ESC [ 2 J
-        stdout
-            .write("\x1bc\x1b[2J".as_bytes())
-            .expect("failed to queue reset command");
-
-        stdout.flush().expect("failed to flush reset commands");
-
-        RESET_ENABLED.store(false, Ordering::SeqCst);
-
-        debug!("terminal state reset");
-    }
-}
 
 pub struct TerminalEchoService {
     _input: Lifeline,
@@ -60,8 +20,6 @@ impl Service for TerminalEchoService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &TerminalBus) -> anyhow::Result<Self> {
-        enable_raw_mode(true);
-
         let rx = bus.rx::<TerminalOutput>()?;
         let _output = Self::try_task("stdout", print_stdout(rx));
 
@@ -102,7 +60,7 @@ async fn forward_stdin(
 
         let buf: Vec<u8> = input.data.into();
 
-        trace!("stdin chunk of len {}", read);
+        debug!("stdin chunk of len {}", read);
 
         tx.send(TerminalInput::Stdin(buf))
             .await

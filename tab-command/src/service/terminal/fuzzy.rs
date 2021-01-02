@@ -22,8 +22,6 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use tab_api::tab::normalize_name;
 use tokio::{stream::Stream, stream::StreamExt, sync::watch};
 
-use super::echo_mode::{enable_raw_mode, reset_terminal_state};
-
 /// Rows reserved by the UI for non-match items
 const RESERVED_ROWS: usize = 2;
 
@@ -570,9 +568,6 @@ impl FuzzyFinderService {
     }
 
     async fn output(mut rx: impl Receiver<FuzzyOutputEvent>) -> anyhow::Result<()> {
-        enable_raw_mode(false);
-        reset_terminal_state();
-
         let mut stdout = std::io::stdout();
 
         while let Some(state) = rx.recv().await {
