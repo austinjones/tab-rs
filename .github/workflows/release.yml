@@ -36,7 +36,7 @@ jobs:
         name: cache
         uses: austinjones/rust-cache@v1
         with:
-          key: release-${{ runner.os }}
+          key: release-${{ matrix.target }}
 
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
@@ -101,7 +101,7 @@ jobs:
         name: cache
         uses: austinjones/rust-cache@v1
         with:
-          key: release-${{ runner.os }}
+          key: release-${{ matrix.target }}
 
       - name: Setup | Rust
         uses: actions-rs/toolchain@v1
