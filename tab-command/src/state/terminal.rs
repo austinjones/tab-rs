@@ -17,8 +17,8 @@ impl Default for TerminalSizeState {
 pub enum TerminalMode {
     /// No terminal program is active
     None,
-    /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout
-    Echo,
+    /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout (for the given tab name)
+    Echo(String),
     /// Terminal is in interactive finder mode, using Crossterm.
     FuzzyFinder,
 }

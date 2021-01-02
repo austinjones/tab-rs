@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::ArgMatches;
 use semver::Version;
 
@@ -42,7 +44,7 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 
     let result = runtime.block_on(async { main_async(args, tab_version).await });
 
-    runtime.shutdown_background();
+    runtime.shutdown_timeout(Duration::from_millis(25));
 
     let code = result?;
 
