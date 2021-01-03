@@ -12,11 +12,11 @@ members = [
 # Uncomment and commit when you make changes to a local crate
 # These will be replaced with published crates.io versions during the release process
 
-# tab-api = { path = './common/tab-api/' }
-# tab-websocket = { path = './common/tab-websocket/' }
-# tab-command = { path = './tab-command/' }
-# tab-daemon = { path = './tab-daemon/' }
-# tab-pty = { path = './tab-pty/' }
+tab-api = { path = './common/tab-api/' }
+tab-websocket = { path = './common/tab-websocket/' }
+tab-command = { path = './tab-command/' }
+tab-daemon = { path = './tab-daemon/' }
+tab-pty = { path = './tab-pty/' }
 
 [profile.dev]
 

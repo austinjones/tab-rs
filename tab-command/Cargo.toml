@@ -16,20 +16,20 @@ tab-websocket = "0.5.0"
 lifeline = "0.4.0"
 
 clap = "2.33.2"
-crossterm = { version = "0.17", features = ["event-stream"] }
+crossterm = { version = "0.19", features = ["event-stream"] }
 
 # async / websockets
 tokio = { version = "0.2", features = ["time", "fs", "io-std", "io-util", "process", "blocking", "macros", "rt-threaded"] }
 
 # logging
 log = "0.4"
-simplelog = "0.8"
+simplelog = "0.9"
 
 # error management / utils
 anyhow = "1.0"
 thiserror = "1.0"
 semver = "0.11"
-typed-builder = "0.7"
+typed-builder = "0.8"
 
 # workspaces
 dirs = "3.0"

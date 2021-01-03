@@ -24,12 +24,12 @@ tokio-io = "0.1"
 async-trait = "0.1"
 
 # authentication / tokens
-rand = "0.7"
+rand = "0.8"
 base64 = "0.13"
 
 # logging
 log = "0.4"
-simplelog = "0.8"
+simplelog = "0.9"
 log-panics = "2.0"
 
 # error management

@@ -103,6 +103,7 @@ impl Service for CliService {
                             tx.send(Response::Output(id, chunk)).await?;
                         }
                         CliSubscriptionSend::Stopped(id) => {
+                            debug!("Notifying client of termination on tab {:?}", id);
                             tx.send(Response::TabTerminated(id)).await?;
                         }
                         CliSubscriptionSend::Disconnect => {
