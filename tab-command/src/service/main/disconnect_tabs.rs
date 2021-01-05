@@ -18,7 +18,7 @@ impl Service for MainDisconnectTabsService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?;
 
         let mut tx_request = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
@@ -29,7 +29,7 @@ impl Service for MainDisconnectTabsService {
                     let state = await_state(&mut rx_active).await?;
                     let exit_code = Self::disconnect_tabs(tabs, state, &mut tx_request).await?;
 
-                    time::delay_for(Duration::from_millis(5)).await;
+                    time::sleep(Duration::from_millis(5)).await;
                     tx_shutdown.send(MainShutdown(exit_code)).await?;
                     break;
                 }
@@ -46,7 +46,7 @@ impl MainDisconnectTabsService {
     async fn disconnect_tabs(
         tabs: Vec<String>,
         state: ActiveTabsState,
-        tx_websocket: &mut impl Sender<Request>,
+        mut tx_websocket: impl Sink<Item = Request> + Unpin,
     ) -> anyhow::Result<i32> {
         if tabs.is_empty() {
             if let Ok(tab) = std::env::var("TAB_ID") {

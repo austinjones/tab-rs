@@ -13,7 +13,7 @@ impl Service for MainAutocompleteCloseTabsService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+        let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?;
 
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 

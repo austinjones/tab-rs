@@ -1,10 +1,10 @@
 use crate::{message::pty::MainShutdown, prelude::*};
+use postage::{broadcast, mpsc};
 use tab_api::{
     config::DaemonConfig,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
 };
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc};
 
 lifeline_bus!(pub struct MainBus);
 

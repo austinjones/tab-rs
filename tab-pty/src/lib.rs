@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use message::pty::MainShutdown;
+use postage::{sink::Sink, stream::Stream};
 use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::{config::pty_log, launch::*, log::get_level, pty::PtyWebsocketRequest};
@@ -18,8 +19,7 @@ pub fn pty_main() -> anyhow::Result<()> {
     init()?;
 
     debug!("pty process started");
-    let mut runtime = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+    let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
         .build()
@@ -63,8 +63,8 @@ async fn main_async() -> anyhow::Result<()> {
 }
 
 async fn spawn() -> anyhow::Result<(
-    impl Sender<PtyWebsocketRequest>,
-    impl Receiver<MainShutdown>,
+    impl Sink<Item = PtyWebsocketRequest>,
+    impl Stream<Item = MainShutdown>,
     MainService,
 )> {
     let config = launch_daemon().await?;

@@ -27,8 +27,8 @@ impl Service for TabStateService {
 
         let _select = {
             let mut rx = bus.rx::<SelectTab>()?;
-            let rx_state = bus.rx::<TabState>()?.into_inner();
-            let mut tx = tx_internal.clone();
+            let rx_state = bus.rx::<TabState>()?;
+            let tx = tx_internal.clone();
 
             Self::try_task("select", async move {
                 while let Some(select) = rx.recv().await {
@@ -59,8 +59,8 @@ impl Service for TabStateService {
 
         let _select_named = {
             let mut rx = bus.rx::<TabState>()?;
-            let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
-            let mut tx = tx_internal.clone();
+            let mut rx_active = bus.rx::<Option<ActiveTabsState>>()?;
+            let tx = tx_internal.clone();
 
             Self::try_task("select_named", async move {
                 while let Some(state) = rx.recv().await {
@@ -83,7 +83,7 @@ impl Service for TabStateService {
 
         let _tab_metadata = {
             let mut rx = bus.rx::<TabState>()?;
-            let mut rx_tabs = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+            let mut rx_tabs = bus.rx::<Option<ActiveTabsState>>()?;
             let mut tx = bus.tx::<TabMetadataState>()?;
 
             Self::try_task("tab_metadata", async move {
@@ -106,7 +106,7 @@ impl Service for TabStateService {
 
         let _deselect = {
             let mut rx = bus.rx::<DeselectTab>()?;
-            let mut tx = tx_internal.clone();
+            let tx = tx_internal.clone();
 
             Self::try_task("deselect", async move {
                 while let Some(_deselect) = rx.recv().await {
@@ -119,7 +119,7 @@ impl Service for TabStateService {
         };
 
         let _publish = {
-            let mut tx = bus.tx::<TabState>()?.log();
+            let mut tx = bus.tx::<TabState>()?.log(Level::Info);
             Self::try_task("publish", async move {
                 while let Some(state) = rx_internal.recv().await {
                     tx.send(state).await?;

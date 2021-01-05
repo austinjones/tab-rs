@@ -2,8 +2,8 @@ use crate::{
     message::pty::{MainShutdown, PtyOptions, PtyRequest, PtyResponse, PtyShutdown},
     prelude::*,
 };
+use postage::{broadcast, mpsc};
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
-use tokio::sync::{broadcast, mpsc};
 
 lifeline_bus!(pub struct PtyBus);
 
@@ -40,7 +40,7 @@ impl CarryFrom<MainBus> for PtyBus {
 
     fn carry_from(&self, from: &MainBus) -> Self::Lifeline {
         let _forward_request = {
-            let mut rx = from.rx::<PtyWebsocketRequest>()?.log();
+            let mut rx = from.rx::<PtyWebsocketRequest>()?;
             let mut tx = self.tx::<PtyWebsocketRequest>()?;
             Self::try_task("forward_request", async move {
                 while let Some(msg) = rx.recv().await {
@@ -52,7 +52,7 @@ impl CarryFrom<MainBus> for PtyBus {
         };
 
         let _reply_response = {
-            let mut rx = self.rx::<PtyWebsocketResponse>()?.log();
+            let mut rx = self.rx::<PtyWebsocketResponse>()?;
             let mut tx = from.tx::<PtyWebsocketResponse>()?;
             Self::try_task("reply_response", async move {
                 while let Some(msg) = rx.recv().await {

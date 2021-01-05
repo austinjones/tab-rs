@@ -49,9 +49,9 @@ impl Service for ClientService {
 
 impl ClientService {
     async fn run(
-        mut rx: impl Receiver<PtyWebsocketRequest>,
-        mut tx: impl Sender<PtyWebsocketResponse> + Clone + Send + 'static,
-        mut tx_shutdown: impl Sender<MainShutdown>,
+        mut rx: impl Stream<Item = PtyWebsocketRequest> + Unpin,
+        mut tx: impl Sink<Item = PtyWebsocketResponse> + Clone + Unpin + Send + 'static,
+        mut tx_shutdown: impl Sink<Item = MainShutdown> + Unpin,
         pty_bus: PtyBus,
     ) -> anyhow::Result<()> {
         // TODO: handle ptyshutdown here.
@@ -157,7 +157,7 @@ impl ClientService {
                 PtyWebsocketRequest::Terminate => {
                     // in case we somehow get a pty termination request, but don't have a session running,
                     // send a main shutdown message
-                    time::delay_for(Duration::from_millis(2000)).await;
+                    time::sleep(Duration::from_millis(2000)).await;
                     tx.send(PtyWebsocketResponse::Stopped).await.ok();
                     tx_shutdown.send(MainShutdown {}).await?;
                 }
@@ -214,10 +214,10 @@ impl Service for ClientSessionService {
 
 impl ClientSessionService {
     async fn input(
-        mut rx: impl Receiver<PtyWebsocketRequest>,
-        mut tx_pty: impl Sender<PtyRequest>,
-        mut tx_websocket: impl Sender<PtyWebsocketResponse>,
-        mut tx_shutdown: impl Sender<PtyShutdown>,
+        mut rx: impl Stream<Item = PtyWebsocketRequest> + Unpin,
+        mut tx_pty: impl Sink<Item = PtyRequest> + Unpin,
+        mut tx_websocket: impl Sink<Item = PtyWebsocketResponse> + Unpin,
+        mut tx_shutdown: impl Sink<Item = PtyShutdown> + Unpin,
     ) -> anyhow::Result<()> {
         while let Some(request) = rx.recv().await {
             match request {
@@ -239,7 +239,7 @@ impl ClientSessionService {
                     // The shell should shut down, and emit a shutdown message.
                     // If it doesn't within a reasonable time,
                     //   we'll forcefully kill it.
-                    time::delay_for(Duration::from_millis(1000)).await;
+                    time::sleep(Duration::from_millis(1000)).await;
                     warn!("Shell process did not shut down within the 1 second timeout.");
                     tx_websocket.send(PtyWebsocketResponse::Stopped).await?;
                     tx_shutdown.send(PtyShutdown {}).await?;
@@ -252,9 +252,9 @@ impl ClientSessionService {
     }
 
     async fn output(
-        mut rx: impl Receiver<PtyResponse>,
-        mut tx: impl Sender<PtyWebsocketResponse>,
-        mut tx_shutdown: impl Sender<PtyShutdown>,
+        mut rx: impl Stream<Item = PtyResponse> + Unpin,
+        mut tx: impl Sink<Item = PtyWebsocketResponse> + Unpin,
+        mut tx_shutdown: impl Sink<Item = PtyShutdown> + Unpin,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {
@@ -267,7 +267,7 @@ impl ClientSessionService {
                     tx.send(PtyWebsocketResponse::Stopped).await?;
 
                     // this sleep is not visible to the user
-                    time::delay_for(Duration::from_millis(100)).await;
+                    time::sleep(Duration::from_millis(100)).await;
                     tx_shutdown.send(PtyShutdown {}).await?;
                 }
             }
@@ -345,6 +345,7 @@ mod tests {
     use std::{collections::HashMap, time::Duration};
 
     use lifeline::{assert_completes, assert_times_out};
+    use postage::{sink::Sink, stream::Stream};
     use tab_api::{
         pty::{PtyWebsocketRequest, PtyWebsocketResponse},
         tab::TabId,
@@ -413,7 +414,7 @@ mod tests {
         );
 
         // wait for a total of 2000ms + 10ms.
-        time::delay_for(Duration::from_millis(110)).await;
+        time::sleep(Duration::from_millis(110)).await;
 
         assert_completes!(async {
             let msg = rx.recv().await;
@@ -432,6 +433,7 @@ mod tests {
 #[cfg(test)]
 mod client_session_tests {
     use lifeline::{assert_completes, assert_times_out, dyn_bus::DynBus};
+    use postage::{sink::Sink, stream::Stream};
     use tab_api::{
         chunk::InputChunk, chunk::OutputChunk, pty::PtyWebsocketRequest, pty::PtyWebsocketResponse,
     };
@@ -528,7 +530,7 @@ mod client_session_tests {
             rx_shutdown.recv().await;
         });
 
-        time::delay_for(Duration::from_millis(1000)).await;
+        time::sleep(Duration::from_millis(1000)).await;
 
         assert_completes!(async {
             let msg = rx_websocket.recv().await;
@@ -593,7 +595,7 @@ mod client_session_tests {
             90
         );
 
-        time::delay_for(Duration::from_millis(20)).await;
+        time::sleep(Duration::from_millis(20)).await;
 
         assert_completes!(
             async {

@@ -37,7 +37,7 @@ impl Service for TerminalEventService {
                         .context("send TerminalStateSize")?;
                 }
 
-                tokio::time::delay_for(Duration::from_millis(200)).await;
+                tokio::time::sleep(Duration::from_millis(200)).await;
             }
 
             Ok(())

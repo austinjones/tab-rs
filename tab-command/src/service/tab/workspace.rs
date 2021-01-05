@@ -8,7 +8,6 @@ use crate::{
     state::{tab::TabMetadataState, workspace::WorkspaceTab},
 };
 use lifeline::Service;
-use tokio::stream::StreamExt;
 
 use self::loader::{scan_config, WorkspaceTabs};
 
@@ -21,6 +20,7 @@ pub struct WorkspaceService {
     _scan: Lifeline,
 }
 
+#[derive(Debug)]
 enum Event {
     ScanWorkspace,
     MetadataState(TabMetadataState),
@@ -46,14 +46,15 @@ impl Service for WorkspaceService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let rx_scan = bus.rx::<ScanWorkspace>()?.into_inner();
-        let rx_metadata = bus.rx::<TabMetadataState>()?.into_inner();
-        let rx_active = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+        let rx_scan = bus.rx::<ScanWorkspace>()?;
+        let rx_metadata = bus.rx::<TabMetadataState>()?;
+        let rx_active = bus.rx::<Option<ActiveTabsState>>()?;
 
         let mut rx = rx_scan
             .map(Event::scan)
             .merge(rx_active.map(Event::active))
-            .merge(rx_metadata.map(Event::metadata));
+            .merge(rx_metadata.map(Event::metadata))
+            .log(Level::Debug);
 
         let mut tx = bus.tx::<Option<WorkspaceState>>()?;
 
@@ -62,7 +63,7 @@ impl Service for WorkspaceService {
             let mut last_active = None;
             let mut current_dir = std::env::current_dir()?;
 
-            while let Some(event) = rx.next().await {
+            while let Some(event) = rx.recv().await {
                 // for either event, we update the workspace
                 match event {
                     Event::ScanWorkspace => {}
@@ -98,7 +99,7 @@ impl Service for WorkspaceService {
 
 impl WorkspaceService {
     async fn update(
-        tx: &mut impl Sender<Option<WorkspaceState>>,
+        mut tx: impl Sink<Item = Option<WorkspaceState>> + Unpin,
         active: Option<&ActiveTabsState>,
         current_dir: &Path,
     ) -> anyhow::Result<()> {

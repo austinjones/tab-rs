@@ -3,7 +3,7 @@ use crate::{
     resource::listener::{WebsocketAuthToken, WebsocketListenerResource},
 };
 use lifeline::{prelude::*, Resource};
-use tokio::sync::mpsc;
+use postage::mpsc;
 
 lifeline_bus!(pub struct WebsocketListenerBus);
 

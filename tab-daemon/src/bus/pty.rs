@@ -11,13 +11,13 @@ use crate::{
 use std::sync::Arc;
 
 use lifeline::Resource;
+use postage::{broadcast, mpsc, watch};
 use tab_api::{
     chunk::InputChunk,
     pty::{PtyWebsocketRequest, PtyWebsocketResponse},
     tab::TabMetadata,
 };
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct PtyBus);
 
@@ -73,7 +73,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
         // receives startup and shutdown signals
 
         let _to_pty = {
-            let rx_id = self.rx::<PtyState>()?.into_inner();
+            let rx_id = self.rx::<PtyState>()?;
             // FIXME I think the bug is here.
             // the channel is being taken from the
             let mut rx_tab = from.rx::<TabRecv>()?;
@@ -137,10 +137,10 @@ impl CarryFrom<ListenerBus> for PtyBus {
         };
 
         let _to_listener = {
-            let rx_id = self.rx::<PtyState>()?.into_inner();
-            let mut rx_pty = self.rx::<PtySend>()?.log();
+            let rx_id = self.rx::<PtyState>()?;
+            let mut rx_pty = self.rx::<PtySend>()?.log(Level::Debug);
 
-            let mut tx_tab = from.tx::<TabSend>()?;
+            let mut tx_tab = from.tx::<TabSend>()?.log(Level::Debug);
             let mut tx_tab_manager = from.tx::<TabManagerRecv>()?;
 
             Self::try_task("to_listener", async move {
@@ -169,6 +169,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                         }
                         PtySend::Stopped => {
                             let id = rx_id.borrow().unwrap();
+                            info!("Received termination notice on tab {}", id);
                             // todo - this should be a notification, not an action
                             // serious bugs were going on because this was missing, though.
                             tx_tab_manager.send(TabManagerRecv::CloseTab(id)).await?;

@@ -21,7 +21,7 @@ impl Service for MainListTabsService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?;
-        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
+        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?;
 
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 

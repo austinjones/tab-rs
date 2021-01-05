@@ -8,8 +8,8 @@ use crate::{
 use crate::{prelude::*, state::tab::TabState};
 use lifeline::prelude::*;
 
+use postage::{broadcast, mpsc, watch};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
-use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(
     pub struct MainBus

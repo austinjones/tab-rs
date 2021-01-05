@@ -1,4 +1,4 @@
-use tokio::sync::{broadcast, mpsc, watch};
+use postage::{broadcast, mpsc, watch};
 
 use crate::{
     message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown,
@@ -52,7 +52,7 @@ impl CarryFrom<TerminalBus> for FuzzyBus {
 
     fn carry_from(&self, from: &TerminalBus) -> Self::Lifeline {
         let _recv = {
-            let mut rx = from.rx::<Option<WorkspaceState>>()?.log();
+            let mut rx = from.rx::<Option<WorkspaceState>>()?.log(Level::Debug);
             let mut tx = self.tx::<Option<FuzzyTabsState>>()?;
 
             Self::task("recv", async move {

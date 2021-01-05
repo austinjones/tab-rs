@@ -25,8 +25,7 @@ mod service;
 mod state;
 
 pub fn daemon_main(tab_version: &'static str) -> anyhow::Result<()> {
-    let mut runtime = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+    let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
         .build()

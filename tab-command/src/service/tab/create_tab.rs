@@ -25,8 +25,8 @@ impl Service for CreateTabService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<CreateTabRequest>()?;
-        let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
-        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?.into_inner();
+        let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?;
+        let mut rx_workspace = bus.rx::<Option<WorkspaceState>>()?;
         let mut tx_websocket = bus.tx::<Request>()?;
 
         let _request_tab = Self::try_task("request_tab", async move {
@@ -60,7 +60,7 @@ impl CreateTabService {
     pub async fn create_named(
         name: String,
         workspace: Arc<Vec<WorkspaceTab>>,
-        tx_websocket: &mut impl Sender<Request>,
+        mut tx_websocket: impl Sink<Item = Request> + Unpin,
     ) -> anyhow::Result<()> {
         let name = normalize_name(name.as_str());
         let workspace_tab = workspace.iter().find(|tab| tab.name == name);

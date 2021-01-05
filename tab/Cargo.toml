@@ -30,21 +30,22 @@ anyhow = "1.0"
 log = "0.4"
 
 # used for install command
-tempfile = "3.1"
+tempfile = "3.2"
 dialoguer = "0.7"
-toml_edit = "0.2.0"
+toml_edit = "0.2"
 dirs = "3.0"
 which = "4.0"
 
 [dev-dependencies]
-lifeline = "0.4.0"
+lifeline = "0.6"
+postage = "0.3"
 strip-ansi-escapes = "0.1.0"
-tokio-test = "0.2.1"
-tokio = { version = "0.2", features = ["process", "time", "rt-threaded"] } 
-insta = "0.16"
+tokio-test = "0.4"
+tokio = { version = "1.0", features = ["process", "time", "rt-multi-thread"] } 
+insta = "1.5"
 assert_cmd = "1.0"
 log = "0.4"
-simplelog = "0.8"
+simplelog = "0.9"
 snailquote = "0.3"
 
 [build-dependencies]

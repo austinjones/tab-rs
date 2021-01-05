@@ -33,9 +33,9 @@ impl Service for TerminalEchoService {
 }
 
 async fn forward_stdin(
-    mut tx: impl Sender<TerminalInput>,
-    mut tx_terminal: impl Sender<TerminalSend>,
-    mut tx_shutdown: impl Sender<TerminalShutdown>,
+    mut tx: impl Sink<Item = TerminalInput> + Unpin,
+    mut tx_terminal: impl Sink<Item = TerminalSend> + Unpin,
+    mut tx_shutdown: impl Sink<Item = TerminalShutdown> + Unpin,
 ) -> anyhow::Result<()> {
     info!("listening for stdin");
     let mut stdin = tokio::io::stdin();
@@ -79,13 +79,13 @@ async fn forward_stdin(
             break;
         }
 
-        time::delay_for(Duration::from_micros(150)).await;
+        time::sleep(Duration::from_micros(150)).await;
     }
 
     Ok(())
 }
 
-async fn print_stdout(mut rx: impl Receiver<TerminalOutput>) -> anyhow::Result<()> {
+async fn print_stdout(mut rx: impl Stream<Item = TerminalOutput> + Unpin) -> anyhow::Result<()> {
     trace!("Waiting on messages...");
 
     let mut stdout = tokio::io::stdout();

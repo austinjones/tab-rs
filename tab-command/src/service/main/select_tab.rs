@@ -41,7 +41,10 @@ impl Service for MainSelectTabService {
 }
 
 impl MainSelectTabService {
-    async fn select_tab(name: String, tx_tab: &mut impl Sender<TabRecv>) -> anyhow::Result<()> {
+    async fn select_tab(
+        name: String,
+        mut tx_tab: impl Sink<Item = TabRecv> + Unpin,
+    ) -> anyhow::Result<()> {
         info!("MainRecv::SelectTab({}) running", &name);
         let name = normalize_name(name.as_str());
         let env_tab = env_tab_id();

@@ -9,14 +9,12 @@ use crate::{
     state::tab::TabsState,
 };
 use anyhow::Context;
+use postage::{broadcast, mpsc, sink::Sink, stream::Stream};
 use std::sync::Arc;
 use tab_api::{client::Request, client::Response};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
-use tokio::{
-    sync::{broadcast, mpsc},
-    time,
-};
+use tokio::time;
 
 lifeline_bus!(pub struct CliBus);
 
@@ -71,7 +69,7 @@ impl CarryFrom<ListenerBus> for CliBus {
 
     fn carry_from(&self, from: &ListenerBus) -> Self::Lifeline {
         let _forward = {
-            let rx_tab = from.rx::<TabSend>()?.log();
+            let rx_tab = from.rx::<TabSend>()?.log(Level::Debug);
 
             let tx_conn = self.tx::<CliRecv>()?;
             let tx_subscription = self.tx::<CliSubscriptionRecv>()?;
@@ -85,7 +83,7 @@ impl CarryFrom<ListenerBus> for CliBus {
         let _reverse = {
             let rx_conn = self.rx::<CliSend>()?;
 
-            let tx_tab = from.tx::<TabRecv>()?.log();
+            let tx_tab = from.tx::<TabRecv>()?.log(Level::Debug);
             let tx_manager = from.tx::<TabManagerRecv>()?;
             let tx_shutdown = self.tx::<CliShutdown>()?;
             let tx_listener_shutdown = from.tx::<ListenerShutdown>()?;
@@ -123,9 +121,9 @@ impl CarryFrom<ListenerBus> for CliBus {
 
 impl CliBus {
     async fn run_output(
-        mut rx: impl Receiver<TabSend>,
-        mut tx: impl Sender<CliRecv>,
-        mut tx_subscription: impl Sender<CliSubscriptionRecv>,
+        mut rx: impl Stream<Item = TabSend> + Unpin,
+        mut tx: impl Sink<Item = CliRecv> + Unpin,
+        mut tx_subscription: impl Sink<Item = CliSubscriptionRecv> + Unpin,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             Self::handle_tabsend(msg, &mut tx, &mut tx_subscription).await?
@@ -135,11 +133,11 @@ impl CliBus {
     }
 
     async fn run_input(
-        mut rx: impl Receiver<CliSend>,
-        mut tx: impl Sender<TabRecv>,
-        mut tx_manager: impl Sender<TabManagerRecv>,
-        mut tx_shutdown: impl Sender<CliShutdown>,
-        mut tx_listener_shutdown: impl Sender<ListenerShutdown>,
+        mut rx: impl Stream<Item = CliSend> + Unpin,
+        mut tx: impl Sink<Item = TabRecv> + Unpin,
+        mut tx_manager: impl Sink<Item = TabManagerRecv> + Unpin,
+        mut tx_shutdown: impl Sink<Item = CliShutdown> + Unpin,
+        mut tx_listener_shutdown: impl Sink<Item = ListenerShutdown> + Unpin,
     ) -> anyhow::Result<()> {
         while let Some(msg) = rx.recv().await {
             match msg {
@@ -177,7 +175,7 @@ impl CliBus {
                     info!("Daemon receieved a global shutdown.");
                     tx.send(TabRecv::TerminateAll).await?;
                     tx_listener_shutdown.send(ListenerShutdown {}).await?;
-                    time::delay_for(Duration::from_millis(50)).await;
+                    time::sleep(Duration::from_millis(50)).await;
                 }
                 CliSend::DisconnectTab(id) => {
                     let message = TabRecv::Retask(id, None);
@@ -193,11 +191,14 @@ impl CliBus {
 
     async fn handle_tabsend(
         msg: TabSend,
-        tx: &mut impl Sender<CliRecv>,
-        tx_subscription: &mut impl Sender<CliSubscriptionRecv>,
+        mut tx: impl Sink<Item = CliRecv> + Unpin,
+        mut tx_subscription: impl Sink<Item = CliSubscriptionRecv> + Unpin,
     ) -> anyhow::Result<()> {
         match msg {
-            TabSend::Started(tab) => tx.send(CliRecv::TabStarted(tab)).await?,
+            TabSend::Started(tab) => {
+                debug!("Got tab started: {:?}", &tab);
+                tx.send(CliRecv::TabStarted(tab)).await?
+            }
             TabSend::Stopped(id) => {
                 tx_subscription
                     .send(CliSubscriptionRecv::Stopped(id))

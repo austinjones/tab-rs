@@ -8,12 +8,12 @@ use crate::{
     log::get_level_str,
 };
 use anyhow::{bail, Context};
-use lifeline::prelude::*;
 use log::*;
 use nix::{
     sys::wait::{waitpid, WaitStatus},
     unistd::{fork, setsid, ForkResult},
 };
+use postage::stream::Stream;
 use std::{
     path::Path,
     process::Stdio,
@@ -52,7 +52,7 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
             }
         }
 
-        time::delay_for(Duration::from_millis(50)).await;
+        time::sleep(Duration::from_millis(50)).await;
         if Instant::now().duration_since(start_wait) > timeout_duration {
             return Err(anyhow::Error::msg("timeout while waiting for tab daemon"));
         }
@@ -95,7 +95,7 @@ pub fn launch_pty() -> anyhow::Result<()> {
 /// Waits for either a ctrl-c signal, or a message on the given channel.
 ///
 /// Useful in main() functions.
-pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Receiver<T>) -> T {
+pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Stream<Item = T> + Unpin) -> T {
     loop {
         select! {
             _ = ctrl_c() => {
