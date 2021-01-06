@@ -36,6 +36,9 @@ async fn remote_disconnect_env(session: &TestSession) -> anyhow::Result<()> {
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("env", result.snapshot);
 
+    let tabs = session.command().tabs().await?;
+    assert_eq!(vec!["remote_disconnect_env/".to_string()], tabs);
+
     Ok(())
 }
 
@@ -54,6 +57,15 @@ async fn remote_disconnect_name(session: &TestSession) -> anyhow::Result<()> {
 
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("name", result.snapshot);
+
+    let tabs = session.command().tabs().await?;
+    assert_eq!(
+        vec![
+            "remote_disconnect_env/".to_string(),
+            "remote_disconnect_name/".to_string()
+        ],
+        tabs
+    );
 
     Ok(())
 }
