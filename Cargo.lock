@@ -1520,10 +1520,10 @@ dependencies = [
  "simplelog 0.8.0",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-command",
- "tab-daemon",
- "tab-pty",
+ "tab-daemon 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-pty 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
  "tokio",
  "tokio-test",
@@ -1534,6 +1534,24 @@ dependencies = [
 [[package]]
 name = "tab-api"
 version = "0.5.3"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "lifeline",
+ "log",
+ "serde",
+ "serde_yaml",
+ "snailquote",
+ "sysinfo",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "tab-api"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e919cd9f7313917e6cfdcb744d0af801a5c8cca43f4c020ebb8d66a22d6ccf87"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1564,8 +1582,8 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api",
- "tab-websocket",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-test",
@@ -1588,13 +1606,36 @@ dependencies = [
  "rand 0.8.0",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api",
- "tab-websocket",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-io",
  "tokio-test",
  "tungstenite",
+]
+
+[[package]]
+name = "tab-daemon"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e639609ac55cf853d387da3f99b9261093df9e4ea0b9a8ebb974b4957051032c"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.13.0",
+ "dirs",
+ "lifeline",
+ "log",
+ "log-panics",
+ "rand 0.7.3",
+ "serde_yaml",
+ "simplelog 0.8.0",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "tokio",
+ "tokio-io",
 ]
 
 [[package]]
@@ -1613,9 +1654,35 @@ dependencies = [
  "rand 0.8.0",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api",
- "tab-pty-process",
- "tab-websocket",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-pty-process 0.2.0",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "tokio",
+ "tokio-io",
+]
+
+[[package]]
+name = "tab-pty"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54d92e110fff2416f73229e8193348f0df6175446f0a6e9c966d47892c9bd276"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.12.3",
+ "bincode",
+ "dirs",
+ "futures 0.3.8",
+ "lifeline",
+ "log",
+ "log-panics",
+ "rand 0.7.3",
+ "serde_yaml",
+ "simplelog 0.8.0",
+ "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-io",
@@ -1628,6 +1695,20 @@ dependencies = [
  "async-trait",
  "bytes 0.4.12",
  "errno",
+ "futures 0.3.8",
+ "libc",
+ "mio 0.6.23",
+ "tokio",
+]
+
+[[package]]
+name = "tab-pty-process"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4b92455283e9992144259f518c09f80f15493329d0a3dc6700d15bd3547ab2d"
+dependencies = [
+ "async-trait",
+ "bytes 0.4.12",
  "futures 0.3.8",
  "libc",
  "mio 0.6.23",
@@ -1648,6 +1729,24 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-test",
+ "tungstenite",
+]
+
+[[package]]
+name = "tab-websocket"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9ef014142bd2eecf4aa3810b36858fc32cfd0a285874bf8d1ffce30a3d3976b"
+dependencies = [
+ "anyhow",
+ "async-tungstenite",
+ "bincode",
+ "futures 0.3.8",
+ "lifeline",
+ "log",
+ "serde",
+ "thiserror",
+ "tokio",
  "tungstenite",
 ]
 
