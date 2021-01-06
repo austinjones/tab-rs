@@ -48,7 +48,7 @@ async fn remote_disconnect_name(session: &TestSession) -> anyhow::Result<()> {
     let result = session
         .command()
         .tab(tab.as_str())
-        .await_stdout("$", 1000)
+        .await_stdout("$", 3000)
         .stdin(format!("TAB_ID='' $TAB_BIN --disconnect {}\n", tab))
         .await_stdout("disconnect remote_disconnect_name/", 300)
         .complete_snapshot()
