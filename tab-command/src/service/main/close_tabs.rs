@@ -78,7 +78,7 @@ impl MainCloseTabsService {
             eprintln!("Closing tab: {}", name);
 
             let tab = state.find_name(name.as_str()).unwrap();
-            tx_websocket.send(Request::DisconnectTab(tab.id)).await?;
+            tx_websocket.send(Request::CloseTab(tab.id)).await?;
         }
 
         Ok(0)

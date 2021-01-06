@@ -33,6 +33,9 @@ async fn remote_close_env(session: &TestSession) -> anyhow::Result<()> {
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("env", result.snapshot);
 
+    let tabs = session.command().tabs().await?;
+    assert_eq!(Vec::<String>::new(), tabs);
+
     Ok(())
 }
 
@@ -51,6 +54,9 @@ async fn remote_close_name(session: &TestSession) -> anyhow::Result<()> {
 
     assert_eq!(Some(0), result.exit_status.code());
     assert_snapshot!("name", result.snapshot);
+
+    let tabs = session.command().tabs().await?;
+    assert_eq!(Vec::<String>::new(), tabs);
 
     Ok(())
 }

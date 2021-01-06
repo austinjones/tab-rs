@@ -71,6 +71,28 @@ impl TestCommand {
         self
     }
 
+    /// Lists all running tab sessions
+    pub async fn tabs(&self) -> anyhow::Result<Vec<String>> {
+        let mut command = self.command();
+        command.arg("--_autocomplete_close_tab");
+
+        let child = command.spawn()?;
+        let mut stdout = child.stdout.expect("couldn't get child stdout");
+
+        let mut string = String::new();
+        stdout.read_to_string(&mut string).await?;
+
+        let mut tabs: Vec<String> = string
+            .split("\n")
+            .filter(|t| !t.is_empty())
+            .map(str::to_string)
+            .collect();
+
+        tabs.sort();
+
+        Ok(tabs)
+    }
+
     /// Writes stdin to the tab session
     pub fn stdin<T: ToString>(&mut self, value: T) -> &mut Self {
         let action = Action::Stdin(value.to_string().as_bytes().to_owned());
@@ -135,25 +157,8 @@ impl TestCommand {
         info!("");
         info!("Tab command initializing: {}", self.tab.as_str());
 
-        let mut run = tokio::process::Command::new(self.context.binary.as_path());
-        run.arg("--log")
-            .arg("debug")
-            .arg(self.tab.as_str())
-            .env("SHELL", "/bin/bash")
-            .env(
-                "TAB_RUNTIME_DIR",
-                self.context
-                    .runtime_dir
-                    .to_str()
-                    .expect("Failed to encode runtime dir as string")
-                    .to_string(),
-            )
-            .env("TAB_RAW_MODE", "false")
-            .env("TAB", "")
-            .env("TAB_ID", "")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit());
+        let mut run = self.command();
+        run.arg(self.tab.as_str());
 
         let mut child = run.spawn()?;
         let mut stdin = child.stdin.take().expect("couldn't get child stdin");
@@ -316,6 +321,30 @@ impl TestCommand {
         info!("Tab command terminated: {}", self.tab.as_str());
 
         Ok(result)
+    }
+
+    fn command(&self) -> tokio::process::Command {
+        let mut run = tokio::process::Command::new(self.context.binary.as_path());
+
+        run.arg("--log")
+            .arg("info")
+            .env("SHELL", "/bin/bash")
+            .env(
+                "TAB_RUNTIME_DIR",
+                self.context
+                    .runtime_dir
+                    .to_str()
+                    .expect("Failed to encode runtime dir as string")
+                    .to_string(),
+            )
+            .env("TAB_RAW_MODE", "false")
+            .env("TAB", "")
+            .env("TAB_ID", "")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit());
+
+        run
     }
 }
 
