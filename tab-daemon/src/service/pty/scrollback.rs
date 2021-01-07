@@ -75,7 +75,7 @@ impl ScrollbackManager {
         }
     }
 
-    /// Several ANSI escape sequences that should not be replayed   
+    /// Several ANSI escape sequences that should not be replayed
     pub fn ansi_filter() -> AnsiFilter {
         AnsiFilter::new(vec![
             // replace ESC [ 6n, Device Status Report
