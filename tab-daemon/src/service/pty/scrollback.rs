@@ -75,7 +75,7 @@ impl ScrollbackManager {
         }
     }
 
-    /// Several ANSI escape sequences that should not be replayed   
+    /// Several ANSI escape sequences that should not be replayed
     pub fn ansi_filter() -> AnsiFilter {
         AnsiFilter::new(vec![
             // replace ESC [ 6n, Device Status Report
@@ -86,6 +86,22 @@ impl ScrollbackManager {
             //   similarly, this sequence results in the terminal emulator echoing characters
             //   reference: https://www.xfree86.org/current/ctlseqs.html
             "\x1b]\x00\x00;?\x07"
+                .as_bytes()
+                .into_iter()
+                .copied()
+                .collect(),
+            // replace ESC [ ** c, Send Device Attributes (Primary DA)
+            //   similarly, this sequence results in the terminal emulator echoing characters
+            //   reference: https://www.xfree86.org/current/ctlseqs.html
+            "\x1b]\x00\x00c".as_bytes().into_iter().copied().collect(),
+            // replace ESC [ = 0 c, Send Device Attributes (Tertiary DA)
+            //   similarly, this sequence results in the terminal emulator echoing characters
+            //   reference: https://www.xfree86.org/current/ctlseqs.html
+            "\x1b]=0c".as_bytes().into_iter().copied().collect(),
+            // replace ESC [ > ** ; ** ; 0 c, Send Device Attributes (Secondary DA)
+            //   similarly, this sequence results in the terminal emulator echoing characters
+            //   reference: https://www.xfree86.org/current/ctlseqs.html
+            "\x1b]>\x00\x00;\x00\x00;0c"
                 .as_bytes()
                 .into_iter()
                 .copied()
