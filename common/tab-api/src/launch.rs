@@ -7,10 +7,15 @@ use crate::{
     env::is_raw_mode,
     log::get_level_str,
 };
-use anyhow::Context;
+use anyhow::{bail, Context};
 use lifeline::prelude::*;
 use log::*;
+use nix::{
+    sys::wait::{waitpid, WaitStatus},
+    unistd::{fork, ForkResult},
+};
 use std::{
+    path::Path,
     process::Stdio,
     time::{Duration, Instant},
 };
@@ -30,28 +35,11 @@ pub async fn launch_daemon() -> anyhow::Result<DaemonConfig> {
     if !running {
         debug!("launching `tab-daemon` at {}", &exec.to_string_lossy());
 
-        let mut child = Command::new(exec);
-
-        child
-            .args(&[
-                "--_launch",
-                "daemon",
-                "--log",
-                get_level_str().unwrap_or("info"),
-            ])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .kill_on_drop(false);
-
-        if is_raw_mode() {
-            child.stderr(Stdio::null());
-        } else {
-            child.stderr(Stdio::inherit());
+        if let Err(e) = fork_launch_daemon(exec.as_path()) {
+            warn!("Failed to launch daemon as a detached process.  Falling back to child process.  Cause: {}", e);
+            spawn_daemon(exec.as_path())
+                .context("Failed to launch daemon during child process fallback")?;
         }
-
-        crate::env::forward_env(&mut child);
-
-        let _child = child.spawn()?;
     }
 
     let timeout_duration = Duration::from_secs(2);
@@ -118,4 +106,49 @@ pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Receiver<T>) -> T 
             }
         }
     }
+}
+
+fn fork_launch_daemon(exec: &Path) -> anyhow::Result<()> {
+    match unsafe { fork()? } {
+        ForkResult::Parent { child } => {
+            let result = waitpid(Some(child), None)?;
+            if let WaitStatus::Exited(_pid, code) = result {
+                if code != 0 {
+                    bail!("Forked process exited with code {}", code);
+                }
+            }
+        }
+        ForkResult::Child => {
+            let exit_code = spawn_daemon(exec).map(|_| 0i32).unwrap_or(1i32);
+            std::process::exit(exit_code);
+        }
+    }
+
+    Ok(())
+}
+
+fn spawn_daemon(exec: &Path) -> anyhow::Result<()> {
+    // because this is invoked in the forked process, we cannot use tokio
+    let mut child = std::process::Command::new(exec);
+
+    child
+        .args(&[
+            "--_launch",
+            "daemon",
+            "--log",
+            get_level_str().unwrap_or("info"),
+        ])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null());
+
+    if is_raw_mode() {
+        child.stderr(Stdio::null());
+    } else {
+        child.stderr(Stdio::inherit());
+    }
+
+    crate::env::forward_env_std(&mut child);
+
+    let _child = child.spawn()?;
+    Ok(())
 }
