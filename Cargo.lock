@@ -175,6 +175,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
+name = "cc"
+version = "1.0.66"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c0496836a84f8d0495758516b8621a622beb77c0fed418570e50764093ced48"
+
+[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -911,6 +917,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2ccba0cfe4fdf15982d1674c69b1fd80bad427d293849982668dfe454bd61f2"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if 1.0.0",
+ "libc",
+]
+
+[[package]]
 name = "ntapi"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -995,7 +1013,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "instant",
  "libc",
- "redox_syscall",
+ "redox_syscall 0.1.57",
  "smallvec",
  "winapi 0.3.9",
 ]
@@ -1254,13 +1272,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
+name = "redox_syscall"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05ec8ca9416c5ea37062b502703cd7fcb207736bc294f6e0cf367ac6fc234570"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
 name = "redox_users"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de0737333e7a9502c789a36d7c7fa6092a49895d4faa31ca5df163857ded2e9d"
 dependencies = [
  "getrandom 0.1.16",
- "redox_syscall",
+ "redox_syscall 0.1.57",
  "rust-argon2",
 ]
 
@@ -1520,8 +1547,8 @@ dependencies = [
  "simplelog 0.8.0",
  "snailquote",
  "strip-ansi-escapes",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-command 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
+ "tab-command",
  "tab-daemon 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-pty 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
@@ -1539,24 +1566,7 @@ dependencies = [
  "dirs",
  "lifeline",
  "log",
- "serde",
- "serde_yaml",
- "snailquote",
- "sysinfo",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "tab-api"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e919cd9f7313917e6cfdcb744d0af801a5c8cca43f4c020ebb8d66a22d6ccf87"
-dependencies = [
- "anyhow",
- "dirs",
- "lifeline",
- "log",
+ "nix",
  "serde",
  "serde_yaml",
  "snailquote",
@@ -1582,35 +1592,11 @@ dependencies = [
  "serde",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tokio-test",
- "typed-builder",
-]
-
-[[package]]
-name = "tab-command"
-version = "0.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0e28111d04ee5925662ea01163c93859d6a1a9dcaee55d255abf4c7cbb78cba"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "dirs",
- "fuzzy-matcher",
- "lifeline",
- "log",
- "semver",
- "serde",
- "serde_yaml",
- "simplelog 0.9.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tokio",
  "typed-builder",
 ]
 
@@ -1630,7 +1616,7 @@ dependencies = [
  "rand 0.8.0",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1655,7 +1641,7 @@ dependencies = [
  "rand 0.7.3",
  "serde_yaml",
  "simplelog 0.8.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
@@ -1678,7 +1664,7 @@ dependencies = [
  "rand 0.8.0",
  "serde_yaml",
  "simplelog 0.9.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-pty-process 0.2.0",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
@@ -1704,7 +1690,7 @@ dependencies = [
  "rand 0.7.3",
  "serde_yaml",
  "simplelog 0.8.0",
- "tab-api 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tab-api",
  "tab-pty-process 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tab-websocket 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
@@ -1776,14 +1762,14 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a6e24d9338a0a5be79593e2fa15a648add6138caa803e2d5bc782c371732ca9"
+checksum = "dac1c663cfc93810f88aed9b8941d48cabf856a1b111c29a40439018d870eb22"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "libc",
- "rand 0.7.3",
- "redox_syscall",
+ "rand 0.8.0",
+ "redox_syscall 0.2.4",
  "remove_dir_all",
  "winapi 0.3.9",
 ]
