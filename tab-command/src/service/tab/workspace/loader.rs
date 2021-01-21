@@ -147,7 +147,7 @@ impl WorkspaceTabs {
     }
 }
 
-pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {
+pub fn scan_config(dir: &Path, base: Option<&Path>, ignore_dir: Option<&Path>) -> WorkspaceTabs {
     let mut builder = WorkspaceBuilder::new();
     let mut working_dir = Some(dir);
 
@@ -156,6 +156,11 @@ pub fn scan_config(dir: &Path, base: Option<&Path>) -> WorkspaceTabs {
             if dir != base && base.starts_with(dir) {
                 break;
             }
+        }
+
+        if ignore_dir == Some(dir) {
+            working_dir = dir.parent();
+            continue;
         }
 
         match load_yml(dir) {
