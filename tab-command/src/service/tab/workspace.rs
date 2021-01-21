@@ -103,7 +103,10 @@ impl WorkspaceService {
         current_dir: &Path,
     ) -> anyhow::Result<()> {
         info!("Scanning workspace");
-        let scan = scan_config(current_dir, None);
+        let global_config = tab_api::config::global_config_file();
+        let global_config = global_config.as_ref().map(|c| c.parent()).flatten();
+
+        let scan = scan_config(current_dir, None, global_config);
 
         let errors: Vec<String> = scan
             .errors()
@@ -187,13 +190,13 @@ mod tests {
 
     fn load(name: &str) -> anyhow::Result<(PathBuf, Vec<WorkspaceTab>)> {
         let path = test_dir(name)?;
-        let tabs = scan_config(path.as_path(), Some(path.as_path())).unwrap();
+        let tabs = scan_config(path.as_path(), Some(path.as_path()), None).unwrap();
         Ok((path, tabs))
     }
 
     fn load_ok(name: &str) -> anyhow::Result<(PathBuf, Vec<WorkspaceTab>)> {
         let path = test_dir(name)?;
-        let tabs = scan_config(path.as_path(), Some(path.as_path())).ok();
+        let tabs = scan_config(path.as_path(), Some(path.as_path()), None).ok();
         Ok((path, tabs))
     }
 
@@ -467,7 +470,7 @@ mod tests {
     fn workspace_nested_test() -> anyhow::Result<()> {
         let outer = test_dir("workspace-nested/")?;
         let inner = test_dir("workspace-nested/sub-workspace/")?;
-        let tabs = scan_config(inner.as_path(), Some(outer.as_path())).unwrap();
+        let tabs = scan_config(inner.as_path(), Some(outer.as_path()), None).unwrap();
 
         let expected = vec![
             WorkspaceTab::builder()
@@ -483,6 +486,23 @@ mod tests {
         ];
 
         assert_eq!(expected, tabs);
+
+        Ok(())
+    }
+
+    #[test]
+    fn ignore_test() -> anyhow::Result<()> {
+        let dir = test_dir("ignore_dir")?;
+        let repo = test_dir("ignore_dir/repo")?;
+        let tabs = scan_config(repo.as_path(), Some(dir.as_path()), Some(dir.as_path())).unwrap();
+
+        assert_eq!(
+            vec![WorkspaceTab::builder()
+                .name("exists/".into())
+                .directory(dir!(repo))
+                .build()],
+            tabs
+        );
 
         Ok(())
     }
