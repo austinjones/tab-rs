@@ -12,7 +12,7 @@ use lifeline::prelude::*;
 use log::*;
 use nix::{
     sys::wait::{waitpid, WaitStatus},
-    unistd::{fork, ForkResult},
+    unistd::{fork, setsid, ForkResult},
 };
 use std::{
     path::Path,
@@ -109,6 +109,7 @@ pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Receiver<T>) -> T 
 }
 
 fn fork_launch_daemon(exec: &Path) -> anyhow::Result<()> {
+    debug!("Forking the process to launch the daemon.");
     match unsafe { fork()? } {
         ForkResult::Parent { child } => {
             let result = waitpid(Some(child), None)?;
@@ -119,7 +120,13 @@ fn fork_launch_daemon(exec: &Path) -> anyhow::Result<()> {
             }
         }
         ForkResult::Child => {
-            let exit_code = spawn_daemon(exec).map(|_| 0i32).unwrap_or(1i32);
+            let result: anyhow::Result<()> = {
+                setsid()?;
+                spawn_daemon(exec)?;
+                Ok(())
+            };
+
+            let exit_code = result.map(|_| 0i32).unwrap_or(1i32);
             std::process::exit(exit_code);
         }
     }
