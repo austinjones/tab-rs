@@ -33,7 +33,7 @@ impl Service for CliSubscriptionService {
 
                             info!("Subscribing to {:?}", id);
 
-                            tx_daemon.send(CliSend::RequestScrollback(id)).await?;
+                            tx_daemon.send(CliSend::Subscribe(id)).await?;
                             state = SubscriptionState::AwaitingScrollback(id, Vec::new());
                         }
                         CliSubscriptionRecv::Unsubscribe(id) => {
@@ -77,7 +77,7 @@ impl Service for CliSubscriptionService {
                                 // otherwise, process the retask
                                 let to = to.unwrap();
 
-                                tx_daemon.send(CliSend::RequestScrollback(to)).await?;
+                                tx_daemon.send(CliSend::Subscribe(to)).await?;
                                 tx.send(CliSubscriptionSend::Retask(to)).await?;
 
                                 state = SubscriptionState::AwaitingScrollback(to, Vec::new());
@@ -424,10 +424,10 @@ mod tests {
 
         assert_completes!(async {
             let msg = rx_daemon.recv().await;
-            assert_eq!(Some(CliSend::RequestScrollback(TabId(0))), msg);
+            assert_eq!(Some(CliSend::Subscribe(TabId(0))), msg);
 
             let msg = rx_daemon.recv().await;
-            assert_eq!(Some(CliSend::RequestScrollback(TabId(1))), msg);
+            assert_eq!(Some(CliSend::Subscribe(TabId(1))), msg);
         });
 
         Ok(())

@@ -31,6 +31,8 @@ pub struct WorkspaceTab {
     pub shell: Option<String>,
     #[builder(default, setter(strip_option))]
     pub env: Option<HashMap<String, String>>, // pub command: Option<String>,
+    #[builder(default, setter(strip_option))]
+    pub last_selected: Option<u128>,
 }
 
 impl WorkspaceTab {
@@ -43,6 +45,7 @@ impl WorkspaceTab {
             shell: None,
             doc: None,
             env: None,
+            last_selected: None,
         }
     }
 
@@ -55,6 +58,7 @@ impl WorkspaceTab {
             shell: options.shell,
             doc: options.doc,
             env: options.env,
+            last_selected: None,
         }
     }
 }

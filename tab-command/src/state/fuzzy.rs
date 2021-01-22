@@ -83,6 +83,7 @@ pub struct FuzzyEntryState {
 pub struct TabEntry {
     pub name: String,
     pub doc: Option<String>,
+    pub last_selected: Option<u128>,
     pub sticky: bool,
 }
 
@@ -95,6 +96,7 @@ impl From<&WorkspaceTab> for TabEntry {
                 doc.push(')');
                 doc
             }),
+            last_selected: tab.last_selected.clone(),
             sticky: false,
         }
     }
@@ -109,6 +111,7 @@ impl TabEntry {
             name,
             doc: Some(doc.to_string()),
             sticky: true,
+            last_selected: None,
         }
     }
 
@@ -120,6 +123,7 @@ impl TabEntry {
             name: name.to_string(),
             doc: Some(doc.to_string()),
             sticky: true,
+            last_selected: None,
         }
     }
 

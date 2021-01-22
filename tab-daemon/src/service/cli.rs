@@ -193,6 +193,12 @@ impl CliService {
                     .await
                     .context("tx_websocket closed")?;
             }
+            CliRecv::TabUpdated(metadata) => {
+                tx_websocket
+                    .send(Response::TabUpdate(metadata))
+                    .await
+                    .context("tx_websocket closed")?;
+            }
         }
         Ok(())
     }
@@ -229,6 +235,7 @@ mod request_tests {
             env: HashMap::new(),
             shell: "bash".into(),
             dir: "/".into(),
+            selected: 0,
         };
         tabs.tabs.insert(tab_id, tab_metadata.clone());
         tx.send(tabs).await?;
@@ -454,6 +461,7 @@ mod recv_tests {
             env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
+            selected: 0,
         };
 
         tx.send(CliRecv::TabStarted(metadata.clone())).await?;
@@ -466,6 +474,34 @@ mod recv_tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn tab_updated() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliRecv>()?;
+        let mut rx = bus.rx::<Response>()?;
+
+        let metadata = TabMetadata {
+            id: TabId(0),
+            name: "name".into(),
+            doc: Some("doc".into()),
+            dimensions: (1, 2),
+            env: HashMap::new(),
+            shell: "shell".into(),
+            dir: "/".into(),
+            selected: 10,
+        };
+
+        tx.send(CliRecv::TabUpdated(metadata.clone())).await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(Some(Response::TabUpdate(metadata)), msg);
+        });
+
+        Ok(())
+    }
     #[tokio::test]
     async fn tab_stopped() -> anyhow::Result<()> {
         let bus = CliBus::default();

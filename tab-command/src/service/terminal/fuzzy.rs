@@ -315,6 +315,13 @@ impl FuzzyFinderService {
                         for item in tabs.tabs.iter().map(TabEntry::from) {
                             entries.push(Arc::new(item));
                         }
+
+                        entries.sort_by(|a, b| {
+                            a.last_selected
+                                .cmp(&b.last_selected)
+                                .reverse()
+                                .then_with(|| a.name.cmp(&b.name))
+                        })
                     }
                 }
                 FilterEvent::Query(state) => {
