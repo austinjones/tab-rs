@@ -1,6 +1,6 @@
 [package]
 name = "tab-api"
-version = "0.5.3"
+version = "0.5.6"
 authors = ["Austin Jones <implAustin@gmail.com>"]
 description = "the common api module for the tab terminal multiplexer"
 homepage = "https://github.com/austinjones/tab-rs"
