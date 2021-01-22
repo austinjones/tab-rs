@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use postage::watch;
 use tab_api::tab::TabId;
-use tokio::{sync::watch, time};
+use tokio::time;
 
 use crate::{
     message::tabs::CreateTabRequest, message::tabs::TabShutdown, prelude::*,
@@ -20,7 +21,7 @@ impl Service for SelectTabService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<SelectOrRetaskTab>()?;
-        let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?.into_inner();
+        let mut rx_tabs_state = bus.rx::<Option<ActiveTabsState>>()?;
 
         let mut tx_create = bus.tx::<CreateTabRequest>()?;
         let mut tx_select = bus.tx::<SelectTab>()?;
@@ -53,10 +54,10 @@ impl SelectTabService {
         name: String,
         env_id: Option<TabId>,
         rx_tabs_state: &mut watch::Receiver<Option<ActiveTabsState>>,
-        tx_websocket: &mut impl Sender<Request>,
-        tx_create: &mut impl Sender<CreateTabRequest>,
-        tx_select: &mut impl Sender<SelectTab>,
-        tx_shutdown: &mut impl Sender<TabShutdown>,
+        mut tx_websocket: impl Sink<Item = Request> + Unpin,
+        mut tx_create: impl Sink<Item = CreateTabRequest> + Unpin,
+        mut tx_select: impl Sink<Item = SelectTab> + Unpin,
+        mut tx_shutdown: impl Sink<Item = TabShutdown> + Unpin,
     ) -> anyhow::Result<()> {
         if let Some(id) = env_id {
             info!("retasking tab {} with new selection {}.", id.0, &name);
@@ -83,7 +84,7 @@ impl SelectTabService {
 
             // if we quit too early, the carrier is cancelled and our message doesn't get through.
             // this sleep is not visible to the user, as the outer terminal session will emit new stdout
-            time::delay_for(Duration::from_millis(250)).await;
+            time::sleep(Duration::from_millis(250)).await;
 
             tx_shutdown.send(TabShutdown {}).await?;
             return Ok(());

@@ -5,11 +5,9 @@ use crate::{
 };
 use lifeline::{dyn_bus::DynBus, prelude::*};
 use log::*;
+use postage::{broadcast, mpsc};
+use postage::{sink::Sink, stream::Stream};
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::{
-    stream::StreamExt,
-    sync::{broadcast, mpsc},
-};
 
 /// Carries requests & responses between the websocket, and the attached bus (which must implement WebsocketMessageBus).
 pub struct WebsocketCarrier {
@@ -85,11 +83,10 @@ where
             let mut tx = bus.tx::<B::Recv>()?;
 
             Self::try_task("forward_recv", async move {
-                while let Some(msg) = rx.next().await {
+                while let Some(msg) = rx.recv().await {
                     let data = msg.0.into_data();
                     match bincode::deserialize(data.as_slice()) {
                         Ok(message) => {
-                            trace!("recv message: {:?}", &message);
                             tx.send(message).await?;
                         }
                         Err(e) => error!("failed to recv websocket msg: {}", e),

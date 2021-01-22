@@ -11,11 +11,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lifeline = "0.4.0"
-
-tungstenite = { version = "0.11", default-features = false }
-async-tungstenite = { version = "0.8", features = ["tokio-runtime"] }
-tokio = { version = "0.2", features = ["macros", "sync", "stream", "signal"] }
+lifeline = "0.6"
+postage = "0.3"
+tungstenite = { version = "0.12", default-features = false }
+async-tungstenite = { version = "0.12", features = ["tokio-runtime"] }
+tokio = { version = "1.0", features = ["net", "macros", "sync", "signal"] }
 futures = { version = "0.3", features = [] }
 anyhow = "1.0"
 thiserror = "1.0"
@@ -24,4 +24,4 @@ serde = "1.0"
 log = "0.4"
 
 [dev-dependencies]
-tokio-test = "0.2.1"
+tokio-test = "0.4"

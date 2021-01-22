@@ -14,8 +14,8 @@ use crate::{
 };
 use anyhow::Context;
 use lifeline::prelude::*;
+use postage::{broadcast, mpsc, watch};
 use tab_api::chunk::InputChunk;
-use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct TerminalBus);
 
@@ -145,7 +145,7 @@ impl CarryFrom<MainBus> for TerminalBus {
         };
 
         let _read_input = {
-            let rx_tab_state = from.rx::<TabState>()?.into_inner();
+            let rx_tab_state = from.rx::<TabState>()?;
             let mut rx_terminal_input = self.rx::<TerminalInput>()?;
             let mut tx_request = from.tx::<Request>()?;
 

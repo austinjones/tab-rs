@@ -7,6 +7,7 @@ use crate::{
     state::tab::TabsState,
 };
 use anyhow::Context;
+use postage::sink::Sink;
 
 use std::{
     collections::HashMap,
@@ -35,7 +36,7 @@ impl Service for TabManagerService {
 
             let mut tx = bus.tx::<TabManagerSend>()?;
             let mut tx_tabs = bus.tx::<TabRecv>()?;
-            let mut tx_tabs_state = bus.tx::<TabsState>()?;
+            let mut tx_tabs_state = bus.tx::<TabsState>()?.log(Level::Debug);
             let mut tx_assign_tab = bus.tx::<AssignTab>()?;
 
             let mut tabs: HashMap<TabId, TabMetadata> = HashMap::new();
@@ -84,9 +85,9 @@ impl TabManagerService {
     async fn close_tab(
         id: TabId,
         tabs: &mut HashMap<TabId, TabMetadata>,
-        tx: &mut impl Sender<TabManagerSend>,
-        tx_close: &mut impl Sender<TabRecv>,
-        tx_tabs_state: &mut impl Sender<TabsState>,
+        mut tx: impl Sink<Item = TabManagerSend> + Unpin,
+        mut tx_close: impl Sink<Item = TabRecv> + Unpin,
+        mut tx_tabs_state: impl Sink<Item = TabsState> + Unpin,
     ) -> anyhow::Result<()> {
         info!("TabManager terminating tab {}", id);
         tabs.remove(&id);

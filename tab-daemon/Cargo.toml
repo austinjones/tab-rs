@@ -13,13 +13,14 @@ edition = "2018"
 [dependencies]
 tab-api = "0.5.3"
 tab-websocket = "0.5.0"
-lifeline = "0.4.0"
+lifeline = "0.6"
+postage = "0.3"
 
 dirs = "3.0"
 serde_yaml = "0.8"
 
 # async / websockets
-tokio = { version = "0.2", features = ["macros", "stream", "sync", "time", "io-util", "rt-threaded"] }
+tokio = { version = "1.0", features = ["macros", "sync", "time", "io-util", "rt-multi-thread"] }
 tokio-io = "0.1"
 async-trait = "0.1"
 
@@ -37,8 +38,8 @@ anyhow = "1.0"
 thiserror = "1.0"
 
 [dev-dependencies]
-tokio-test = "0.2.1"
+tokio-test = "0.4"
 http = "0.2"
 
-tungstenite = { version = "0.11", default-features = false }
-async-tungstenite = { version = "0.8", features = ["tokio-runtime"] }
+tungstenite = { version = "0.12", default-features = false }
+async-tungstenite = { version = "0.12", features = ["tokio-runtime"] }

@@ -14,12 +14,11 @@ license = "MIT/Apache-2.0"
 edition = "2018"
 
 [dependencies]
-bytes = "0.4.11"
-futures = { version = "0.3", features = ["unstable", "bilock"] }
 libc = "0.2"
-mio = "0.6"
-tokio = { version = "0.2", features = ["io-util", "io-driver", "signal"] }
+tokio = { version = "1.0", features = ["io-util", "signal"] }
 async-trait = "0.1"
+thiserror = "1.0"
+log = "0.4"
 
 [dev-dependencies]
 errno = "0.2"

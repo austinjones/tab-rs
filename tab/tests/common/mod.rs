@@ -173,7 +173,7 @@ impl TestCommand {
                     match action {
                         Action::Delay(duration) => {
                             info!("Sleeping for {:?}", &duration);
-                            time::delay_for(duration.clone()).await
+                            time::sleep(duration.clone()).await
                         }
                         Action::Stdin(input) => {
                             info!(
@@ -293,7 +293,7 @@ impl TestCommand {
                     .read_to_end(&mut stdout_buffer)
                     .await
                     .expect("failed to read stdout");
-                let code = child.await;
+                let code = child.wait().await;
                 code
             },
             10000

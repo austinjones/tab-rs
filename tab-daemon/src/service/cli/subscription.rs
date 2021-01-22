@@ -1,3 +1,4 @@
+use postage::sink::Sink;
 use tab_api::{chunk::OutputChunk, tab::TabId};
 
 use crate::{
@@ -16,7 +17,7 @@ impl Service for CliSubscriptionService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let _rx = {
-            let mut rx = bus.rx::<CliSubscriptionRecv>()?.log();
+            let mut rx = bus.rx::<CliSubscriptionRecv>()?.log(Level::Debug);
             let mut tx = bus.tx::<CliSubscriptionSend>()?;
             let mut tx_daemon = bus.tx::<CliSend>()?;
 
@@ -120,7 +121,7 @@ impl CliSubscriptionService {
         id: TabId,
         index: usize,
         mut chunk: OutputChunk,
-        tx: &mut impl Sender<CliSubscriptionSend>,
+        mut tx: impl Sink<Item = CliSubscriptionSend> + Unpin,
     ) -> anyhow::Result<usize> {
         let end = chunk.end();
 
@@ -177,13 +178,14 @@ mod tests {
         prelude::*, service::pty::scrollback::ScrollbackBuffer, state::pty::PtyScrollback,
     };
     use lifeline::{assert_completes, assert_times_out};
+    use postage::sink::Sink;
     use tab_api::{chunk::OutputChunk, tab::TabId};
     use tokio::sync::Mutex;
 
     use super::CliSubscriptionService;
 
     async fn tx_subscribe(
-        tx: &mut impl Sender<CliSubscriptionRecv>,
+        mut tx: impl Sink<Item = CliSubscriptionRecv> + Unpin,
         tab: TabId,
     ) -> anyhow::Result<()> {
         tx.send(CliSubscriptionRecv::Subscribe(tab)).await?;
@@ -192,7 +194,7 @@ mod tests {
     }
 
     async fn tx_empty_scrollback(
-        tx: &mut impl Sender<CliSubscriptionRecv>,
+        mut tx: impl Sink<Item = CliSubscriptionRecv> + Unpin,
         id: TabId,
     ) -> anyhow::Result<()> {
         let scrollback = TabScrollback {
@@ -205,7 +207,7 @@ mod tests {
     }
 
     async fn tx_chunk(
-        tx: &mut impl Sender<CliSubscriptionRecv>,
+        mut tx: impl Sink<Item = CliSubscriptionRecv> + Unpin,
         id: TabId,
         index: usize,
         data: Vec<u8>,

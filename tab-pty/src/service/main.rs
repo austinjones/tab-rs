@@ -65,7 +65,7 @@ impl Service for TabdirShutdownService {
                     break;
                 }
 
-                time::delay_for(Duration::from_secs(2)).await;
+                time::sleep(Duration::from_secs(2)).await;
             }
 
             Ok(())

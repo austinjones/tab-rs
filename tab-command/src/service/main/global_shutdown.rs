@@ -22,7 +22,7 @@ impl Service for MainGlobalShutdownService {
             while let Some(msg) = rx.recv().await {
                 if let MainRecv::GlobalShutdown = msg {
                     tx.send(Request::GlobalShutdown).await?;
-                    time::delay_for(Duration::from_millis(10)).await;
+                    time::sleep(Duration::from_millis(10)).await;
                     tx_shutdown.send(MainShutdown(0)).await?;
                 }
             }

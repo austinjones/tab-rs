@@ -35,8 +35,7 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
 
     info!("tab-command runtime starting");
 
-    let mut runtime = tokio::runtime::Builder::new()
-        .threaded_scheduler()
+    let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
         .build()
@@ -116,8 +115,8 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
 async fn spawn(
     tab_version: &'static str,
 ) -> anyhow::Result<(
-    impl Sender<MainRecv>,
-    impl Receiver<MainShutdown>,
+    impl Sink<Item = MainRecv> + Unpin,
+    impl Stream<Item = MainShutdown> + Unpin,
     MainService,
 )> {
     let daemon_file = launch_daemon().await?;

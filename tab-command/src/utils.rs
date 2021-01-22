@@ -1,6 +1,6 @@
 use lifeline::Receiver;
+use postage::{stream::Stream, watch};
 use thiserror::Error;
-use tokio::sync::watch;
 
 #[derive(Error, Debug)]
 #[error("state never resolved to a value")]
@@ -23,7 +23,7 @@ where
     Err(StateUninitalizedError {})
 }
 
-pub async fn await_state<T: Clone>(
+pub async fn await_state<T: Clone + Send + Sync>(
     channel: &mut watch::Receiver<Option<T>>,
 ) -> Result<T, StateUninitalizedError> {
     if let Some(ref value) = *channel.borrow() {
@@ -44,7 +44,7 @@ pub async fn await_condition<T: Clone, F>(
     mut condition: F,
 ) -> Result<T, StateUninitalizedError>
 where
-    T: Clone,
+    T: Clone + Send + Sync,
     F: FnMut(&T) -> bool,
 {
     if let Some(ref value) = *channel.borrow() {

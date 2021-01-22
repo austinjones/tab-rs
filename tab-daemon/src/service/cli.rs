@@ -5,9 +5,8 @@ use crate::message::cli::{
 use crate::prelude::*;
 use crate::state::tab::TabsState;
 use anyhow::Context;
+use postage::{sink::Sink, stream::Stream};
 use tab_api::client::InitResponse;
-
-use tokio::stream::StreamExt;
 
 pub mod subscription;
 
@@ -26,8 +25,8 @@ impl Service for CliService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let _init = {
-            let mut tx_websocket = bus.tx::<Response>()?;
-            let mut rx_tabs_state = bus.rx::<TabsState>()?;
+            let mut tx_websocket = bus.tx::<Response>()?.log(Level::Debug);
+            let mut rx_tabs_state = bus.rx::<TabsState>()?.log(Level::Debug);
 
             Self::try_task("init", async move {
                 let tabs = rx_tabs_state
@@ -53,7 +52,7 @@ impl Service for CliService {
         };
 
         let _rx_websocket = {
-            let mut rx = bus.rx::<Request>()?;
+            let mut rx = bus.rx::<Request>()?.log(Level::Debug);
 
             let mut tx_daemon = bus.tx::<CliSend>()?;
             let mut tx_subscription = bus.tx::<CliSubscriptionRecv>()?;
@@ -78,7 +77,7 @@ impl Service for CliService {
             let mut tx_websocket = bus.tx::<Response>()?;
 
             Self::try_task("run", async move {
-                while let Some(msg) = rx.next().await {
+                while let Some(msg) = rx.recv().await {
                     Self::recv_daemon(msg, &mut tx_websocket).await?
                 }
 
@@ -128,8 +127,8 @@ impl Service for CliService {
 impl CliService {
     async fn recv_websocket(
         request: Request,
-        tx_subscription: &mut impl Sender<CliSubscriptionRecv>,
-        tx_daemon: &mut impl Sender<CliSend>,
+        mut tx_subscription: impl Sink<Item = CliSubscriptionRecv> + Unpin,
+        mut tx_daemon: impl Sink<Item = CliSend> + Unpin,
     ) -> anyhow::Result<()> {
         debug!("received Request: {:?}", &request);
 
@@ -184,7 +183,7 @@ impl CliService {
 
     async fn recv_daemon(
         msg: CliRecv,
-        tx_websocket: &mut impl Sender<Response>,
+        mut tx_websocket: impl Sink<Item = Response> + Unpin,
     ) -> anyhow::Result<()> {
         debug!("message from daemon: {:?}", &msg);
         match msg {

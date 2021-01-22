@@ -227,7 +227,7 @@ mod tests {
         result: Result<T, tungstenite::Error>,
     ) {
         if let Err(tungstenite::Error::Http(code)) = result {
-            assert_eq!(expect, code);
+            assert_eq!(expect, code.status());
         } else {
             panic!(
                 "tungstenite::Error::Http({}) expected, found: {:?}",

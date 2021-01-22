@@ -58,7 +58,7 @@ impl Service for TabAssignmentService {
                         }
 
                         retracted = retraction.retract_if_expired(Duration::from_millis(25));
-                        time::delay_for(Duration::from_millis(5)).await;
+                        time::sleep(Duration::from_millis(5)).await;
                     }
 
                     let metadata = retracted.unwrap();
@@ -83,7 +83,7 @@ impl Service for TabAssignmentService {
                             error!("failed to launch initial pty process: {}", e);
                         }
 
-                        while let Ok(_) = rx.inner_mut().try_recv() {
+                        while let Ok(_) = rx.try_recv() {
                             debug!("launching pty process");
                             if let Err(e) = launch_pty() {
                                 error!("failed to launch pty process: {}", e);

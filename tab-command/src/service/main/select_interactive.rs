@@ -15,7 +15,7 @@ impl Service for MainSelectInteractiveService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
-        let mut rx = bus.rx::<MainRecv>()?.log();
+        let mut rx = bus.rx::<MainRecv>()?.log(Level::Debug);
 
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let mut tx_tab = bus.tx::<TabRecv>()?;

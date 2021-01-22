@@ -7,6 +7,7 @@ use std::time::Duration;
 use crate::message::pty::{PtyRecv, PtySend, PtyShutdown};
 use crate::prelude::*;
 
+use postage::sink::Sink;
 use tab_api::pty::{PtyWebsocketRequest, PtyWebsocketResponse};
 
 use scrollback::PtyScrollbackService;
@@ -29,7 +30,7 @@ impl Service for PtyService {
         // notify the tab manager of status
 
         let _websocket = {
-            let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?.log();
+            let mut rx_websocket = bus.rx::<PtyWebsocketResponse>()?.log(Level::Trace);
             let mut tx_daemon = bus.tx::<PtySend>()?;
             let mut tx_shutdown = bus.tx::<PtyShutdown>()?;
 
@@ -48,7 +49,7 @@ impl Service for PtyService {
                             tx_daemon.send(PtySend::Stopped).await?;
 
                             // this sleep is not visible to the user
-                            time::delay_for(Duration::from_millis(500)).await;
+                            time::sleep(Duration::from_millis(500)).await;
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;
                         }

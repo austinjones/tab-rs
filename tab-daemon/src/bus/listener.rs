@@ -11,8 +11,8 @@ use crate::{
 };
 use lifeline::error::into_msg;
 
+use postage::{broadcast, mpsc, watch};
 use tab_websocket::{bus::WebsocketListenerBus, message::listener::WebsocketConnectionMessage};
-use tokio::sync::{broadcast, mpsc, watch};
 
 lifeline_bus!(pub struct ListenerBus);
 
@@ -146,7 +146,7 @@ mod connection_tests {
 
         let _carrier = conn_bus.carry_into(&listener_bus);
 
-        let mut tx = conn_bus.tx::<WebsocketConnectionMessage>()?.into_inner();
+        let mut tx = conn_bus.tx::<WebsocketConnectionMessage>()?;
         let mut rx = listener_bus.rx::<WebsocketConnectionMessage>()?;
 
         assert_completes!(async move {

@@ -1,9 +1,9 @@
 use crate::message::daemon::DaemonShutdown;
 use crate::prelude::*;
 use lifeline::Resource;
+use postage::mpsc;
 use tab_api::config::DaemonConfig;
 use tab_websocket::resource::listener::{WebsocketAuthToken, WebsocketListenerResource};
-use tokio::sync::mpsc;
 
 lifeline_bus!(pub struct DaemonBus);
 

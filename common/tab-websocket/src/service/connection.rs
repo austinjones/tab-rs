@@ -4,7 +4,8 @@ use crate::{
     resource::connection::WebsocketResource,
 };
 use lifeline::prelude::*;
-use log::debug;
+use log::{debug, info, Level};
+use postage::{sink::Sink, stream::Stream};
 use tokio::select;
 
 use crate::common::{self, should_terminate};
@@ -43,11 +44,13 @@ impl Service for WebsocketService {
 
         let rx = bus
             .rx::<WebsocketSend>()
-            .map_err(WebsocketSpawnError::bus_failure)?;
+            .map_err(WebsocketSpawnError::bus_failure)?
+            .log(Level::Debug);
 
         let tx = bus
             .tx::<WebsocketRecv>()
-            .map_err(WebsocketSpawnError::bus_failure)?;
+            .map_err(WebsocketSpawnError::bus_failure)?
+            .log(Level::Debug);
 
         let _runloop = Self::try_task("run", runloop(websocket, rx, tx));
 
@@ -57,19 +60,18 @@ impl Service for WebsocketService {
 
 async fn runloop(
     mut websocket_drop: WebsocketResource,
-    mut rx: impl Receiver<WebsocketSend>,
-    mut tx: impl Sender<WebsocketRecv>,
+    mut rx: impl Stream<Item = WebsocketSend> + Unpin,
+    mut tx: impl Sink<Item = WebsocketRecv> + Unpin,
 ) -> anyhow::Result<()> {
     let websocket = &mut websocket_drop.0;
+    info!("starting runloop");
     loop {
         select!(
             message = websocket.next() => {
                 if let None = message {
-                    debug!("terminating - websocket disconnected");
+                    info!("terminating - websocket disconnected");
                     break;
                 }
-
-                trace!("message received: {:?}", &message);
 
                 let message = message.unwrap();
                 if let Err(e) = message {
@@ -151,6 +153,7 @@ mod test {
     };
     use lifeline::prelude::*;
     use lifeline::{assert_completes, dyn_bus::DynBus};
+    use postage::{sink::Sink, stream::Stream};
     use tungstenite::Message;
 
     #[tokio::test]
