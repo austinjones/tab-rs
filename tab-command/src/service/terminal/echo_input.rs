@@ -1,22 +1,19 @@
-use std::{fs::File, io::BufReader};
-
-use serde::Deserialize;
 use thiserror::Error;
+
+use crate::config::{load_global_config, Action};
 
 /// Parses the bindings in the global workspace config file.
 ///
 /// If the config file does not exists, returns the default bindings.
 pub fn key_bindings() -> anyhow::Result<KeyBindings> {
-    let config = tab_api::config::global_config_file();
-    if let None = config {
+    let config = load_global_config().map(|c| c.key_bindings)?;
+
+    if config.is_none() {
         return Ok(KeyBindings::default());
     }
 
-    let file = File::open(config.unwrap())?;
-    let reader = BufReader::new(file);
-    let config: ConfigYml = serde_yaml::from_reader(reader)?;
-
-    let bindings = if let Some(bindings) = config.key_bindings {
+    let bindings = config.unwrap();
+    let bindings = {
         let mut parsed_bindings = Vec::with_capacity(bindings.len());
         for binding in bindings {
             let sequence = parse(binding.keys.as_str())?;
@@ -27,22 +24,9 @@ pub fn key_bindings() -> anyhow::Result<KeyBindings> {
         KeyBindings {
             bindings: parsed_bindings,
         }
-    } else {
-        KeyBindings::default()
     };
 
     Ok(bindings)
-}
-
-#[derive(Deserialize)]
-pub struct ConfigYml {
-    key_bindings: Option<Vec<KeyBindingYml>>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct KeyBindingYml {
-    pub action: Action,
-    pub keys: String,
 }
 
 #[derive(Debug, Error, PartialEq)]
@@ -188,12 +172,6 @@ impl InputFilter {
 
         Input { action: None, data }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
-pub enum Action {
-    Disconnect,
-    SelectInteractive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -352,7 +330,9 @@ mod filter_tests {
 
 #[cfg(test)]
 mod input_tests {
-    use super::{Action, Input, InputFilter, KeyBinding};
+    use crate::config::Action;
+
+    use super::{Input, InputFilter, KeyBinding};
 
     #[test]
     fn simple() {

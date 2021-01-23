@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use crate::message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown};
+use crate::{
+    config::Action,
+    message::terminal::{TerminalInput, TerminalOutput, TerminalShutdown},
+};
 use crate::{message::terminal::TerminalSend, prelude::*};
 use anyhow::Context;
 use tokio::{
@@ -8,7 +11,7 @@ use tokio::{
     time,
 };
 
-use super::echo_input::{key_bindings, Action, InputFilter, KeyBindings};
+use super::echo_input::{key_bindings, InputFilter, KeyBindings};
 
 pub struct TerminalEchoService {
     _input: Lifeline,

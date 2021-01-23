@@ -16,6 +16,7 @@ use tab_api::{config::DaemonConfig, launch::*, log::get_level, tab::normalize_na
 use tab_websocket::resource::connection::WebsocketResource;
 
 mod bus;
+mod config;
 mod env;
 mod message;
 mod prelude;
