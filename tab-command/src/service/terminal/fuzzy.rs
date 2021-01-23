@@ -1,11 +1,22 @@
-use std::{fs::File, io::BufReader, io::Write, sync::Arc};
+use std::{io::Write, sync::Arc};
 
 use crate::{
-    env::terminal_size, message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection,
-    message::fuzzy::FuzzyShutdown, prelude::*, state::fuzzy::FuzzyMatch,
-    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyOutputMatch,
-    state::fuzzy::FuzzyQueryState, state::fuzzy::FuzzySelectState, state::fuzzy::FuzzyTabsState,
-    state::fuzzy::TabEntry, state::fuzzy::Token, state::fuzzy::TokenJoin,
+    config::{load_global_config, FuzzyConfig},
+    env::terminal_size,
+    message::fuzzy::FuzzyEvent,
+    message::fuzzy::FuzzySelection,
+    message::fuzzy::FuzzyShutdown,
+    prelude::*,
+    state::fuzzy::FuzzyMatch,
+    state::fuzzy::FuzzyMatchState,
+    state::fuzzy::FuzzyOutputEvent,
+    state::fuzzy::FuzzyOutputMatch,
+    state::fuzzy::FuzzyQueryState,
+    state::fuzzy::FuzzySelectState,
+    state::fuzzy::FuzzyTabsState,
+    state::fuzzy::TabEntry,
+    state::fuzzy::Token,
+    state::fuzzy::TokenJoin,
 };
 use crossterm::{
     cursor::Hide,
@@ -19,7 +30,6 @@ use crossterm::{
 };
 use crossterm::{event::Event, event::EventStream, event::KeyCode};
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use serde::Deserialize;
 use tab_api::tab::normalize_name;
 
 /// Rows reserved by the UI for non-match items
@@ -35,32 +45,6 @@ pub struct FuzzyFinderService {
     _select_state: Lifeline,
     _select: Lifeline,
     _output_state: Lifeline,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct FuzzyConfig {
-    pub allow_new: bool,
-}
-
-impl Default for FuzzyConfig {
-    fn default() -> Self {
-        Self { allow_new: true }
-    }
-}
-
-/// Parses the fuzzy config in the global workspace config file.
-///
-/// If the config file does not exists, returns the default config.
-pub fn fuzzy_config() -> anyhow::Result<FuzzyConfig> {
-    let config = tab_api::config::global_config_file();
-    if let None = config {
-        return Ok(FuzzyConfig::default());
-    }
-
-    let file = File::open(config.unwrap())?;
-    let reader = BufReader::new(file);
-    let fuzzy_config: FuzzyConfig = serde_yaml::from_reader(reader)?;
-    Ok(fuzzy_config)
 }
 
 impl Service for FuzzyFinderService {
@@ -84,16 +68,7 @@ impl Service for FuzzyFinderService {
             let rx = bus.rx::<Option<FuzzyTabsState>>()?;
             let rx_query = bus.rx::<FuzzyQueryState>()?;
             let tx = bus.tx::<FuzzyMatchState>()?;
-            let fuzzy_config = match fuzzy_config() {
-                Ok(config) => config,
-                Err(e) => {
-                    eprintln!(
-                        "Warning: using default fuzzy config.  failed to parse global config: {}",
-                        e
-                    );
-                    FuzzyConfig::default()
-                }
-            };
+            let fuzzy_config = load_fuzzy_config();
 
             Self::try_task(
                 "filter_state",
@@ -148,6 +123,19 @@ impl Service for FuzzyFinderService {
             _output_state,
         })
     }
+}
+
+fn load_fuzzy_config() -> FuzzyConfig {
+    let fuzzy = load_global_config().map(|c| c.fuzzy);
+
+    if let Err(e) = fuzzy.as_ref() {
+        warn!(
+            "Using default fuzzy config.  failed to parse global config: {}",
+            e
+        );
+    }
+
+    fuzzy.unwrap_or_else(|_e| FuzzyConfig::default())
 }
 
 enum FilterEvent {
@@ -337,8 +325,11 @@ impl FuzzyFinderService {
                 }
             }
 
-            let create_entry =
-                Self::create_tab_entry(&entries, &query, fuzzy_config.allow_new).map(Arc::new);
+            let create_entry = if fuzzy_config.create_tab {
+                Self::create_tab_entry(&entries, &query).map(Arc::new)
+            } else {
+                None
+            };
 
             let mut matches = Vec::new();
             let mut pattern = "".to_string();
@@ -400,11 +391,7 @@ impl FuzzyFinderService {
 
     /// Creates a 'new tab' entry, if the user has entered a query, or entries is empty.
     /// Does not create an entry if the name conflicts with an element of entries
-    fn create_tab_entry(
-        entries: &Vec<Arc<TabEntry>>,
-        query: &Option<String>,
-        allow_new: bool,
-    ) -> Option<TabEntry> {
+    fn create_tab_entry(entries: &Vec<Arc<TabEntry>>, query: &Option<String>) -> Option<TabEntry> {
         // if we don't have a query, and some entries exist, don't suggest a new tab.
         if entries.len() > 0 && query.is_none() {
             return None;
@@ -413,7 +400,7 @@ impl FuzzyFinderService {
         let name = query.as_ref().map(String::as_str).unwrap_or("tab");
         let name = normalize_name(name);
 
-        if entries.iter().find(|tab| tab.name == name).is_some() || !allow_new {
+        if entries.iter().find(|tab| tab.name == name).is_some() {
             return None;
         }
 
