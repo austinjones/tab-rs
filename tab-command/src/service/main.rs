@@ -3,7 +3,8 @@ use self::{
     autocomplete_tab::MainAutocompleteTabsService, check_workspace::MainCheckWorkspaceService,
     close_tabs::MainCloseTabsService, disconnect_tabs::MainDisconnectTabsService,
     global_shutdown::MainGlobalShutdownService, list_tabs::MainListTabsService,
-    select_interactive::MainSelectInteractiveService, select_tab::MainSelectTabService,
+    select_interactive::MainSelectInteractiveService,
+    select_previous::MainSelectPreviousTabService, select_tab::MainSelectTabService,
 };
 
 use super::{
@@ -30,6 +31,7 @@ mod disconnect_tabs;
 mod global_shutdown;
 mod list_tabs;
 mod select_interactive;
+mod select_previous;
 mod select_tab;
 
 /// Launches the tab-command client, including websocket, tab state, and terminal services.
@@ -42,6 +44,7 @@ pub struct MainService {
     _main_global_shutdown: MainGlobalShutdownService,
     _main_list_tabs: MainListTabsService,
     _main_select_interactive: MainSelectInteractiveService,
+    _main_select_previous_tab: MainSelectPreviousTabService,
     _main_select_tab: MainSelectTabService,
     _main_tab: MainTabCarrier,
     _main_websocket: WebsocketCarrier,
@@ -67,6 +70,7 @@ impl Service for MainService {
         let _main_list_tabs = MainListTabsService::spawn(main_bus)?;
         let _main_select_interactive = MainSelectInteractiveService::spawn(main_bus)?;
         let _main_select_tab = MainSelectTabService::spawn(main_bus)?;
+        let _main_select_previous_tab = MainSelectPreviousTabService::spawn(main_bus)?;
 
         let tab_bus = TabBus::default();
 
@@ -93,6 +97,7 @@ impl Service for MainService {
             _main_global_shutdown,
             _main_list_tabs,
             _main_select_interactive,
+            _main_select_previous_tab,
             _main_select_tab,
             _main_tab,
             _main_websocket,
