@@ -127,9 +127,18 @@ fn app() -> App<'static, 'static> {
                 .required(false)
                 .value_name("TAB")
                 .conflicts_with_all(&["CLOSE-TAB", "LIST", "SHUTDOWN"])
-                .validator(validate_tab_name)
+                .validator(validate_select_tab_name)
                 .index(1),
         )
+}
+
+/// We need to allow '-' for SelectPreviousTab
+fn validate_select_tab_name(name: String) -> Result<(), String> {
+    if name == "-" {
+        return Ok(());
+    }
+
+    validate_tab_name(name)
 }
 
 fn validate_tab_name(name: String) -> Result<(), String> {

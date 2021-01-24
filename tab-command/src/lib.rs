@@ -89,8 +89,13 @@ async fn main_async(matches: ArgMatches<'_>, tab_version: &'static str) -> anyho
         info!("CLI Match: ListTabs");
         tx.send(MainRecv::ListTabs).await?;
     } else if let Some(tab) = select_tab {
-        info!("CLI Match: SelectTab({})", &tab);
-        tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+        if tab == "-" {
+            info!("CLI Match: SelectPreviousTab");
+            tx.send(MainRecv::SelectPreviousTab).await?;
+        } else {
+            info!("CLI Match: SelectTab({})", &tab);
+            tx.send(MainRecv::SelectTab(tab.to_string())).await?;
+        }
     } else if let Some(tabs) = close_tabs {
         info!("CLI Match: CloseTabs({:?})", &tabs);
         let tabs: Vec<String> = tabs.map(normalize_name).collect();

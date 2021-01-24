@@ -22,6 +22,7 @@ pub enum MainRecv {
     GlobalShutdown,
     ListTabs,
     SelectInteractive,
+    SelectPreviousTab,
     SelectTab(String),
 }
 
