@@ -200,7 +200,11 @@ mod tests {
     use super::loader::scan_config;
 
     fn test_dir(name: &str) -> anyhow::Result<PathBuf> {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let path: &'static str = std::env!(
+            "CARGO_MANIFEST_DIR",
+            "Failed to resolve CARGO_MANIFEST_DIR for workspace tests"
+        );
+        let mut path = PathBuf::from(path);
         path.push("test_resources");
         path.push(name);
 
