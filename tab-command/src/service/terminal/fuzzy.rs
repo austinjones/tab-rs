@@ -23,6 +23,7 @@ use crossterm::{
     cursor::Show,
     event::KeyModifiers,
     style::{Colorize, Styler},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use crossterm::{
     cursor::MoveTo, execute, style::Print, style::PrintStyledContent, terminal::Clear,
@@ -147,6 +148,32 @@ enum FilterEvent {
 }
 
 impl FuzzyFinderService {
+    async fn select(
+        tx_select: &mut (impl Sink<Item = FuzzySelection> + Unpin),
+        tab: String,
+    ) -> anyhow::Result<()> {
+        Self::clear_all()?;
+
+        let mut stdout = std::io::stdout();
+        stdout.queue(LeaveAlternateScreen {})?;
+
+        tx_select.send(FuzzySelection(tab)).await.ok();
+
+        Ok(())
+    }
+
+    async fn shutdown(
+        tx_shutdown: &mut (impl Sink<Item = FuzzyShutdown> + Unpin),
+    ) -> anyhow::Result<()> {
+        Self::clear_all()?;
+
+        let mut stdout = std::io::stdout();
+        stdout.queue(LeaveAlternateScreen {})?;
+        tx_shutdown.send(FuzzyShutdown {}).await.ok();
+
+        Ok(())
+    }
+
     async fn input(
         mut tx_event: impl Sink<Item = FuzzyEvent> + Unpin,
         mut tx_select: impl Sink<Item = FuzzySelection> + Unpin,
@@ -198,8 +225,7 @@ impl FuzzyFinderService {
                             if key.modifiers.eq(&KeyModifiers::CONTROL)
                                 && (ch == 'c' || ch == 'x' || ch == 'w')
                             {
-                                tx_shutdown.send(FuzzyShutdown {}).await.ok();
-                                Self::clear_all()?;
+                                Self::shutdown(&mut tx_shutdown).await?;
                                 continue;
                             }
 
@@ -211,12 +237,10 @@ impl FuzzyFinderService {
                         }
                         KeyCode::Esc => {
                             if let Some(back) = &escape.0 {
-                                tx_select.send(FuzzySelection(back.clone())).await.ok();
+                                Self::select(&mut tx_select, back.clone()).await.ok();
                             } else {
-                                tx_shutdown.send(FuzzyShutdown {}).await.ok();
+                                Self::shutdown(&mut tx_shutdown).await?;
                             }
-
-                            Self::clear_all()?;
                         }
                         KeyCode::Home => {}
                         KeyCode::End => {}
@@ -518,9 +542,9 @@ impl FuzzyFinderService {
                     Self::clear_all()?;
 
                     if let Some(name) = name {
-                        tx.send(FuzzySelection(name)).await?;
+                        Self::select(&mut tx, name).await?;
                     } else {
-                        tx_shutdown.send(FuzzyShutdown {}).await?;
+                        Self::shutdown(&mut tx_shutdown).await?;
                     }
 
                     break;
@@ -609,6 +633,8 @@ impl FuzzyFinderService {
 
     async fn output(mut rx: impl Stream<Item = FuzzyOutputEvent> + Unpin) -> anyhow::Result<()> {
         let mut stdout = std::io::stdout();
+
+        stdout.queue(EnterAlternateScreen {})?;
 
         while let Some(state) = rx.recv().await {
             Self::draw(&mut stdout, state)?;
