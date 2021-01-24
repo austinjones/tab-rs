@@ -1,10 +1,18 @@
 use postage::{broadcast, mpsc, watch};
 
 use crate::{
-    message::fuzzy::FuzzyEvent, message::fuzzy::FuzzySelection, message::fuzzy::FuzzyShutdown,
-    message::terminal::TerminalSend, message::terminal::TerminalShutdown, prelude::*,
-    state::fuzzy::FuzzyMatchState, state::fuzzy::FuzzyOutputEvent, state::fuzzy::FuzzyQueryState,
-    state::fuzzy::FuzzySelectState, state::fuzzy::FuzzyTabsState, state::workspace::WorkspaceState,
+    message::fuzzy::FuzzyEvent,
+    message::fuzzy::FuzzySelection,
+    message::fuzzy::FuzzyShutdown,
+    message::terminal::TerminalSend,
+    message::terminal::TerminalShutdown,
+    prelude::*,
+    state::fuzzy::FuzzyMatchState,
+    state::fuzzy::FuzzyOutputEvent,
+    state::fuzzy::FuzzyQueryState,
+    state::fuzzy::FuzzySelectState,
+    state::fuzzy::FuzzyTabsState,
+    state::{fuzzy::FuzzyEscapeState, workspace::WorkspaceState},
 };
 
 lifeline_bus!(pub struct FuzzyBus);
@@ -40,6 +48,8 @@ impl Message<FuzzyBus> for FuzzyOutputEvent {
 impl Message<FuzzyBus> for FuzzyShutdown {
     type Channel = mpsc::Sender<Self>;
 }
+
+impl Resource<FuzzyBus> for FuzzyEscapeState {}
 
 pub struct TerminalFuzzyCarrier {
     _recv: Lifeline,

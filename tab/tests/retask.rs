@@ -18,7 +18,7 @@ async fn retask() -> anyhow::Result<()> {
         .await_stdout("echo target", 300)
         .await_stdout("$", 300)
         .complete_snapshot()
-        .stdin_bytes(&[0x14, 0x1b])
+        .disconnect()
         .run()
         .await?;
 

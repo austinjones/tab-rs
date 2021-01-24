@@ -85,7 +85,7 @@ impl Default for KeyBindings {
             bindings: vec![
                 KeyBinding {
                     action: Action::Disconnect,
-                    sequence: vec![0x14, 0x1b],
+                    sequence: vec![0x14, 0x03],
                 },
                 KeyBinding {
                     action: Action::SelectInteractive,

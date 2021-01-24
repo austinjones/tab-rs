@@ -78,6 +78,7 @@ impl Message<TabBus> for Option<WorkspaceState> {
 /// Forwards TabState.
 pub struct MainTabCarrier {
     _tx_selected: Lifeline,
+    _tx_metadata: Lifeline,
     _forward_recv: Lifeline,
     _forward_request: Lifeline,
     _forward_shutdown: Lifeline,
@@ -248,8 +249,22 @@ impl CarryFrom<MainBus> for TabBus {
             })
         };
 
+        let _tx_metadata = {
+            let mut rx_tab_metadata = self.rx::<TabMetadataState>()?;
+            let mut tx_tab_metadata = from.tx::<TabMetadataState>()?;
+
+            Self::try_task("tx_tab_metadata", async move {
+                while let Some(tab) = rx_tab_metadata.recv().await {
+                    tx_tab_metadata.send(tab).await?;
+                }
+
+                Ok(())
+            })
+        };
+
         Ok(MainTabCarrier {
             _tx_selected,
+            _tx_metadata,
             _forward_recv,
             _forward_request,
             _forward_shutdown,

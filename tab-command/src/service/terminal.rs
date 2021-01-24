@@ -4,7 +4,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use crate::state::terminal::TerminalMode;
+use crate::state::{fuzzy::FuzzyEscapeState, terminal::TerminalMode};
 
 use crate::bus::MainBus;
 use crate::prelude::*;
@@ -15,6 +15,7 @@ use crate::{
 };
 
 use echo_mode::TerminalEchoService;
+use lifeline::dyn_bus::DynBus;
 use tab_api::env::is_raw_mode;
 use terminal_event::TerminalEventService;
 
@@ -135,7 +136,7 @@ impl TerminalService {
             TerminalMode::Echo(_) => {
                 enable_raw_mode(true);
             }
-            TerminalMode::FuzzyFinder => {
+            TerminalMode::FuzzyFinder(_) => {
                 enable_raw_mode(false);
             }
             TerminalMode::None => {
@@ -156,10 +157,11 @@ impl TerminalService {
                 let service = TerminalEchoService::spawn(&terminal_bus)?;
                 ServiceLifeline::Echo(service)
             }
-            TerminalMode::FuzzyFinder => {
+            TerminalMode::FuzzyFinder(back) => {
                 info!("TerminalService switching to fuzzy finder mode");
 
                 let fuzzy_bus = FuzzyBus::default();
+                fuzzy_bus.store_resource(FuzzyEscapeState(back.clone()));
                 let carrier = fuzzy_bus.carry_from(&terminal_bus)?;
 
                 let service = FuzzyFinderService::spawn(&fuzzy_bus)?;

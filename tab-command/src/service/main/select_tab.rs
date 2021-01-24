@@ -28,8 +28,8 @@ impl Service for MainSelectTabService {
 
         let _run = Self::try_task("run", async move {
             while let Some(recv) = rx.recv().await {
-                if let MainRecv::SelectTab(name) = recv {
-                    Self::select_tab(name, &mut tx_tab).await?;
+                if let MainRecv::SelectTab(tab) = recv {
+                    Self::select_tab(tab, &mut tx_tab).await?;
                 }
             }
 

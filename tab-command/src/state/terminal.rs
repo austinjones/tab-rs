@@ -23,8 +23,8 @@ pub enum TerminalMode {
     None,
     /// Terminal is in raw mode, capturing stdin, and forwarding raw stdout (for the given tab name)
     Echo(TabId),
-    /// Terminal is in interactive finder mode, using Crossterm.
-    FuzzyFinder,
+    /// Terminal is in interactive finder mode, using Crossterm.  ESC will navigate back to the provided tab.
+    FuzzyFinder(Option<String>),
 }
 
 impl Default for TerminalMode {

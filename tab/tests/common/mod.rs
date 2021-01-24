@@ -193,7 +193,7 @@ impl TestCommand {
                             // write `ctrl-T ESC` to stdin
                             // this is a special escape sequence which users don't use
                             stdin
-                                .write_all(&[0x14, 0x1b])
+                                .write_all(&[0x14, 0x03])
                                 .await
                                 .expect("failed to write to stdin");
                             stdin.flush().await.expect("failed to flush stdin");
