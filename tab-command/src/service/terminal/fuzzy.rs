@@ -16,7 +16,7 @@ use crate::{
     state::fuzzy::FuzzyTabsState,
     state::fuzzy::TabEntry,
     state::fuzzy::Token,
-    state::fuzzy::TokenJoin,
+    state::fuzzy::{FuzzyEscapeState, TokenJoin},
 };
 use crossterm::{
     cursor::Hide,
@@ -52,10 +52,13 @@ impl Service for FuzzyFinderService {
     type Lifeline = anyhow::Result<Self>;
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
+        let escape = bus.resource::<FuzzyEscapeState>()?;
+
         let _input = {
             let tx = bus.tx::<FuzzyEvent>()?;
             let tx_shutdown = bus.tx::<FuzzyShutdown>()?;
-            Self::try_task("input", Self::input(tx, tx_shutdown))
+            let tx_selection = bus.tx::<FuzzySelection>()?;
+            Self::try_task("input", Self::input(tx, tx_selection, tx_shutdown, escape))
         };
 
         let _query_state = {
@@ -146,7 +149,9 @@ enum FilterEvent {
 impl FuzzyFinderService {
     async fn input(
         mut tx_event: impl Sink<Item = FuzzyEvent> + Unpin,
+        mut tx_select: impl Sink<Item = FuzzySelection> + Unpin,
         mut tx_shutdown: impl Sink<Item = FuzzyShutdown> + Unpin,
+        escape: FuzzyEscapeState,
     ) -> anyhow::Result<()> {
         use futures_util::stream::StreamExt;
 
@@ -205,7 +210,12 @@ impl FuzzyFinderService {
                             tx_event.send(FuzzyEvent::Insert(ch)).await?;
                         }
                         KeyCode::Esc => {
-                            tx_shutdown.send(FuzzyShutdown {}).await.ok();
+                            if let Some(back) = &escape.0 {
+                                tx_select.send(FuzzySelection(back.clone())).await.ok();
+                            } else {
+                                tx_shutdown.send(FuzzyShutdown {}).await.ok();
+                            }
+
                             Self::clear_all()?;
                         }
                         KeyCode::Home => {}

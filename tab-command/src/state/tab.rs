@@ -25,6 +25,13 @@ pub enum TabState {
 }
 
 impl TabState {
+    pub fn as_id(&self) -> Option<TabId> {
+        if let TabState::Selected(id) = self {
+            return Some(*id);
+        }
+
+        None
+    }
     pub fn is_awaiting(&self, target_name: &str) -> bool {
         match self {
             TabState::None => false,

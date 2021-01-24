@@ -3,7 +3,7 @@ use crate::{
     message::tabs::TabRecv,
     message::{main::MainShutdown, terminal::TerminalRecv},
     prelude::*,
-    state::terminal::TerminalMode,
+    state::{tab::TabMetadataState, terminal::TerminalMode},
 };
 
 pub struct MainSelectInteractiveService {
@@ -16,6 +16,7 @@ impl Service for MainSelectInteractiveService {
 
     fn spawn(bus: &Self::Bus) -> Self::Lifeline {
         let mut rx = bus.rx::<MainRecv>()?.log(Level::Debug);
+        let rx_tab_state = bus.rx::<TabMetadataState>()?;
 
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let mut tx_tab = bus.tx::<TabRecv>()?;
@@ -38,8 +39,13 @@ impl Service for MainSelectInteractiveService {
                         continue;
                     }
 
+                    let back = match rx_tab_state.borrow().clone() {
+                        TabMetadataState::Selected(metadata) => Some(metadata.name.clone()),
+                        TabMetadataState::None => None,
+                    };
+
                     tx_terminal
-                        .send(TerminalRecv::Mode(TerminalMode::FuzzyFinder))
+                        .send(TerminalRecv::Mode(TerminalMode::FuzzyFinder(back)))
                         .await?;
 
                     tx_tab.send(TabRecv::DeselectTab).await?;

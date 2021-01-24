@@ -1,8 +1,14 @@
 use std::sync::Arc;
 
+use lifeline::impl_storage_clone;
 use tab_api::tab::normalize_name;
 
 use super::workspace::{WorkspaceState, WorkspaceTab};
+
+#[derive(Debug, Clone, Default)]
+pub struct FuzzyEscapeState(pub Option<String>);
+impl_storage_clone!(FuzzyEscapeState);
+
 #[derive(Debug, Clone)]
 pub struct FuzzyTabsState {
     pub tabs: Arc<Vec<WorkspaceTab>>,

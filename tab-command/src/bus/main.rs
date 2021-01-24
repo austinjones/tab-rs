@@ -3,7 +3,7 @@ use crate::{
     message::tabs::TabRecv,
     message::terminal::TerminalRecv,
     state::tabs::ActiveTabsState,
-    state::workspace::WorkspaceState,
+    state::{tab::TabMetadataState, workspace::WorkspaceState},
 };
 use crate::{prelude::*, state::tab::TabState};
 use lifeline::prelude::*;
@@ -34,6 +34,10 @@ impl Message<MainBus> for TabRecv {
 }
 
 impl Message<MainBus> for TabState {
+    type Channel = watch::Sender<Self>;
+}
+
+impl Message<MainBus> for TabMetadataState {
     type Channel = watch::Sender<Self>;
 }
 
