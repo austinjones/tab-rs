@@ -1,5 +1,5 @@
 use postage::sink::Sink;
-use tab_api::{chunk::OutputChunk, tab::TabId};
+use tab_api::{chunk::OutputChunk, client::RetaskTarget, tab::TabId};
 
 use crate::{
     message::cli::CliSend, message::cli::CliSubscriptionRecv, message::cli::CliSubscriptionSend,
@@ -68,19 +68,19 @@ impl Service for CliSubscriptionService {
                                 info!("Retasking subscription from {:?} to {:?}", from, to);
 
                                 // if to is none, trigger a disconnect
-                                if let None = to {
-                                    state = SubscriptionState::None;
-                                    tx.send(CliSubscriptionSend::Disconnect).await?;
-                                    continue;
+                                match to {
+                                    RetaskTarget::Tab(id) => {
+                                        tx_daemon.send(CliSend::Subscribe(id)).await?;
+
+                                        state =
+                                            SubscriptionState::AwaitingScrollback(id, Vec::new());
+                                    }
+                                    RetaskTarget::Disconnect | RetaskTarget::SelectInteractive => {
+                                        state = SubscriptionState::None;
+                                    }
                                 }
 
-                                // otherwise, process the retask
-                                let to = to.unwrap();
-
-                                tx_daemon.send(CliSend::Subscribe(to)).await?;
                                 tx.send(CliSubscriptionSend::Retask(to)).await?;
-
-                                state = SubscriptionState::AwaitingScrollback(to, Vec::new());
                             }
                         }
                         CliSubscriptionRecv::Output(output) => {
@@ -179,7 +179,7 @@ mod tests {
     };
     use lifeline::{assert_completes, assert_times_out};
     use postage::sink::Sink;
-    use tab_api::{chunk::OutputChunk, tab::TabId};
+    use tab_api::{chunk::OutputChunk, client::RetaskTarget, tab::TabId};
     use tokio::sync::Mutex;
 
     use super::CliSubscriptionService;
@@ -404,7 +404,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn retask() -> anyhow::Result<()> {
+    async fn retask_tab() -> anyhow::Result<()> {
         let bus = CliBus::default();
         let _service = CliSubscriptionService::spawn(&bus)?;
 
@@ -414,12 +414,18 @@ mod tests {
 
         tx_subscribe(&mut tx, TabId(0)).await?;
 
-        tx.send(CliSubscriptionRecv::Retask(TabId(0), Some(TabId(1))))
-            .await?;
+        tx.send(CliSubscriptionRecv::Retask(
+            TabId(0),
+            RetaskTarget::Tab(TabId(1)),
+        ))
+        .await?;
 
         assert_completes!(async {
             let msg = rx.recv().await;
-            assert_eq!(Some(CliSubscriptionSend::Retask(TabId(1))), msg);
+            assert_eq!(
+                Some(CliSubscriptionSend::Retask(RetaskTarget::Tab(TabId(1)))),
+                msg
+            );
         });
 
         assert_completes!(async {
@@ -428,6 +434,43 @@ mod tests {
 
             let msg = rx_daemon.recv().await;
             assert_eq!(Some(CliSend::Subscribe(TabId(1))), msg);
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn retask_select_interactive() -> anyhow::Result<()> {
+        let bus = CliBus::default();
+        let _service = CliSubscriptionService::spawn(&bus)?;
+
+        let mut tx = bus.tx::<CliSubscriptionRecv>()?;
+        let mut rx = bus.rx::<CliSubscriptionSend>()?;
+        let mut rx_daemon = bus.rx::<CliSend>()?;
+
+        tx_subscribe(&mut tx, TabId(0)).await?;
+
+        // request scrollback msg
+        assert_completes!(async {
+            rx_daemon.recv().await;
+        });
+
+        tx.send(CliSubscriptionRecv::Retask(
+            TabId(0),
+            RetaskTarget::SelectInteractive,
+        ))
+        .await?;
+
+        assert_completes!(async {
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(CliSubscriptionSend::Retask(RetaskTarget::SelectInteractive)),
+                msg
+            );
+        });
+
+        assert_times_out!(async {
+            rx_daemon.recv().await;
         });
 
         Ok(())
@@ -449,11 +492,18 @@ mod tests {
             rx_daemon.recv().await;
         });
 
-        tx.send(CliSubscriptionRecv::Retask(TabId(0), None)).await?;
+        tx.send(CliSubscriptionRecv::Retask(
+            TabId(0),
+            RetaskTarget::Disconnect,
+        ))
+        .await?;
 
         assert_completes!(async {
             let msg = rx.recv().await;
-            assert_eq!(Some(CliSubscriptionSend::Disconnect), msg);
+            assert_eq!(
+                Some(CliSubscriptionSend::Retask(RetaskTarget::Disconnect)),
+                msg
+            );
         });
 
         assert_times_out!(async {

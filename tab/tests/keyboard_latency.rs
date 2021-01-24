@@ -16,7 +16,7 @@ async fn keyboard_latency() -> anyhow::Result<()> {
         .await_stdout("$", 3000)
         .stdin("!!")
         .await_stdout("!!", 5)
-        .stdin_bytes(&[0x14, 0x1b])
+        .disconnect()
         .run()
         .await?;
 

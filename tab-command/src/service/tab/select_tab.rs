@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use postage::watch;
-use tab_api::tab::TabId;
+use tab_api::{client::RetaskTarget, tab::TabId};
 use tokio::time;
 
 use crate::{
@@ -79,7 +79,7 @@ impl SelectTabService {
             }
 
             debug!("retask - sending retask to tab {}", id);
-            let request = Request::Retask(id, metadata.id);
+            let request = Request::Retask(id, RetaskTarget::Tab(metadata.id));
             tx_websocket.send(request).await?;
 
             // if we quit too early, the carrier is cancelled and our message doesn't get through.

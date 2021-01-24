@@ -1,17 +1,9 @@
-use tab_api::tab::{normalize_name, TabId};
+use tab_api::tab::normalize_name;
 
 use crate::message::tabs::TabRecv;
 use crate::{message::main::MainRecv, prelude::*};
 
-pub fn env_tab_id() -> Option<TabId> {
-    if let Ok(id) = std::env::var("TAB_ID") {
-        if let Ok(id) = id.parse() {
-            return Some(TabId(id));
-        }
-    }
-
-    None
-}
+use super::env_tab_id;
 
 pub struct MainSelectTabService {
     _run: Lifeline,

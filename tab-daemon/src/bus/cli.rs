@@ -11,7 +11,10 @@ use crate::{
 use anyhow::Context;
 use postage::{broadcast, mpsc, sink::Sink, stream::Stream};
 use std::sync::Arc;
-use tab_api::{client::Request, client::Response};
+use tab_api::{
+    client::Request,
+    client::{Response, RetaskTarget},
+};
 use tab_websocket::{bus::WebsocketMessageBus, resource::connection::WebsocketResource};
 use time::Duration;
 use tokio::time;
@@ -174,7 +177,7 @@ impl CliBus {
                     tx.send(message).await?;
                 }
                 CliSend::Retask(from, to) => {
-                    let message = TabRecv::Retask(from, Some(to));
+                    let message = TabRecv::Retask(from, to);
                     tx.send(message).await?;
                 }
                 CliSend::GlobalShutdown => {
@@ -184,7 +187,7 @@ impl CliBus {
                     time::sleep(Duration::from_millis(50)).await;
                 }
                 CliSend::DisconnectTab(id) => {
-                    let message = TabRecv::Retask(id, None);
+                    let message = TabRecv::Retask(id, RetaskTarget::Disconnect);
                     tx.send(message).await?;
                 }
             }
@@ -244,6 +247,7 @@ mod forward_tests {
     use std::sync::Arc;
     use tab_api::{
         chunk::OutputChunk,
+        client::RetaskTarget,
         tab::{TabId, TabMetadata},
     };
     use tokio::sync::Mutex;
@@ -389,7 +393,8 @@ mod forward_tests {
         let mut tx = listener_bus.tx::<TabSend>()?;
         let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
 
-        tx.send(TabSend::Retask(TabId(0), Some(TabId(1)))).await?;
+        tx.send(TabSend::Retask(TabId(0), RetaskTarget::Tab(TabId(1))))
+            .await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
@@ -397,7 +402,7 @@ mod forward_tests {
             let msg = msg.unwrap();
             if let CliSubscriptionRecv::Retask(from, to) = msg {
                 assert_eq!(TabId(0), from);
-                assert_eq!(Some(TabId(1)), to);
+                assert_eq!(RetaskTarget::Tab(TabId(1)), to);
             } else {
                 panic!("Expected CliSubscriptionRecv::Retask, found {:?}", msg);
             }
@@ -416,7 +421,8 @@ mod forward_tests {
         let mut tx = listener_bus.tx::<TabSend>()?;
         let mut rx = cli_bus.rx::<CliRecv>()?;
 
-        tx.send(TabSend::Retask(TabId(0), Some(TabId(1)))).await?;
+        tx.send(TabSend::Retask(TabId(0), RetaskTarget::Tab(TabId(1))))
+            .await?;
 
         assert_times_out!(async move {
             let _msg = rx.recv().await;
@@ -441,6 +447,7 @@ mod reverse_tests {
     use std::collections::HashMap;
     use tab_api::{
         chunk::InputChunk,
+        client::RetaskTarget,
         tab::{CreateTabMetadata, TabId},
     };
 
@@ -510,7 +517,10 @@ mod reverse_tests {
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(TabRecv::Retask(TabId(0), None), msg.unwrap());
+            assert_eq!(
+                TabRecv::Retask(TabId(0), RetaskTarget::Disconnect),
+                msg.unwrap()
+            );
         });
 
         Ok(())
@@ -600,12 +610,16 @@ mod reverse_tests {
         let mut tx = cli_bus.tx::<CliSend>()?;
         let mut rx = listener_bus.rx::<TabRecv>()?;
 
-        tx.send(CliSend::Retask(TabId(0), TabId(1))).await?;
+        tx.send(CliSend::Retask(TabId(0), RetaskTarget::Tab(TabId(1))))
+            .await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert!(msg.is_some());
-            assert_eq!(TabRecv::Retask(TabId(0), Some(TabId(1))), msg.unwrap());
+            assert_eq!(
+                TabRecv::Retask(TabId(0), RetaskTarget::Tab(TabId(1))),
+                msg.unwrap()
+            );
         });
 
         Ok(())
