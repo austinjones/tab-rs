@@ -2,6 +2,7 @@ use super::tab::{TabOutput, TabScrollback};
 
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
+    client::RetaskTarget,
     tab::{CreateTabMetadata, TabId, TabMetadata},
 };
 
@@ -20,7 +21,7 @@ pub enum CliSend {
     /// Creates a tab with the given metadata.  Ignored if a tab with the given name is already active.
     CreateTab(CreateTabMetadata),
     /// Requests that any clients who are subscribed to the given tab be retasked, to the second tab
-    Retask(TabId, TabId),
+    Retask(TabId, RetaskTarget),
     /// Requests the scrollback buffer be read, and replied to as a CliRecv::Scrollback message.
     Subscribe(TabId),
     /// Resizes the tab to the given number of (cols, rows)
@@ -63,7 +64,7 @@ pub enum CliSubscriptionRecv {
     Output(TabOutput),
     /// A notification that a tab has been retasked.  The client may need to request scrollback and change their subscriptions.
     /// If the second argument is None, the client should disconnect.
-    Retask(TabId, Option<TabId>),
+    Retask(TabId, RetaskTarget),
     /// Notification that a tab has stopped
     Stopped(TabId),
 }
@@ -72,8 +73,7 @@ pub enum CliSubscriptionRecv {
 /// Represented with the current state of the subscription, contains tab updates and output chunks
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliSubscriptionSend {
-    Retask(TabId),
-    Disconnect,
+    Retask(RetaskTarget),
     Output(TabId, OutputChunk),
     Stopped(TabId),
 }

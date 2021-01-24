@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     message::{
-        main::MainShutdown,
+        main::{MainRecv, MainShutdown},
         tabs::{CreateTabRequest, ScanWorkspace, TabRecv, TabShutdown, TabsRecv},
         terminal::TerminalRecv,
     },
@@ -18,6 +18,7 @@ use crate::{
 };
 use anyhow::Context;
 
+use tab_api::client::RetaskTarget;
 use tokio::time;
 
 use postage::{mpsc, watch};
@@ -184,6 +185,7 @@ impl CarryFrom<MainBus> for TabBus {
 
             let mut tx_tabs = self.tx::<TabsRecv>()?;
             let mut tx_select_tab = self.tx::<SelectTab>()?;
+            let mut tx_main_recv = from.tx::<MainRecv>()?;
 
             let mut tx_shutdown = from.tx::<MainShutdown>()?;
 
@@ -215,17 +217,23 @@ impl CarryFrom<MainBus> for TabBus {
                                 .await
                                 .context("tx MainShutdown")?;
                         }
-                        Response::Retask(to_id) => {
-                            let state = SelectTab::Tab(to_id);
-                            tx_select_tab.send(state).await?;
-                        }
-                        Response::Disconnect => {
+                        Response::Disconnect | Response::Retask(RetaskTarget::Disconnect) => {
                             eprintln!("\r\nTab disconnected.");
                             tx_shutdown
                                 .send(MainShutdown(0))
                                 .await
                                 .context("tx MainShutdown")?;
                         }
+                        Response::Retask(target) => match target {
+                            RetaskTarget::Tab(id) => {
+                                let state = SelectTab::Tab(id);
+                                tx_select_tab.send(state).await?;
+                            }
+                            RetaskTarget::SelectInteractive => {
+                                tx_main_recv.send(MainRecv::SelectInteractive).await?;
+                            }
+                            RetaskTarget::Disconnect => unreachable!(),
+                        },
                         _ => {}
                     }
                 }

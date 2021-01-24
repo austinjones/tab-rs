@@ -29,7 +29,7 @@ pub enum Request {
     ResizeTab(TabId, (u16, u16)),
 
     /// Re-tasks clients with the tabid selected to the given tab
-    Retask(TabId, TabId),
+    Retask(TabId, RetaskTarget),
 
     /// Terminates the shell on the given tab
     CloseTab(TabId),
@@ -39,6 +39,13 @@ pub enum Request {
 
     /// Shuts down all tab processes, including the daemon and all ptys
     GlobalShutdown,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum RetaskTarget {
+    Tab(TabId),
+    Disconnect,
+    SelectInteractive,
 }
 
 /// A response, sent from the daemon process to a connected CLI
@@ -51,7 +58,7 @@ pub enum Response {
     /// A notification that metadata about a running tab has changed.
     TabUpdate(TabMetadata),
     /// A notification that the client is being re-tasks, and will now be serving the user on another tab.
-    Retask(TabId),
+    Retask(RetaskTarget),
     /// A notification that the active tab has been terminated
     TabTerminated(TabId),
     /// A notification that the client should disconnect

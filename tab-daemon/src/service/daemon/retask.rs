@@ -37,7 +37,7 @@ mod tests {
     use super::RetaskService;
     use crate::{bus::ListenerBus, message::tab::TabRecv};
     use lifeline::{assert_completes, Bus, Receiver, Sender, Service};
-    use tab_api::tab::TabId;
+    use tab_api::{client::RetaskTarget, tab::TabId};
 
     #[tokio::test]
     async fn echo() -> anyhow::Result<()> {
@@ -47,11 +47,15 @@ mod tests {
         let mut tx = bus.tx::<TabRecv>()?;
         let mut rx = bus.rx::<TabRecv>()?;
 
-        tx.send(TabRecv::Retask(TabId(0), Some(TabId(1)))).await?;
+        tx.send(TabRecv::Retask(TabId(0), RetaskTarget::Tab(TabId(1))))
+            .await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
-            assert_eq!(Some(TabRecv::Retask(TabId(0), Some(TabId(1)))), msg);
+            assert_eq!(
+                Some(TabRecv::Retask(TabId(0), RetaskTarget::Tab(TabId(1)))),
+                msg
+            );
         });
 
         Ok(())
@@ -65,11 +69,37 @@ mod tests {
         let mut tx = bus.tx::<TabRecv>()?;
         let mut rx = bus.rx::<TabRecv>()?;
 
-        tx.send(TabRecv::Retask(TabId(0), None)).await?;
+        tx.send(TabRecv::Retask(TabId(0), RetaskTarget::Disconnect))
+            .await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
-            assert_eq!(Some(TabRecv::Retask(TabId(0), None)), msg);
+            assert_eq!(
+                Some(TabRecv::Retask(TabId(0), RetaskTarget::Disconnect)),
+                msg
+            );
+        });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn echo_select_interactive() -> anyhow::Result<()> {
+        let bus = ListenerBus::default();
+        let _service = RetaskService::spawn(&bus);
+
+        let mut tx = bus.tx::<TabRecv>()?;
+        let mut rx = bus.rx::<TabRecv>()?;
+
+        tx.send(TabRecv::Retask(TabId(0), RetaskTarget::SelectInteractive))
+            .await?;
+
+        assert_completes!(async move {
+            let msg = rx.recv().await;
+            assert_eq!(
+                Some(TabRecv::Retask(TabId(0), RetaskTarget::SelectInteractive)),
+                msg
+            );
         });
 
         Ok(())

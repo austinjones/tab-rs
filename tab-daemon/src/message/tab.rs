@@ -2,6 +2,7 @@ use crate::state::{assignment::Assignment, pty::PtyScrollback};
 use std::sync::Arc;
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
+    client::RetaskTarget,
     tab::{TabId, TabMetadata},
 };
 
@@ -68,7 +69,7 @@ pub enum TabRecv {
     Resize(TabId, (u16, u16)),
     /// Retasks all clients from the first tab, to the second
     /// If the second argument is None, then clients should disconnect
-    Retask(TabId, Option<TabId>),
+    Retask(TabId, RetaskTarget),
     Input(TabInput),
     Terminate(TabId),
     TerminateAll,
@@ -127,7 +128,7 @@ pub enum TabSend {
     Scrollback(TabScrollback),
     /// Instructs clients on the first tab to retask to the second
     /// If the second argument is None, clients should disconnect
-    Retask(TabId, Option<TabId>),
+    Retask(TabId, RetaskTarget),
     Output(TabOutput),
     Stopped(TabId),
 }

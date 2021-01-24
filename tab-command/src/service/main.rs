@@ -16,6 +16,7 @@ use crate::prelude::*;
 
 use lifeline::dyn_bus::DynBus;
 
+use tab_api::tab::TabId;
 use tab_websocket::{
     bus::{WebsocketCarrier, WebsocketConnectionBus},
     resource::connection::WebsocketResource,
@@ -105,4 +106,12 @@ impl Service for MainService {
     }
 }
 
-impl MainService {}
+pub fn env_tab_id() -> Option<TabId> {
+    if let Ok(id) = std::env::var("TAB_ID") {
+        if let Ok(id) = id.parse() {
+            return Some(TabId(id));
+        }
+    }
+
+    None
+}

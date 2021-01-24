@@ -95,8 +95,8 @@ impl Service for CliService {
 
                 while let Some(msg) = rx.recv().await {
                     match msg {
-                        CliSubscriptionSend::Retask(id) => {
-                            tx.send(Response::Retask(id)).await?;
+                        CliSubscriptionSend::Retask(target) => {
+                            tx.send(Response::Retask(target)).await?;
                         }
                         CliSubscriptionSend::Output(id, chunk) => {
                             tx.send(Response::Output(id, chunk)).await?;
@@ -104,9 +104,6 @@ impl Service for CliService {
                         CliSubscriptionSend::Stopped(id) => {
                             debug!("Notifying client of termination on tab {:?}", id);
                             tx.send(Response::TabTerminated(id)).await?;
-                        }
-                        CliSubscriptionSend::Disconnect => {
-                            tx.send(Response::Disconnect).await?;
                         }
                     }
                 }
@@ -168,9 +165,9 @@ impl CliService {
                 let message = CliSend::DisconnectTab(id);
                 tx_daemon.send(message).await.context("tx_daemon closed")?;
             }
-            Request::Retask(id, name) => {
+            Request::Retask(id, target) => {
                 // we need to send this along so other attached tabs get retasked
-                let message = CliSend::Retask(id, name);
+                let message = CliSend::Retask(id, target);
                 tx_daemon.send(message).await?;
             }
             Request::GlobalShutdown => {
@@ -215,7 +212,7 @@ mod request_tests {
     use std::collections::HashMap;
     use tab_api::{
         chunk::InputChunk,
-        client::{InitResponse, Request, Response},
+        client::{InitResponse, Request, Response, RetaskTarget},
         tab::{CreateTabMetadata, TabId, TabMetadata},
     };
 
@@ -405,11 +402,15 @@ mod request_tests {
         let mut tx = cli_bus.tx::<Request>()?;
         let mut rx = cli_bus.rx::<CliSend>()?;
 
-        tx.send(Request::Retask(TabId(0), TabId(1))).await?;
+        tx.send(Request::Retask(TabId(0), RetaskTarget::Tab(TabId(1))))
+            .await?;
 
         assert_completes!(async move {
             let msg = rx.recv().await;
-            assert_eq!(Some(CliSend::Retask(TabId(0), TabId(1))), msg);
+            assert_eq!(
+                Some(CliSend::Retask(TabId(0), RetaskTarget::Tab(TabId(1)))),
+                msg
+            );
         });
 
         Ok(())
@@ -515,24 +516,6 @@ mod recv_tests {
         assert_completes!(async move {
             let msg = rx.recv().await;
             assert_eq!(Some(Response::TabTerminated(TabId(0))), msg);
-        });
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn disconnect() -> anyhow::Result<()> {
-        let bus = CliBus::default();
-        let _service = CliService::spawn(&bus)?;
-
-        let mut tx = bus.tx::<CliSubscriptionSend>()?;
-        let mut rx = bus.rx::<Response>()?;
-
-        tx.send(CliSubscriptionSend::Disconnect).await?;
-
-        assert_completes!(async move {
-            let msg = rx.recv().await;
-            assert_eq!(Some(Response::Disconnect), msg);
         });
 
         Ok(())

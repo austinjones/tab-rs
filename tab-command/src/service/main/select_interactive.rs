@@ -1,3 +1,5 @@
+use tab_api::client::RetaskTarget;
+
 use crate::{
     message::main::MainRecv,
     message::tabs::TabRecv,
@@ -5,6 +7,8 @@ use crate::{
     prelude::*,
     state::{tab::TabMetadataState, terminal::TerminalMode},
 };
+
+use super::env_tab_id;
 
 pub struct MainSelectInteractiveService {
     _run: Lifeline,
@@ -20,6 +24,7 @@ impl Service for MainSelectInteractiveService {
 
         let mut tx_terminal = bus.tx::<TerminalRecv>()?;
         let mut tx_tab = bus.tx::<TabRecv>()?;
+        let mut tx_request = bus.tx::<Request>()?;
         let mut tx_shutdown = bus.tx::<MainShutdown>()?;
 
         let _run = Self::try_task("run", async move {
@@ -27,15 +32,12 @@ impl Service for MainSelectInteractiveService {
                 if let MainRecv::SelectInteractive = msg {
                     info!("MainRecv::SelectInteractive running");
 
-                    // Prevent the fuzzy finder from being used within an active session.
-                    // See https://github.com/austinjones/tab-rs/issues/262
-                    // Soon this will be replaced with a retask of the outer command client.
-                    if std::env::var("TAB_ID").is_ok() {
-                        eprintln!(
-                            "You are within an active session.  Press ctrl-T to open the fuzzy finder."
-                        );
+                    if let Some(id) = env_tab_id() {
+                        tx_request
+                            .send(Request::Retask(id, RetaskTarget::SelectInteractive))
+                            .await?;
 
-                        tx_shutdown.send(MainShutdown(1)).await?;
+                        tx_shutdown.send(MainShutdown(0)).await?;
                         continue;
                     }
 
