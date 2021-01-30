@@ -261,6 +261,9 @@ impl ClientSessionService {
                 PtyResponse::Output(out) => {
                     tx.send(PtyWebsocketResponse::Output(out)).await?;
                 }
+                PtyResponse::Resized(size) => {
+                    tx.send(PtyWebsocketResponse::Resized(size)).await?;
+                }
                 PtyResponse::Terminated => {
                     debug!("pty child process terminated");
 

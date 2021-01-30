@@ -37,6 +37,8 @@ pub enum PtySend {
     Started(TabMetadata),
     Output(OutputChunk),
     Scrollback(PtyScrollback),
+    /// The pty has been resized to the given number of (cols, rows)
+    Resized((u16, u16)),
     Stopped,
 }
 
@@ -64,6 +66,13 @@ impl PartialEq for PtySend {
             PtySend::Stopped => {
                 if let PtySend::Stopped = other {
                     return true;
+                } else {
+                    return false;
+                }
+            }
+            PtySend::Resized(size) => {
+                if let PtySend::Resized(other) = other {
+                    return size == other;
                 } else {
                     return false;
                 }

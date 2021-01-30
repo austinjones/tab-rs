@@ -48,28 +48,32 @@ impl PtyState {
 /// Can produce a cloned copy of the scrollback contents.
 #[derive(Debug, Clone)]
 pub struct PtyScrollback {
-    scrollback: Arc<Mutex<ScrollbackBuffer>>,
+    end: usize,
+    data: Vec<u8>,
 }
 
 impl PtyScrollback {
-    pub fn new(scrollback: Arc<Mutex<ScrollbackBuffer>>) -> Self {
-        Self { scrollback }
+    pub fn new(end: usize, data: Vec<u8>) -> Self {
+        Self { end, data }
     }
 
     #[cfg(test)]
     pub fn empty() -> Self {
         Self {
-            scrollback: Arc::new(Mutex::new(ScrollbackBuffer::new())),
+            end: 0,
+            data: vec![],
         }
     }
 
-    #[cfg(test)]
-    pub async fn push(&self, chunk: OutputChunk) {
-        self.scrollback.lock().await.push(chunk);
+    pub fn end(&self) -> usize {
+        self.end
     }
 
-    pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
-        let scrollback = self.scrollback.lock().await.clone_queue();
-        scrollback.into_iter()
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
+    }
+
+    pub fn into_data(self) -> Vec<u8> {
+        self.data
     }
 }

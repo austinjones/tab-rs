@@ -59,7 +59,7 @@ impl PtyService {
         options: PtyOptions,
         rx_request: impl Stream<Item = PtyRequest> + Unpin + Send + 'static,
         mut rx_shutdown: impl Stream<Item = PtyShutdown> + Unpin,
-        tx_response: impl Sink<Item = PtyResponse> + Clone + Unpin + Send + 'static,
+        mut tx_response: impl Sink<Item = PtyResponse> + Clone + Unpin + Send + 'static,
     ) -> anyhow::Result<()> {
         let system = Self::create_pty(options).await?;
         let (tx_barrier, mut rx_barrier) = barrier::channel();
@@ -72,17 +72,16 @@ impl PtyService {
 
         let _input = Self::task(
             "input",
-            Self::write_input(system.master, system.write, rx_request),
+            Self::write_input(system.master, system.write, rx_request, tx_response.clone()),
         );
 
         let child = system.child;
-        let mut tx_exit = tx_response.clone();
         let _exit_code = Self::try_task("exit_code", async move {
             let exit_code = child.wait().await?;
             rx_barrier.recv().await;
 
             info!("Shell successfully terminated with exit code {}", exit_code);
-            tx_exit.send(PtyResponse::Terminated).await?;
+            tx_response.send(PtyResponse::Terminated).await?;
 
             Ok(())
         });
@@ -152,6 +151,7 @@ impl PtyService {
         master: UnixPtyMaster,
         mut stdin: UnixPtyWrite,
         mut rx: impl Stream<Item = PtyRequest> + Unpin,
+        mut tx: impl Sink<Item = PtyResponse> + Unpin,
     ) -> anyhow::Result<()> {
         while let Some(request) = rx.recv().await {
             match request {
@@ -164,6 +164,7 @@ impl PtyService {
                     if let Err(e) = master.resize(size).await {
                         error!("failed to resize pty: {:?}", e);
                     }
+                    tx.send(PtyResponse::Resized(dimensions)).await?;
 
                     debug!("resized to dimensions: {:?}", &dimensions);
                 }

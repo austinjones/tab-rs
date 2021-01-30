@@ -305,52 +305,52 @@ mod forward_tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn scrollback() -> anyhow::Result<()> {
-        let cli_bus = CliBus::default();
-        let listener_bus = ListenerBus::default();
+    // #[tokio::test]
+    // async fn scrollback() -> anyhow::Result<()> {
+    //     let cli_bus = CliBus::default();
+    //     let listener_bus = ListenerBus::default();
 
-        let _carrier = cli_bus.carry_from(&listener_bus)?;
+    //     let _carrier = cli_bus.carry_from(&listener_bus)?;
 
-        let mut tx = listener_bus.tx::<TabSend>()?;
-        let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
+    //     let mut tx = listener_bus.tx::<TabSend>()?;
+    //     let mut rx = cli_bus.rx::<CliSubscriptionRecv>()?;
 
-        let mut buffer = ScrollbackBuffer::new();
-        buffer.push(OutputChunk {
-            index: 0,
-            data: vec![0, 1],
-        });
-        buffer.push(OutputChunk {
-            index: 2,
-            data: vec![1, 2],
-        });
-        let scrollback = PtyScrollback::new(Arc::new(Mutex::new(buffer)));
-        let scrollback = TabScrollback {
-            id: TabId(0),
-            scrollback,
-        };
-        tx.send(TabSend::Scrollback(scrollback)).await?;
+    //     let mut buffer = ScrollbackBuffer::new();
+    //     buffer.push(OutputChunk {
+    //         index: 0,
+    //         data: vec![0, 1],
+    //     });
+    //     buffer.push(OutputChunk {
+    //         index: 2,
+    //         data: vec![1, 2],
+    //     });
+    //     let scrollback = PtyScrollback::new(Arc::new(Mutex::new(buffer)));
+    //     let scrollback = TabScrollback {
+    //         id: TabId(0),
+    //         scrollback,
+    //     };
+    //     tx.send(TabSend::Scrollback(scrollback)).await?;
 
-        assert_completes!(async move {
-            let msg = rx.recv().await;
-            assert!(msg.is_some());
-            if let CliSubscriptionRecv::Scrollback(scroll) = msg.unwrap() {
-                let mut iter = scroll.scrollback().await;
-                assert_eq!(
-                    Some(OutputChunk {
-                        index: 0,
-                        data: vec![0, 1, 1, 2]
-                    }),
-                    iter.next()
-                );
-                assert_eq!(None, iter.next());
-            } else {
-                panic!("Expected CliRecv::Scrollback, found None");
-            }
-        });
+    //     assert_completes!(async move {
+    //         let msg = rx.recv().await;
+    //         assert!(msg.is_some());
+    //         if let CliSubscriptionRecv::Scrollback(scroll) = msg.unwrap() {
+    //             let mut iter = scroll.scrollback().await;
+    //             assert_eq!(
+    //                 Some(OutputChunk {
+    //                     index: 0,
+    //                     data: vec![0, 1, 1, 2]
+    //                 }),
+    //                 iter.next()
+    //             );
+    //             assert_eq!(None, iter.next());
+    //         } else {
+    //             panic!("Expected CliRecv::Scrollback, found None");
+    //         }
+    //     });
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[tokio::test]
     async fn output() -> anyhow::Result<()> {

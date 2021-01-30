@@ -16,6 +16,8 @@ tab-websocket = "0.5.0"
 lifeline = "0.6"
 postage = "0.3"
 
+vt100 = { git = "https://github.com/austinjones/vt100-rust.git" }
+
 dirs = "3.0"
 serde_yaml = "0.8"
 

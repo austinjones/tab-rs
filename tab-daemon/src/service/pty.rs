@@ -53,6 +53,9 @@ impl Service for PtyService {
                             tx_shutdown.send(PtyShutdown {}).await?;
                             break;
                         }
+                        PtyWebsocketResponse::Resized(size) => {
+                            tx_daemon.send(PtySend::Resized(size)).await?;
+                        }
                     }
                 }
 

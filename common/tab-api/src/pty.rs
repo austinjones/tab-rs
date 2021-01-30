@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 pub enum PtyWebsocketResponse {
     Started(TabMetadata),
     Output(OutputChunk),
+    Resized((u16, u16)),
     Stopped,
 }
 
