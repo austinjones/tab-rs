@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use tab_api::tab::{TabId, TabMetadata};
 
 /// The client's view of the available tabs.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ActiveTabsState {
     pub tabs: HashMap<TabId, TabMetadata>,
 }

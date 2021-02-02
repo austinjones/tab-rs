@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 lifeline = "0.6"
-postage = "0.3"
+postage = "0.4"
 tungstenite = { version = "0.12", default-features = false }
 async-tungstenite = { version = "0.12", features = ["tokio-runtime"] }
 tokio = { version = "1.0", features = ["net", "macros", "sync", "signal"] }

@@ -6,6 +6,19 @@ use thiserror::Error;
 #[error("state never resolved to a value")]
 pub struct StateUninitalizedError {}
 
+pub fn state_or_default<T>(data: &mut Option<T>) -> &mut T
+where
+    T: Default,
+{
+    match data {
+        Some(data) => data,
+        None => {
+            *data = Some(T::default());
+            data.as_mut().unwrap()
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub async fn await_message<T: Clone, F, R>(
     channel: &mut impl Receiver<T>,

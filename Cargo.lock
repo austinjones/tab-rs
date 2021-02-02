@@ -710,9 +710,9 @@ checksum = "89203f3fba0a3795506acaad8ebce3c80c0af93f994d5a1d7a0b1eeb23271929"
 
 [[package]]
 name = "lifeline"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "412c179e899747e577a4e296547ff922443498172f0c052cfcb8146917ce2593"
+checksum = "b49b836e2676e5f6d926c09dc1a13b52c3315b459554df4514d76756bfa72a0e"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -963,15 +963,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
-name = "postage"
-version = "0.3.2"
+name = "pollster"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d025867c3ccf5b7b51093ec07a6e0aa029097990dc7a49e5cfb7c5ff5aa98ba4"
+checksum = "1a0c427c464eaca5923b642b3b346792b9c98edd91026aa6a753435e42d2a07b"
+
+[[package]]
+name = "postage"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76167ece7ab3041ee73b97fb4ff81042bc9bd1bbe7e2fb0c09d3f8ffd3c84d89"
 dependencies = [
  "atomic",
  "crossbeam-queue",
  "log",
  "pin-project 1.0.4",
+ "pollster",
  "static_assertions",
  "thiserror",
 ]
