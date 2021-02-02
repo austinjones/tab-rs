@@ -38,7 +38,7 @@ which = "4.0"
 
 [dev-dependencies]
 lifeline = "0.6"
-postage = "0.3"
+postage = "0.4"
 strip-ansi-escapes = "0.1.0"
 tokio-test = "0.4"
 tokio = { version = "1.0", features = ["process", "time", "rt-multi-thread"] } 
