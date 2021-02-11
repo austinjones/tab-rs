@@ -270,6 +270,7 @@ mod forward_tests {
             env: HashMap::new(),
             shell: "bash".into(),
             dir: "dir".into(),
+            custom_histfile: true,
             selected: 0,
         };
 
@@ -468,6 +469,7 @@ mod reverse_tests {
             env: HashMap::new(),
             dimensions: (1, 1),
             dir: "dir".into(),
+            custom_histfile: true,
         };
 
         tx.send(CliSend::CreateTab(create.clone())).await?;

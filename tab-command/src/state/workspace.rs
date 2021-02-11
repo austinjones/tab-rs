@@ -33,6 +33,8 @@ pub struct WorkspaceTab {
     pub env: Option<HashMap<String, String>>, // pub command: Option<String>,
     #[builder(default, setter(strip_option))]
     pub last_selected: Option<u128>,
+    #[builder(default, setter(strip_option))]
+    pub custom_histfile: Option<bool>,
 }
 
 impl WorkspaceTab {
@@ -46,6 +48,7 @@ impl WorkspaceTab {
             doc: None,
             env: None,
             last_selected: None,
+            custom_histfile: None,
         }
     }
 
@@ -59,6 +62,7 @@ impl WorkspaceTab {
             doc: options.doc,
             env: options.env,
             last_selected: None,
+            custom_histfile: options.custom_histfile,
         }
     }
 }
@@ -177,6 +181,7 @@ pub struct TabOptions {
     pub doc: Option<String>,
     pub shell: Option<String>,
     pub env: Option<HashMap<String, String>>,
+    pub custom_histfile: Option<bool>,
 }
 
 impl Default for TabOptions {
@@ -185,6 +190,7 @@ impl Default for TabOptions {
             doc: None,
             shell: None,
             env: None,
+            custom_histfile: None,
         }
     }
 }
@@ -207,10 +213,12 @@ impl TabOptions {
             other.env
         };
 
+        let custom_histfile = self.custom_histfile.or(other.custom_histfile);
         Self {
             doc: self.doc,
             shell: self.shell.or(other.shell),
             env,
+            custom_histfile,
         }
     }
 }

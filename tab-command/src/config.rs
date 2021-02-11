@@ -19,6 +19,8 @@ pub fn load_global_config() -> anyhow::Result<Config> {
 #[derive(Deserialize, Default)]
 pub struct Config {
     pub key_bindings: Option<Vec<KeyBinding>>,
+    #[serde(default = "default_per_tab_histfile")]
+    pub per_tab_histfile: bool,
     pub fuzzy: FuzzyConfig,
 }
 
@@ -34,6 +36,10 @@ impl Default for FuzzyConfig {
             create_tab: default_create_tab(),
         }
     }
+}
+
+fn default_per_tab_histfile() -> bool {
+    true
 }
 
 fn default_create_tab() -> bool {

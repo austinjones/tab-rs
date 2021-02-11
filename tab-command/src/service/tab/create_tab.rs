@@ -69,6 +69,7 @@ impl CreateTabService {
         let shell = Self::compute_shell(workspace_tab);
         let directory = Self::compute_directory(workspace_tab)?;
         let env = Self::compute_env(workspace_tab);
+        let custom_histfile = Self::compute_custom_histfile(workspace_tab);
 
         let metadata = CreateTabMetadata {
             name: Self::compute_name(workspace_tab, name.as_str()),
@@ -85,6 +86,7 @@ impl CreateTabService {
             env,
             dimensions,
             shell,
+            custom_histfile,
         };
 
         let request = Request::CreateTab(metadata);
@@ -113,6 +115,10 @@ impl CreateTabService {
         Self::copy_env(&mut env, "COLORTERM");
 
         env
+    }
+
+    fn compute_custom_histfile(tab: Option<&WorkspaceTab>) -> bool {
+        tab.and_then(|tab| tab.custom_histfile).unwrap_or(true)
     }
 
     /// Copies the environment variable from the current environment,
