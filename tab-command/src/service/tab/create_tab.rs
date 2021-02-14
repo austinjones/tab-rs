@@ -110,6 +110,7 @@ impl CreateTabService {
             .unwrap_or(HashMap::with_capacity(0));
 
         Self::copy_env(&mut env, "TERM");
+        Self::copy_env(&mut env, "TERMINFO");
         Self::copy_env(&mut env, "COLORTERM");
 
         env

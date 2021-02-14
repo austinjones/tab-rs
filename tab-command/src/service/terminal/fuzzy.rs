@@ -237,14 +237,22 @@ impl FuzzyFinderService {
                     }
                 }
                 FuzzyEvent::Insert(char) => {
-                    query.insert(index, char);
+                    if let Some(index) = query.char_indices().nth(index).map(|ch| ch.0) {
+                        query.insert(index, char);
+                    } else {
+                        query.push(char);
+                    }
+
                     index += 1;
                 }
                 FuzzyEvent::Delete => {
-                    if index > 0 {
-                        query.remove(index - 1);
-                        index -= 1;
+                    let remove = if index > 0 { index - 1 } else { 0 };
+
+                    if let Some(byte_index) = query.char_indices().nth(remove).map(|ch| ch.0) {
+                        query.remove(byte_index);
                     }
+
+                    index = remove;
                 }
                 _ => {
                     continue;
