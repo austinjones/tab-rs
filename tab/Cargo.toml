@@ -1,6 +1,6 @@
 [package]
 name = "tab"
-version = "0.5.6"
+version = "0.5.7"
 description = "The intuitive, config-driven terminal multiplexer"
 keywords = ["cli", "terminal", "tool"]
 categories = ["command-line-utilities"]
@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 tab-api = "0.5.6"
-tab-command = "0.5.6"
+tab-command = "0.5.7"
 tab-daemon =  "0.5.4"
 tab-pty = "0.5.3"
 
