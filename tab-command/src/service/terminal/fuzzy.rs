@@ -197,10 +197,10 @@ impl FuzzyFinderService {
                         KeyCode::Right => {
                             tx_event.send(FuzzyEvent::MoveRight {}).await?;
                         }
-                        KeyCode::Up => {
+                        KeyCode::Up | KeyCode::BackTab => {
                             tx_event.send(FuzzyEvent::MoveUp {}).await?;
                         }
-                        KeyCode::Down => {
+                        KeyCode::Down | KeyCode::Tab => {
                             tx_event.send(FuzzyEvent::MoveDown {}).await?;
                         }
                         KeyCode::Backspace | KeyCode::Delete => {
@@ -210,29 +210,15 @@ impl FuzzyFinderService {
                             tx_event.send(FuzzyEvent::Enter).await?;
                         }
                         KeyCode::Char(ch) => {
-                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'k' || ch == 'p')
-                            {
-                                tx_event.send(FuzzyEvent::MoveUp {}).await?;
-                                continue;
-                            }
-
-                            if key.modifiers.eq(&KeyModifiers::CONTROL) && (ch == 'j' || ch == 'n')
-                            {
-                                tx_event.send(FuzzyEvent::MoveDown {}).await?;
-                                continue;
-                            }
-
-                            if key.modifiers.eq(&KeyModifiers::CONTROL)
-                                && (ch == 'c' || ch == 'x' || ch == 'w')
-                            {
-                                Self::shutdown(&mut tx_shutdown).await?;
-                                continue;
-                            }
-
                             if key.modifiers.eq(&KeyModifiers::CONTROL) {
+                                match ch {
+                                    'k' | 'p' => tx_event.send(FuzzyEvent::MoveUp {}).await?,
+                                    'j' | 'n' => tx_event.send(FuzzyEvent::MoveDown {}).await?,
+                                    'c' | 'x' | 'w' => Self::shutdown(&mut tx_shutdown).await?,
+                                    _ => continue,
+                                }
                                 continue;
                             }
-
                             tx_event.send(FuzzyEvent::Insert(ch)).await?;
                         }
                         KeyCode::Esc => {
@@ -250,10 +236,6 @@ impl FuzzyFinderService {
                         KeyCode::PageDown => {
                             tx_event.send(FuzzyEvent::MoveLast).await?;
                         }
-                        KeyCode::Tab => {
-                            tx_event.send(FuzzyEvent::MoveDown).await?;
-                        }
-                        KeyCode::BackTab => {}
                         KeyCode::Insert => {}
                         KeyCode::F(_) => {}
                         KeyCode::Null => {}
