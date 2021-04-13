@@ -175,6 +175,7 @@ impl CarryFrom<ListenerBus> for PtyBus {
                             tx_tab_manager.send(TabManagerRecv::CloseTab(id)).await?;
                             tx_tab.send(TabSend::Stopped(id)).await.ok();
                         }
+                        PtySend::Resized(_) => {}
                     }
                 }
 

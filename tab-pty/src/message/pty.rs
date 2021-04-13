@@ -34,6 +34,7 @@ pub enum PtyRequest {
 #[derive(Debug, Clone)]
 pub enum PtyResponse {
     Output(OutputChunk),
+    Resized((u16, u16)),
     Terminated,
 }
 

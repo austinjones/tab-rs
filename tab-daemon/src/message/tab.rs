@@ -101,15 +101,6 @@ impl TabScrollback {
             scrollback: PtyScrollback::empty(),
         }
     }
-
-    #[cfg(test)]
-    pub async fn push(&self, chunk: OutputChunk) {
-        self.scrollback.push(chunk).await;
-    }
-
-    pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
-        self.scrollback.scrollback().await
-    }
 }
 
 /// A message sent from an established tab, to provide lifecycle notification events,
