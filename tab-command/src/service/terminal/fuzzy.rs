@@ -197,10 +197,10 @@ impl FuzzyFinderService {
                         KeyCode::Right => {
                             tx_event.send(FuzzyEvent::MoveRight {}).await?;
                         }
-                        KeyCode::Up => {
+                        KeyCode::Up | KeyCode::BackTab => {
                             tx_event.send(FuzzyEvent::MoveUp {}).await?;
                         }
-                        KeyCode::Down => {
+                        KeyCode::Down | KeyCode::Tab => {
                             tx_event.send(FuzzyEvent::MoveDown {}).await?;
                         }
                         KeyCode::Backspace | KeyCode::Delete => {
@@ -250,10 +250,6 @@ impl FuzzyFinderService {
                         KeyCode::PageDown => {
                             tx_event.send(FuzzyEvent::MoveLast).await?;
                         }
-                        KeyCode::Tab => {
-                            tx_event.send(FuzzyEvent::MoveDown).await?;
-                        }
-                        KeyCode::BackTab => {}
                         KeyCode::Insert => {}
                         KeyCode::F(_) => {}
                         KeyCode::Null => {}
