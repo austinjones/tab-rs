@@ -232,6 +232,7 @@ mod request_tests {
             env: HashMap::new(),
             shell: "bash".into(),
             dir: "/".into(),
+            custom_histfile: true,
             selected: 0,
         };
         tabs.tabs.insert(tab_id, tab_metadata.clone());
@@ -328,6 +329,7 @@ mod request_tests {
             dimensions: (1, 2),
             shell: "shell".into(),
             dir: "/".into(),
+            custom_histfile: true,
             env,
         };
         tx.send(Request::CreateTab(tab.clone())).await?;
@@ -462,6 +464,7 @@ mod recv_tests {
             env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
+            custom_histfile: true,
             selected: 0,
         };
 
@@ -491,6 +494,7 @@ mod recv_tests {
             env: HashMap::new(),
             shell: "shell".into(),
             dir: "/".into(),
+            custom_histfile: true,
             selected: 10,
         };
 

@@ -71,6 +71,7 @@ pub struct TabMetadata {
     pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,
+    pub custom_histfile: bool,
     pub selected: u128,
 }
 
@@ -84,6 +85,7 @@ impl TabMetadata {
             env: create.env,
             shell: create.shell,
             dir: create.dir,
+            custom_histfile: create.custom_histfile,
             selected: unix_time(),
         }
     }
@@ -102,4 +104,5 @@ pub struct CreateTabMetadata {
     pub env: HashMap<String, String>,
     pub shell: String,
     pub dir: String,
+    pub custom_histfile: bool,
 }

@@ -178,6 +178,7 @@ impl WorkspaceService {
                     shell: None,
                     env: None,
                     last_selected: Some(metadata.selected),
+                    custom_histfile: None,
                 },
                 (None, Some(workspace)) => workspace,
                 (None, None) => continue,

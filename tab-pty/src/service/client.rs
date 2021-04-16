@@ -77,20 +77,35 @@ impl ClientService {
                             let home = history_path("sh", create.name.as_str())?;
                             std::fs::create_dir_all(home.parent().unwrap())?;
 
-                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                            if create.custom_histfile {
+                                env.insert(
+                                    "HISTFILE".to_string(),
+                                    home.to_string_lossy().to_string(),
+                                );
+                            }
                         }
                         Shell::Zsh => {
                             // this doesn't work on OSX.  /etc/zshrc overwrites it
                             let home = history_path("zsh", create.name.as_str())?;
                             std::fs::create_dir_all(home.parent().unwrap())?;
 
-                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                            if create.custom_histfile {
+                                env.insert(
+                                    "HISTFILE".to_string(),
+                                    home.to_string_lossy().to_string(),
+                                );
+                            }
                         }
                         Shell::Bash => {
                             let home = history_path("bash", create.name.as_str())?;
                             std::fs::create_dir_all(home.parent().unwrap())?;
 
-                            env.insert("HISTFILE".to_string(), home.to_string_lossy().to_string());
+                            if create.custom_histfile {
+                                env.insert(
+                                    "HISTFILE".to_string(),
+                                    home.to_string_lossy().to_string(),
+                                );
+                            }
                         }
                         Shell::Fish => {
                             let mut hasher = DefaultHasher::new();
@@ -99,7 +114,9 @@ impl ClientService {
 
                             let history = format!("tab_{}", id);
 
-                            env.insert("fish_history".to_string(), history);
+                            if create.custom_histfile {
+                                env.insert("fish_history".to_string(), history);
+                            }
                         }
                         Shell::Unknown => {}
                     }
@@ -373,6 +390,7 @@ mod tests {
             env: HashMap::new(),
             shell: "/usr/bin/env sh".into(),
             dir: current_dir.to_string_lossy().into(),
+            custom_histfile: true,
             selected: 0,
         }))
         .await?;
@@ -388,6 +406,7 @@ mod tests {
                     env: HashMap::new(),
                     shell: "/usr/bin/env sh".into(),
                     dir: current_dir.to_string_lossy().into(),
+                    custom_histfile: true,
                     selected: 0,
                 })),
                 created
