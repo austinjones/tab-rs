@@ -16,7 +16,7 @@ mod fish;
 mod starship;
 mod zsh;
 
-pub fn run<'a>(commands: Values<'a>) -> anyhow::Result<()> {
+pub fn run<'a>(commands: Values<'a>, yes: bool) -> anyhow::Result<()> {
     let env = PackageEnv::new()?;
 
     for command in commands {
@@ -42,7 +42,7 @@ pub fn run<'a>(commands: Values<'a>) -> anyhow::Result<()> {
             eprint!("{}", package.to_string());
         }
 
-        if !Confirm::new()
+        if !yes && !Confirm::new()
             .with_prompt("Do you wish to apply the modifications?")
             .interact()?
         {
