@@ -62,6 +62,13 @@ fn app() -> App<'static, 'static> {
                 .help("Automatically installs completions & statusline integrations."),
         )
         .arg(
+            Arg::with_name("YES")
+                .long("yes")
+                .short("y")
+                .required(false)
+                .help("Do not confirm install."),
+        )
+        .arg(
             Arg::with_name("CHECK-WORKSPACE")
                 .long("check")
                 .short("-k")

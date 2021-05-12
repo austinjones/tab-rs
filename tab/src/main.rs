@@ -58,8 +58,12 @@ pub fn main() -> anyhow::Result<()> {
         print!("{}", histfile.to_string_lossy());
 
         Ok(())
-    } else if let Some(args) = args.values_of("INSTALL") {
-        install::run(args)
+    } else if let Some(install_args) = args.values_of("INSTALL") {
+        let mut yes = false;
+        if args.is_present("YES") {
+            yes = true;
+        }
+        install::run(install_args, yes)
     } else if args.is_present("STARSHIP") {
         // used for the starship prompt
         let tab = std::env::var("TAB");
