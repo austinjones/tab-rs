@@ -109,7 +109,7 @@ impl ClientService {
                     // configure shell args
                     match shell {
                         Shell::Sh => {
-                            args.push("--login".to_string());
+                            args.push("-l".to_string());
                         }
                         Shell::Zsh => {
                             args.push("--login".to_string());
