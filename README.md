@@ -174,7 +174,7 @@ workspace:
   # this is a global tab, that is always available, and initializes in ~/tab-dir
   - tab: global-tab
     doc: "my global tab doc"
-    directory: tab-dir
+    dir: tab-dir
 
   # this links to a workspace config in ~/my-workspace
   #   workspaces are only active within the workspace directory
