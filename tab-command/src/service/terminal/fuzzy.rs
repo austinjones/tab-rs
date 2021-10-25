@@ -651,8 +651,7 @@ impl FuzzyFinderService {
         stdout.queue(PrintStyledContent(state.total.to_string().bold()))?;
         stdout.queue(Clear(ClearType::UntilNewLine))?;
 
-        for (row, ref output_match) in (RESERVED_ROWS..terminal_height as usize).zip(matches.iter())
-        {
+        for (row, output_match) in (RESERVED_ROWS..terminal_height as usize).zip(matches.iter()) {
             let name = &output_match.name;
             let doc = &output_match.doc;
 

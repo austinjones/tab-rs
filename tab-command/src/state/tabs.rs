@@ -17,7 +17,7 @@ impl ActiveTabsState {
     }
 
     pub fn get(&self, id: &TabId) -> Option<&TabMetadata> {
-        self.tabs.get(&id)
+        self.tabs.get(id)
     }
 
     pub fn contains_name(&self, name: &str) -> bool {
