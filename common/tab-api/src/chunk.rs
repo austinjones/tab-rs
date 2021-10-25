@@ -20,6 +20,10 @@ impl OutputChunk {
         self.data.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
     /// Returns true if this chunk's data contains the given index
     pub fn contains(&self, index: usize) -> bool {
         index >= self.start() && index < self.end()
@@ -72,9 +76,13 @@ pub struct InputChunk {
 }
 
 impl InputChunk {
-    /// THe data buffer length
+    /// Tee data buffer length
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 }
 

@@ -81,29 +81,25 @@ impl ScrollbackManager {
             // replace ESC [ 6n, Device Status Report
             //   this sequence is echoed as keyboard characters,
             //   and the tab session may not be running the same application as it was before
-            "\x1b[6n".as_bytes().into_iter().copied().collect(),
+            "\x1b[6n".as_bytes().iter().copied().collect(),
             // replace ESC ] ** ; ? \x07, Operating System Command
             //   similarly, this sequence results in the terminal emulator echoing characters
             //   reference: https://www.xfree86.org/current/ctlseqs.html
-            "\x1b]\x00\x00;?\x07"
-                .as_bytes()
-                .into_iter()
-                .copied()
-                .collect(),
+            "\x1b]\x00\x00;?\x07".as_bytes().iter().copied().collect(),
             // replace ESC [ ** c, Send Device Attributes (Primary DA)
             //   similarly, this sequence results in the terminal emulator echoing characters
             //   reference: https://www.xfree86.org/current/ctlseqs.html
-            "\x1b]\x00\x00c".as_bytes().into_iter().copied().collect(),
+            "\x1b]\x00\x00c".as_bytes().iter().copied().collect(),
             // replace ESC [ = 0 c, Send Device Attributes (Tertiary DA)
             //   similarly, this sequence results in the terminal emulator echoing characters
             //   reference: https://www.xfree86.org/current/ctlseqs.html
-            "\x1b]=0c".as_bytes().into_iter().copied().collect(),
+            "\x1b]=0c".as_bytes().iter().copied().collect(),
             // replace ESC [ > ** ; ** ; 0 c, Send Device Attributes (Secondary DA)
             //   similarly, this sequence results in the terminal emulator echoing characters
             //   reference: https://www.xfree86.org/current/ctlseqs.html
             "\x1b]>\x00\x00;\x00\x00;0c"
                 .as_bytes()
-                .into_iter()
+                .iter()
                 .copied()
                 .collect(),
         ])
@@ -216,7 +212,7 @@ impl AnsiFilter {
     }
 
     fn filter_seq(sequence: &[u8], buf: &mut Vec<u8>) {
-        if sequence.len() == 0 {
+        if sequence.is_empty() {
             return;
         }
 

@@ -119,15 +119,7 @@ impl WorkspaceTabs {
     }
 
     pub fn ok(self) -> Vec<WorkspaceTab> {
-        let mut tabs = Vec::with_capacity(self.elems.len());
-
-        for elem in self.elems {
-            if let Ok(tab) = elem {
-                tabs.push(tab);
-            }
-        }
-
-        tabs
+        self.elems.into_iter().flatten().collect()
     }
 
     pub fn errors(&self) -> Vec<&WorkspaceError> {
@@ -183,7 +175,7 @@ pub fn scan_config(dir: &Path, base: Option<&Path>, ignore_dir: Option<&Path>) -
         working_dir = dir.parent();
     }
 
-    if let None = base {
+    if base.is_none() {
         scan_global_config(&mut builder);
     }
 
@@ -238,7 +230,7 @@ impl From<Result<Config, LoadYamlError>> for YmlResult {
 
 pub fn load_yml(dir: &Path) -> YmlResult {
     let path = yml_path(dir);
-    if let None = path {
+    if path.is_none() {
         return YmlResult::None(dir.to_path_buf());
     }
 

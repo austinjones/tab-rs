@@ -101,7 +101,7 @@ fn completion_ohmyzsh(env: &PackageEnv) -> Option<PathBuf> {
     path.push("completions");
     path.push("_tab");
 
-    return Some(path);
+    Some(path)
 }
 
 fn completion_usr_local_share() -> Option<PathBuf> {
@@ -117,5 +117,5 @@ fn completion_usr_local_share() -> Option<PathBuf> {
     }
 
     path.push("_tab");
-    return Some(path);
+    Some(path)
 }

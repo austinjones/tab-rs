@@ -32,18 +32,18 @@ impl PtySystem for UnixPtySystem {
         mut command: Command,
         options: PtySystemOptions,
     ) -> Result<crate::PtySystemInstance<Self>, crate::PtySystemError> {
-        let internal = UnixInternal::new().map_err(|e| PtySystemError::IoError(e))?;
+        let internal = UnixInternal::new().map_err(PtySystemError::IoError)?;
         let master_fd = internal.as_raw_fd();
 
         let slave_fd = {
             let slave = internal
                 .open_sync_pty_slave()
-                .map_err(|e| PtySystemError::IoError(e))?;
+                .map_err(PtySystemError::IoError)?;
             let slave_fd = slave.as_raw_fd();
 
-            let stdin = slave.try_clone().map_err(|e| PtySystemError::IoError(e))?;
+            let stdin = slave.try_clone().map_err(PtySystemError::IoError)?;
             command.stdin(stdin);
-            let stdout = slave.try_clone().map_err(|e| PtySystemError::IoError(e))?;
+            let stdout = slave.try_clone().map_err(PtySystemError::IoError)?;
             command.stdout(stdout);
             command.stderr(slave);
 
@@ -54,7 +54,7 @@ impl PtySystem for UnixPtySystem {
 
         let master = UnixPtyMaster(internal.clone());
         let read = UnixPtyRead(internal.clone());
-        let write = UnixPtyWrite(internal.clone());
+        let write = UnixPtyWrite(internal);
 
         unsafe {
             command.pre_exec(move || {
@@ -89,7 +89,7 @@ impl PtySystem for UnixPtySystem {
             });
         }
 
-        let child = command.spawn().map_err(|e| PtySystemError::IoError(e))?;
+        let child = command.spawn().map_err(PtySystemError::IoError)?;
         let child = UnixPtyChild::new(child);
 
         Ok(PtySystemInstance {

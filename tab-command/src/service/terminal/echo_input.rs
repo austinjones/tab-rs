@@ -43,7 +43,7 @@ pub fn parse(seq: &str) -> Result<Vec<u8>, KeyParseError> {
     for entry in seq.split(' ') {
         let entry = entry.trim().to_lowercase();
 
-        if entry.trim().len() == 0 {
+        if entry.trim().is_empty() {
             continue;
         }
 

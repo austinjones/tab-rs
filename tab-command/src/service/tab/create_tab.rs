@@ -37,8 +37,7 @@ impl Service for CreateTabService {
                             .await?
                             .tabs
                             .values()
-                            .find(|tab| tab.name == name)
-                            .is_some();
+                            .any(|tab| tab.name == name);
 
                         if !tab_exists {
                             let workspace = await_state(&mut rx_workspace).await?;
@@ -100,14 +99,11 @@ impl CreateTabService {
             }
         }
 
-        std::env::var("SHELL").unwrap_or("/usr/bin/env bash".to_string())
+        std::env::var("SHELL").unwrap_or_else(|_| "/usr/bin/env bash".to_string())
     }
 
     fn compute_env(tab: Option<&WorkspaceTab>) -> HashMap<String, String> {
-        let mut env = tab
-            .map(|tab| tab.env.clone())
-            .flatten()
-            .unwrap_or(HashMap::with_capacity(0));
+        let mut env = tab.map(|tab| tab.env.clone()).flatten().unwrap_or_default();
 
         Self::copy_env(&mut env, "TERM");
         Self::copy_env(&mut env, "TERMINFO");
@@ -123,7 +119,7 @@ impl CreateTabService {
 
         if !env_map.contains_key(&var) {
             if let Ok(value) = env::var(&var) {
-                env_map.insert(var.clone(), value);
+                env_map.insert(var, value);
             }
         }
     }

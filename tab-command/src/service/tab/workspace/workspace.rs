@@ -46,7 +46,7 @@ pub fn build_workspace(builder: &mut WorkspaceBuilder, path: &Path, workspace: W
                 let workspace = load_yml(workspace_path.as_path())
                     .required()
                     .map_err(WorkspaceError::load_error)
-                    .and_then(|config| config.as_workspace(workspace_path.as_path()));
+                    .and_then(|config| config.into_workspace(workspace_path.as_path()));
 
                 if let Err(e) = workspace {
                     builder.err(e);
@@ -79,7 +79,7 @@ pub fn build_workspace(builder: &mut WorkspaceBuilder, path: &Path, workspace: W
                 let repo_path = repo_path.unwrap();
 
                 let repo = match load_yml(repo_path.as_path()) {
-                    YmlResult::Ok(config) => config.as_repo(repo_path.as_path()),
+                    YmlResult::Ok(config) => config.into_repo(repo_path.as_path()),
                     YmlResult::Err(e) => {
                         builder.err(WorkspaceError::load_error(e));
                         continue;
@@ -162,6 +162,6 @@ fn workspace_tab_doc(path: &Path, workspace: &Workspace) -> String {
     if let Some(name) = path.file_name() {
         format!("workspace tab for {}", name.to_string_lossy())
     } else {
-        format!("workspace tab")
+        "workspace tab".to_string()
     }
 }

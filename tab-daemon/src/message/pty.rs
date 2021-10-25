@@ -41,6 +41,7 @@ pub enum PtySend {
 }
 
 impl PartialEq for PtySend {
+    #[allow(clippy::needless_return)]
     fn eq(&self, other: &Self) -> bool {
         match self {
             PtySend::Started(tab) => {

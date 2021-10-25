@@ -21,6 +21,6 @@ fn main() {
     ]
     .iter()
     {
-        app.gen_completions("tab", shell.clone(), path.as_path());
+        app.gen_completions("tab", *shell, path.as_path());
     }
 }

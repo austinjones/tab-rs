@@ -72,11 +72,11 @@ impl Service for ListenerService {
         Ok(Self {
             _listener,
             _new_session,
-            _connection_carrier,
-            _daemon_carrier,
-            _retask,
             _tabs,
             _tab_assignments,
+            _retask,
+            _connection_carrier,
+            _daemon_carrier,
         })
     }
 }
@@ -109,8 +109,8 @@ impl ListenerService {
                     let _websocket_carrier = cli_bus.carry_into(&msg.bus)?;
 
                     let _connection = CliLifeline {
-                        _listener_carrier,
                         _websocket_carrier,
+                        _listener_carrier,
                     };
 
                     Self::try_task(
@@ -129,8 +129,8 @@ impl ListenerService {
                     let _websocket_carrier = pty_bus.carry_into(&msg.bus)?;
 
                     let _pty_lifeline = PtyLifeline {
-                        _listener_carrier,
                         _websocket_carrier,
+                        _listener_carrier,
                     };
                     Self::try_task(
                         (name + "/pty").as_str(),

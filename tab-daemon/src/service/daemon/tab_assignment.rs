@@ -52,7 +52,7 @@ impl Service for TabAssignmentService {
                     let retraction = retraction.0;
                     let mut retracted = retraction.retract_if_expired(Duration::from_millis(25));
 
-                    while let None = retracted {
+                    while retracted.is_none() {
                         if retraction.is_taken() {
                             continue 'retractions;
                         }
@@ -73,7 +73,8 @@ impl Service for TabAssignmentService {
             let mut rx = bus.rx::<TabAssignmentRetraction>()?;
             Self::try_task("spawn_pty", async move {
                 let mut last_spawn: Option<Instant> = None;
-                while let Some(_) = rx.recv().await {
+                let msg = rx.recv().await;
+                while msg.is_some() {
                     if last_spawn
                         .map(|inst| Instant::now().duration_since(inst) > SPAWN_DELAY)
                         .unwrap_or(true)
@@ -83,7 +84,7 @@ impl Service for TabAssignmentService {
                             error!("failed to launch initial pty process: {}", e);
                         }
 
-                        while let Ok(_) = rx.try_recv() {
+                        while rx.try_recv().is_ok() {
                             debug!("launching pty process");
                             if let Err(e) = launch_pty() {
                                 error!("failed to launch pty process: {}", e);

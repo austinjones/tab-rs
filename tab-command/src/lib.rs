@@ -160,8 +160,7 @@ fn validate_daemon(config: &DaemonConfig, tab_version: &'static str) {
     let tab_version = Version::parse(tab_version).ok();
     let daemon_version = config
         .tab_version
-        .as_ref()
-        .map(String::as_str)
+        .as_deref()
         .map(Version::parse)
         .map(Result::ok)
         .flatten();

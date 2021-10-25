@@ -102,7 +102,7 @@ pub async fn wait_for_shutdown<T: Default>(mut receiver: impl Stream<Item = T> +
                 return T::default();
             },
             msg = receiver.recv() => {
-                return msg.unwrap_or(T::default());
+                return msg.unwrap_or_default();
             }
         }
     }

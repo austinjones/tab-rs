@@ -312,8 +312,8 @@ impl FuzzyFinderService {
         let matcher = SkimMatcherV2::default().ignore_case();
 
         let mut rx = rx
-            .map(|event| FilterEvent::Tabs(event))
-            .merge(rx_query.map(|event| FilterEvent::Query(event)));
+            .map(FilterEvent::Tabs)
+            .merge(rx_query.map(FilterEvent::Query));
 
         let mut entries: Vec<Arc<TabEntry>> = vec![];
         let mut query = None;
@@ -341,7 +341,7 @@ impl FuzzyFinderService {
                         continue;
                     }
 
-                    if state.query.len() > 0 {
+                    if !state.query.is_empty() {
                         query = Some(state.query);
                     } else {
                         query = None;
@@ -415,16 +415,16 @@ impl FuzzyFinderService {
 
     /// Creates a 'new tab' entry, if the user has entered a query, or entries is empty.
     /// Does not create an entry if the name conflicts with an element of entries
-    fn create_tab_entry(entries: &Vec<Arc<TabEntry>>, query: &Option<String>) -> Option<TabEntry> {
+    fn create_tab_entry(entries: &[Arc<TabEntry>], query: &Option<String>) -> Option<TabEntry> {
         // if we don't have a query, and some entries exist, don't suggest a new tab.
-        if entries.len() > 0 && query.is_none() {
+        if query.is_none() && !entries.is_empty() {
             return None;
         }
 
         let name = query.as_ref().map(String::as_str).unwrap_or("tab");
         let name = normalize_name(name);
 
-        if entries.iter().find(|tab| tab.name == name).is_some() {
+        if entries.iter().any(|tab| tab.name == name) {
             return None;
         }
 
@@ -441,9 +441,7 @@ impl FuzzyFinderService {
             Matches(FuzzyMatchState),
         }
 
-        let mut rx = rx
-            .map(|e| Recv::Event(e))
-            .merge(rx_matches.map(|m| Recv::Matches(m)));
+        let mut rx = rx.map(Recv::Event).merge(rx_matches.map(Recv::Matches));
 
         let mut index: usize = 0;
         let mut matches: Vec<FuzzyMatch> = Vec::new();
@@ -464,7 +462,7 @@ impl FuzzyFinderService {
                         index = 0;
                     }
                     FuzzyEvent::MoveLast => {
-                        if matches.len() > 0 {
+                        if !matches.is_empty() {
                             index = matches.len() - 1;
                         }
                     }
@@ -484,7 +482,7 @@ impl FuzzyFinderService {
                 index = terminal_height - 1 - RESERVED_ROWS;
             }
 
-            if matches.len() == 0 {
+            if matches.is_empty() {
                 index = 0;
             } else if matches.len() <= index {
                 index = matches.len() - 1
@@ -514,10 +512,7 @@ impl FuzzyFinderService {
             Selection(Option<FuzzySelectState>),
         }
 
-        let mut rx = rx
-            .map(|q| Recv::Event(q))
-            .merge(rx_selection.map(|m| Recv::Selection(m)));
-
+        let mut rx = rx.map(Recv::Event).merge(rx_selection.map(Recv::Selection));
         let mut selection: Option<FuzzySelectState> = None;
 
         while let Some(message) = rx.recv().await {
@@ -563,10 +558,10 @@ impl FuzzyFinderService {
         let mut select_state = Arc::new(None);
 
         let mut rx = rx_query
-            .map(|q| OutputRecv::Query(q))
-            .merge(rx_match.map(|m| OutputRecv::Matches(m)))
-            .merge(rx_select.map(|s| OutputRecv::Select(s)))
-            .merge(rx_event.map(|s| OutputRecv::Event(s)));
+            .map(OutputRecv::Query)
+            .merge(rx_match.map(OutputRecv::Matches))
+            .merge(rx_select.map(OutputRecv::Select))
+            .merge(rx_event.map(OutputRecv::Event));
 
         while let Some(msg) = rx.recv().await {
             match msg {
@@ -691,8 +686,8 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn print_selected_tab(stdout: &mut std::io::Stdout, tokens: &Vec<Token>) -> anyhow::Result<()> {
-        for token in tokens.into_iter() {
+    fn print_selected_tab(stdout: &mut std::io::Stdout, tokens: &[Token]) -> anyhow::Result<()> {
+        for token in tokens.iter() {
             match token {
                 Token::Unmatched(s) => {
                     stdout.queue(PrintStyledContent(s.as_str().bold().blue()))?
@@ -708,8 +703,8 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn print_selected_doc(stdout: &mut std::io::Stdout, tokens: &Vec<Token>) -> anyhow::Result<()> {
-        for token in tokens.into_iter() {
+    fn print_selected_doc(stdout: &mut std::io::Stdout, tokens: &[Token]) -> anyhow::Result<()> {
+        for token in tokens.iter() {
             match token {
                 Token::Unmatched(s) => stdout.queue(PrintStyledContent(s.as_str().blue()))?,
                 Token::Matched(s) => {
@@ -723,8 +718,8 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn print_tab(stdout: &mut std::io::Stdout, tokens: &Vec<Token>) -> anyhow::Result<()> {
-        for token in tokens.into_iter() {
+    fn print_tab(stdout: &mut std::io::Stdout, tokens: &[Token]) -> anyhow::Result<()> {
+        for token in tokens.iter() {
             match token {
                 Token::Unmatched(s) => stdout.queue(PrintStyledContent(s.as_str().bold()))?,
                 Token::Matched(s) => {
@@ -738,8 +733,8 @@ impl FuzzyFinderService {
         Ok(())
     }
 
-    fn print_doc(stdout: &mut std::io::Stdout, tokens: &Vec<Token>) -> anyhow::Result<()> {
-        for token in tokens.into_iter() {
+    fn print_doc(stdout: &mut std::io::Stdout, tokens: &[Token]) -> anyhow::Result<()> {
+        for token in tokens.iter() {
             match token {
                 Token::Unmatched(s) => stdout.queue(Print(s.as_str().dark_grey()))?,
                 Token::Matched(s) => {
@@ -771,10 +766,10 @@ impl FuzzyFinderService {
         (name, doc)
     }
 
-    fn parse_text(text: &str, indices: &Vec<usize>) -> Vec<Token> {
+    fn parse_text(text: &str, indices: &[usize]) -> Vec<Token> {
         let mut ret = Vec::new();
 
-        let mut next_match_iter = indices.into_iter().copied();
+        let mut next_match_iter = indices.iter().copied();
         let mut next_match = next_match_iter.next();
         let mut token = Token::Unmatched("".to_string());
 
