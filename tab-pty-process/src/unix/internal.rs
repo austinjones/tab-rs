@@ -92,7 +92,7 @@ impl UnixInternal {
         let fd = self.handle.as_raw_fd();
         let mut winsz: libc::winsize = unsafe { std::mem::zeroed() };
 
-        if unsafe { libc::ioctl(fd, libc::TIOCGWINSZ.into(), &mut winsz) } != 0 {
+        if unsafe { libc::ioctl(fd, libc::TIOCGWINSZ, &mut winsz) } != 0 {
             return Err(io::Error::last_os_error());
         }
 
@@ -109,7 +109,7 @@ impl UnixInternal {
             ws_ypixel: 0,
         };
 
-        if unsafe { libc::ioctl(fd, libc::TIOCSWINSZ.into(), &winsz) } != 0 {
+        if unsafe { libc::ioctl(fd, libc::TIOCSWINSZ, &winsz) } != 0 {
             return Err(io::Error::last_os_error());
         }
 

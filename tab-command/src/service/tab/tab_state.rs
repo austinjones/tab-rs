@@ -106,7 +106,7 @@ impl Service for TabStateService {
 
         let _deselect = {
             let mut rx = bus.rx::<DeselectTab>()?;
-            let tx = tx_internal.clone();
+            let tx = tx_internal;
 
             Self::try_task("deselect", async move {
                 while let Some(_deselect) = rx.recv().await {

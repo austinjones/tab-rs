@@ -129,14 +129,11 @@ impl CarryFrom<MainBus> for TerminalBus {
 
             Self::try_task("main_recv", async move {
                 while let Some(response) = rx_response.recv().await {
-                    match response {
-                        Response::Output(_id, stdout) => {
-                            tx_output
-                                .send(TerminalOutput::Stdout(stdout.data))
-                                .await
-                                .context("tx TerminalRecv::Stdout")?;
-                        }
-                        _ => {}
+                    if let Response::Output(_id, stdout) = response {
+                        tx_output
+                            .send(TerminalOutput::Stdout(stdout.data))
+                            .await
+                            .context("tx TerminalRecv::Stdout")?;
                     }
                 }
 

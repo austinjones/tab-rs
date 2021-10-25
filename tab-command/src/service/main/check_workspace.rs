@@ -38,8 +38,8 @@ impl Service for MainCheckWorkspaceService {
 }
 
 impl MainCheckWorkspaceService {
-    fn echo_errors(errors: &Vec<String>) {
-        if errors.len() == 0 {
+    fn echo_errors(errors: &[String]) {
+        if errors.is_empty() {
             eprintln!("No errors detected.");
             return;
         } else if errors.len() == 1 {

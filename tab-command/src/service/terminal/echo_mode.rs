@@ -113,7 +113,7 @@ async fn print_stdout(mut rx: impl Stream<Item = TerminalOutput> + Unpin) -> any
 }
 
 async fn write_stdout(stdout: &mut Stdout, data: Vec<u8>) -> anyhow::Result<()> {
-    if data.len() == 0 {
+    if data.is_empty() {
         return Ok(());
     }
 

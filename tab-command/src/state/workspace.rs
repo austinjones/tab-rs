@@ -15,7 +15,7 @@ pub struct WorkspaceState {
 }
 
 impl WorkspaceState {
-    pub fn into_name_set(&self) -> HashSet<String> {
+    pub fn as_name_set(&self) -> HashSet<String> {
         self.tabs.iter().map(|tab| tab.name.clone()).collect()
     }
 }
@@ -75,7 +75,7 @@ pub enum Config {
 }
 
 impl Config {
-    pub fn as_workspace(self, dir: &Path) -> Result<Workspace, WorkspaceError> {
+    pub fn into_workspace(self, dir: &Path) -> Result<Workspace, WorkspaceError> {
         if let Config::Workspace(workspace) = self {
             return Ok(workspace);
         }
@@ -94,7 +94,7 @@ impl Config {
         }))
     }
 
-    pub fn as_repo(self, dir: &Path) -> Result<Repo, WorkspaceError> {
+    pub fn into_repo(self, dir: &Path) -> Result<Repo, WorkspaceError> {
         if let Config::Repo(repo) = self {
             return Ok(repo);
         }
@@ -196,9 +196,7 @@ impl TabOptions {
         let env = if let Some(mut env) = self.env {
             if let Some(other_env) = other.env {
                 for (key, value) in other_env.into_iter() {
-                    if !env.contains_key(&key) {
-                        env.insert(key, value);
-                    }
+                    env.entry(key).or_insert(value);
                 }
             }
 

@@ -91,8 +91,8 @@ impl Service for MainService {
         Ok(Self {
             _main_autocomplete,
             _main_autocomplete_close,
-            _main_check_workspace,
             _main_close_tabs,
+            _main_check_workspace,
             _main_disconnect_tabs,
             _main_global_shutdown,
             _main_list_tabs,

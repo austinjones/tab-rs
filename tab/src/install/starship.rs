@@ -30,7 +30,7 @@ fn starship_toml(env: &PackageEnv) -> PathBuf {
 }
 
 fn edit(string: Option<String>) -> String {
-    let string = string.unwrap_or("".to_string());
+    let string = string.unwrap_or_else(|| "".to_string());
     let toml = string.parse::<Document>();
 
     if let Err(e) = toml {

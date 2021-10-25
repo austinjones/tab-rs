@@ -4,7 +4,7 @@ use std::{fs::File, io::BufReader};
 /// Parses and returns the global config file contents, or returns the default config
 pub fn load_global_config() -> anyhow::Result<Config> {
     let config = tab_api::config::global_config_file();
-    if let None = config {
+    if config.is_none() {
         return Ok(Config::default());
     }
 
