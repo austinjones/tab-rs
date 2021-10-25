@@ -76,11 +76,12 @@ pub struct InputChunk {
 }
 
 impl InputChunk {
-    /// Tee data buffer length
+    /// The data buffer length
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Whether the data is empty
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
