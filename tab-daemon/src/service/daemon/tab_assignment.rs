@@ -73,8 +73,7 @@ impl Service for TabAssignmentService {
             let mut rx = bus.rx::<TabAssignmentRetraction>()?;
             Self::try_task("spawn_pty", async move {
                 let mut last_spawn: Option<Instant> = None;
-                let msg = rx.recv().await;
-                while msg.is_some() {
+                while rx.recv().await.is_some() {
                     if last_spawn
                         .map(|inst| Instant::now().duration_since(inst) > SPAWN_DELAY)
                         .unwrap_or(true)
