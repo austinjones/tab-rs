@@ -102,7 +102,7 @@ impl From<&WorkspaceTab> for TabEntry {
                 doc.push(')');
                 doc
             }),
-            last_selected: tab.last_selected.clone(),
+            last_selected: tab.last_selected,
             sticky: false,
         }
     }

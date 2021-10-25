@@ -64,11 +64,11 @@ async fn runloop(
     mut tx: impl Sink<Item = WebsocketRecv> + Unpin,
 ) -> anyhow::Result<()> {
     let websocket = &mut websocket_drop.0;
-    info!("starting runloop");
+    debug!("starting runloop");
     loop {
         select!(
             message = websocket.next() => {
-                if let None = message {
+                if message.is_none() {
                     info!("terminating - websocket disconnected");
                     break;
                 }

@@ -2,9 +2,9 @@ use crate::{
     message::main::MainRecv, message::main::MainShutdown, prelude::*,
     state::workspace::WorkspaceState, state::workspace::WorkspaceTab, utils::await_state,
 };
-use std::env;
 use std::io::stdout;
 use std::path::PathBuf;
+use std::{env, path::Path};
 
 use crossterm::{
     execute,
@@ -30,9 +30,9 @@ impl Service for MainListTabsService {
                 if let MainRecv::ListTabs = msg {
                     let workspace = await_state(&mut rx_workspace).await?;
 
-                    if workspace.errors.len() > 0 {
+                    if workspace.errors.is_empty() {
                         eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.");
-                        eprintln!("");
+                        eprintln!();
                     }
 
                     Self::echo_tabs(&workspace.tabs);
@@ -49,10 +49,10 @@ impl Service for MainListTabsService {
 }
 
 impl MainListTabsService {
-    fn echo_tabs(tabs: &Vec<WorkspaceTab>) {
+    fn echo_tabs(tabs: &[WorkspaceTab]) {
         debug!("echo tabs: {:?}", &tabs);
 
-        if tabs.len() == 0 {
+        if tabs.is_empty() {
             println!("No active tabs.");
             return;
         }
@@ -81,13 +81,13 @@ impl MainListTabsService {
                 }
                 println!("({})", doc);
             } else {
-                println!("");
+                println!();
             }
         }
     }
 }
 
-fn is_active(tab: &WorkspaceTab, cwd: &PathBuf) -> bool {
+fn is_active(tab: &WorkspaceTab, cwd: &Path) -> bool {
     cwd.starts_with(tab.directory.as_path())
 }
 

@@ -16,7 +16,8 @@ mod fish;
 mod starship;
 mod zsh;
 
-pub fn run<'a>(commands: Values<'a>, yes: bool) -> anyhow::Result<()> {
+pub fn run(commands: Values, yes: bool) -> anyhow::Result<()> {
+
     let env = PackageEnv::new()?;
 
     for command in commands {
@@ -36,7 +37,7 @@ pub fn run<'a>(commands: Values<'a>, yes: bool) -> anyhow::Result<()> {
         // print packages
         let package_len = packages.len();
         eprintln!("Found {} installable packages.", package_len);
-        eprintln!("");
+        eprintln!();
 
         for package in &packages {
             eprint!("{}", package.to_string());
@@ -46,12 +47,12 @@ pub fn run<'a>(commands: Values<'a>, yes: bool) -> anyhow::Result<()> {
             .with_prompt("Do you wish to apply the modifications?")
             .interact()?
         {
-            eprintln!("");
+            eprintln!();
             eprintln!("Aborted.");
             return Ok(());
         }
 
-        eprintln!("");
+        eprintln!();
 
         // apply packages
         for package in packages {
@@ -61,7 +62,7 @@ pub fn run<'a>(commands: Values<'a>, yes: bool) -> anyhow::Result<()> {
             install_package(package).context(format!("{} installation failed:", name))?;
         }
 
-        eprintln!("");
+        eprintln!();
 
         eprintln!("Installed {} packages.", package_len)
     }
@@ -207,13 +208,17 @@ pub struct PackageEnv {
 
 impl PackageEnv {
     pub fn new() -> anyhow::Result<Self> {
-        let home = dirs::home_dir().ok_or(anyhow!(
-            "A home directory is required for package installation, and none could be found."
-        ))?;
+        let home = dirs::home_dir().ok_or_else(|| {
+            anyhow!(
+                "A home directory is required for package installation, and none could be found."
+            )
+        })?;
 
-        let data = dirs::data_dir().ok_or(anyhow!(
-            "A data directory is required for package installation, and none could be found."
-        ))?;
+        let data = dirs::data_dir().ok_or_else(|| {
+            anyhow!(
+                "A data directory is required for package installation, and none could be found."
+            )
+        })?;
 
         Ok(Self { home, data })
     }
@@ -330,8 +335,7 @@ impl PackageBuilder {
 
     /// Builds the package description
     pub fn build(&mut self) -> Package {
-        let package = std::mem::replace(&mut self.package, Package::new(""));
-        package
+        std::mem::replace(&mut self.package, Package::new(""))
     }
 }
 
@@ -545,7 +549,7 @@ impl ScriptConfig {
     }
 
     pub fn apply(self, source: Option<String>) -> String {
-        let data = source.unwrap_or("".to_string());
+        let data = source.unwrap_or_else(|| "".to_string());
         let mut output_data = "".to_string();
 
         let mut state = ScanState::AwaitingComment;
@@ -558,7 +562,7 @@ impl ScriptConfig {
         'line: for line in data.lines() {
             match state {
                 ScanState::AwaitingComment => {
-                    if line.contains("#") && line.contains("tab multiplexer configuration") {
+                    if line.contains('#') && line.contains("tab multiplexer configuration") {
                         state = ScanState::Cleaning;
 
                         output_data += line;
@@ -574,7 +578,7 @@ impl ScriptConfig {
                 }
                 ScanState::Cleaning => {
                     // while the line has visible text which isn't a comment, skip it
-                    if !line.contains("#") && line.trim().len() > 0 {
+                    if !line.contains('#') && !line.trim().is_empty() {
                         continue 'line;
                     }
 
@@ -592,7 +596,7 @@ impl ScriptConfig {
                         }
                     }
 
-                    if line.contains("#") && line.contains("tab multiplexer configuration") {
+                    if line.contains('#') && line.contains("tab multiplexer configuration") {
                         continue 'line;
                     }
                 }
@@ -605,7 +609,7 @@ impl ScriptConfig {
 
         if let ScanState::AwaitingComment = state {
             if data.ends_with("\n\n") {
-            } else if data.ends_with("\n") {
+            } else if data.ends_with('\n') {
                 output_data += "\n"
             } else {
                 output_data += "\n\n"

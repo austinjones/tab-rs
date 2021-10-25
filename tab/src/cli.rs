@@ -6,7 +6,7 @@ pub fn init() -> ArgMatches<'static> {
     app().get_matches()
 }
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn app() -> App<'static, 'static> {
     App::new("Terminal Multiplexer")

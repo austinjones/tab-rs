@@ -69,7 +69,8 @@ impl CarryFrom<MainBus> for PtyBus {
             let mut rx = self.rx::<PtyShutdown>()?;
             let mut tx = from.tx::<MainShutdown>()?;
             Self::task("forward_shutdown", async move {
-                if let Some(_) = rx.recv().await {
+                let shutdown_msg = rx.recv().await;
+                if shutdown_msg.is_some() {
                     tx.send(MainShutdown {}).await.ok();
                 }
             })

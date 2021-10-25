@@ -52,7 +52,7 @@ impl MainDisconnectTabsService {
             if let Ok(tab) = std::env::var("TAB_ID") {
                 eprintln!(
                     "Disconnecting current tab: {}",
-                    std::env::var("TAB").unwrap_or("".to_string())
+                    std::env::var("TAB").unwrap_or_else(|_| "".to_string())
                 );
 
                 let id = tab.parse()?;
@@ -65,7 +65,7 @@ impl MainDisconnectTabsService {
             return Ok(0);
         }
 
-        let running_tabs = state.into_name_set();
+        let running_tabs = state.as_name_set();
 
         for tab in tabs {
             let name = normalize_name(tab.as_str());

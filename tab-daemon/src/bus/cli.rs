@@ -77,10 +77,7 @@ impl CarryFrom<ListenerBus> for CliBus {
             let tx_conn = self.tx::<CliRecv>()?;
             let tx_subscription = self.tx::<CliSubscriptionRecv>()?;
 
-            Self::try_task(
-                "output",
-                Self::run_output(rx_tab, tx_conn.clone(), tx_subscription),
-            )
+            Self::try_task("output", Self::run_output(rx_tab, tx_conn, tx_subscription))
         };
 
         let _reverse = {

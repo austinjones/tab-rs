@@ -38,7 +38,7 @@ impl Service for MainAutocompleteCloseTabsService {
 }
 
 impl MainAutocompleteCloseTabsService {
-    fn echo_completion(tabs: &Vec<String>) {
+    fn echo_completion(tabs: &[String]) {
         debug!("echo completion: {:?}", tabs);
 
         for tab in tabs {

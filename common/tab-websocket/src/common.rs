@@ -19,9 +19,5 @@ pub async fn send_close(websocket: &mut WebsocketConnection) {
 
 /// Checks if, given the message, the connection should be closed.
 pub fn should_terminate(message: &Message) -> bool {
-    if let Message::Close(_) = message {
-        true
-    } else {
-        false
-    }
+    matches!(message, Message::Close(_))
 }

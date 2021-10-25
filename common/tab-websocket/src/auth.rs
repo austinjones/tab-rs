@@ -65,7 +65,7 @@ impl AuthHandler {
 
         let expected_token = self.token.0.as_ref().unwrap().as_str();
 
-        if !request.headers().get("authorization").is_some() {
+        if request.headers().get("authorization").is_none() {
             return AuthState::RejectAuth;
         }
 
@@ -94,7 +94,7 @@ impl Callback for AuthHandler {
         if let Some(send_metadata) = self.send_metadata {
             let uri = request.uri().clone();
             let method = request.method().clone();
-            let metadata = RequestMetadata { uri, method };
+            let metadata = RequestMetadata { method, uri };
             tokio::spawn(send_metadata.reply(|_r| async { metadata }));
         }
 

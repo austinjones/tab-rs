@@ -21,13 +21,9 @@ pub fn get_level() -> Option<LevelFilter> {
 }
 
 pub fn get_level_str() -> Option<&'static str> {
-    let level = get_level();
+    let level = get_level()?;
 
-    if let None = level {
-        return None;
-    }
-
-    match level.unwrap() {
+    match level {
         LevelFilter::Off => Some("off"),
         LevelFilter::Error => Some("error"),
         LevelFilter::Warn => Some("warn"),

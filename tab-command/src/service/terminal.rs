@@ -50,7 +50,7 @@ pub fn reset_terminal_state() {
         // fully reset the terminal state: ESC c
         // then clear the terminal: ESC [ 2 J
         stdout
-            .write("\x1bc\x1b[2J".as_bytes())
+            .write_all("\x1bc\x1b[2J".as_bytes())
             .expect("failed to queue reset command");
 
         stdout.flush().expect("failed to flush reset commands");

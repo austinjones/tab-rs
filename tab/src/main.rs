@@ -8,7 +8,7 @@ use anyhow::Context;
 use cli::init;
 use tab_api::{config::history_path, log::set_level, tab::normalize_name};
 
-const TAB_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const TAB_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn main() -> anyhow::Result<()> {
     let args = init();
@@ -68,7 +68,7 @@ pub fn main() -> anyhow::Result<()> {
         // used for the starship prompt
         let tab = std::env::var("TAB");
 
-        if let Err(_) = tab {
+        if tab.is_err() {
             std::process::exit(1);
         }
 
