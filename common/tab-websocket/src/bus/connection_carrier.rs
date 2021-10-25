@@ -12,6 +12,7 @@ use serde::{de::DeserializeOwned, Serialize};
 /// Carries requests & responses between the websocket, and the attached bus (which must implement WebsocketMessageBus).
 pub struct WebsocketCarrier {
     _websocket: WebsocketService,
+    
     _websocket_send: Lifeline,
     _websocket_recv: Lifeline,
 }
