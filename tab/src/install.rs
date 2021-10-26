@@ -17,7 +17,6 @@ mod starship;
 mod zsh;
 
 pub fn run(commands: Values, yes: bool) -> anyhow::Result<()> {
-
     let env = PackageEnv::new()?;
 
     for command in commands {
@@ -43,9 +42,10 @@ pub fn run(commands: Values, yes: bool) -> anyhow::Result<()> {
             eprint!("{}", package.to_string());
         }
 
-        if !yes && !Confirm::new()
-            .with_prompt("Do you wish to apply the modifications?")
-            .interact()?
+        if !yes
+            && !Confirm::new()
+                .with_prompt("Do you wish to apply the modifications?")
+                .interact()?
         {
             eprintln!();
             eprintln!("Aborted.");

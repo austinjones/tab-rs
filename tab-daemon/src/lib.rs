@@ -6,7 +6,7 @@ use log::{info, LevelFilter};
 use lifeline::{dyn_bus::DynBus, prelude::*};
 use message::daemon::DaemonShutdown;
 use service::daemon::DaemonService;
-use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{ColorChoice, CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::{
     config::{daemon_log, DaemonConfig},
@@ -77,7 +77,12 @@ async fn main_async(tab_version: &'static str) -> anyhow::Result<()> {
 
     let level = get_level().unwrap_or(LevelFilter::Info);
     CombinedLogger::init(vec![
-        TermLogger::new(level, config.clone(), TerminalMode::Stderr),
+        TermLogger::new(
+            level,
+            config.clone(),
+            TerminalMode::Stderr,
+            ColorChoice::Auto,
+        ),
         WriteLogger::new(level, config, std::fs::File::create(log_file)?),
     ])
     .unwrap();

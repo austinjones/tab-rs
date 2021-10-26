@@ -14,13 +14,13 @@ edition = "2018"
 lifeline = "0.6"
 postage = "0.4"
 tokio = { version = "1.0", features = ["macros", "process", "time"] }
-sysinfo = { version = "0.15", default-features = false }
-dirs = "3.0"
+sysinfo = { version = "0.20", default-features = false }
+dirs = "4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 snailquote = "0.3"
 
-nix = "0.19"
+nix = "0.23"
 
 # logging
 log = "0.4"

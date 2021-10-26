@@ -15,7 +15,7 @@ use tempfile::{tempdir, TempDir};
 
 use tokio::{io::AsyncReadExt, io::AsyncWriteExt, time};
 
-use simplelog::{TermLogger, TerminalMode};
+use simplelog::{ColorChoice, TermLogger, TerminalMode};
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -29,6 +29,7 @@ fn setup() {
                 .set_time_format_str("%H:%M:%S%.3f TST")
                 .build(),
             TerminalMode::Stderr,
+            ColorChoice::Auto,
         )
         .unwrap();
     });

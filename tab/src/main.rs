@@ -59,11 +59,7 @@ pub fn main() -> anyhow::Result<()> {
 
         Ok(())
     } else if let Some(install_args) = args.values_of("INSTALL") {
-        let mut yes = false;
-        if args.is_present("YES") {
-            yes = true;
-        }
-        install::run(install_args, yes)
+        install::run(install_args, args.is_present("YES"))
     } else if args.is_present("STARSHIP") {
         // used for the starship prompt
         let tab = std::env::var("TAB");

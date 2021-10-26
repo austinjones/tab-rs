@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use message::pty::MainShutdown;
 use postage::{sink::Sink, stream::Stream};
-use simplelog::{CombinedLogger, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{ColorChoice, CombinedLogger, TermLogger, TerminalMode, WriteLogger};
 use std::time::Duration;
 use tab_api::{config::pty_log, launch::*, log::get_level, pty::PtyWebsocketRequest};
 
@@ -44,7 +44,12 @@ fn init() -> anyhow::Result<()> {
 
     let level = get_level().unwrap_or(LevelFilter::Info);
     CombinedLogger::init(vec![
-        TermLogger::new(level, config.clone(), TerminalMode::Stderr),
+        TermLogger::new(
+            level,
+            config.clone(),
+            TerminalMode::Stderr,
+            ColorChoice::Auto,
+        ),
         WriteLogger::new(level, config, std::fs::File::create(log_file)?),
     ])
     .unwrap();
