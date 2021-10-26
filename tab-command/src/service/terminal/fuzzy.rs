@@ -22,7 +22,7 @@ use crossterm::{
     cursor::Hide,
     cursor::Show,
     event::KeyModifiers,
-    style::{Colorize, Styler},
+    style::Stylize,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use crossterm::{

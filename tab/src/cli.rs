@@ -65,6 +65,7 @@ fn app() -> App<'static, 'static> {
             Arg::with_name("YES")
                 .long("yes")
                 .short("y")
+                .takes_value(false)
                 .required(false)
                 .help("Do not confirm install."),
         )

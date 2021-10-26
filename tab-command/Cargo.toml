@@ -17,7 +17,7 @@ lifeline = "0.6"
 postage = "0.4"
 
 clap = "2.33.3"
-crossterm = { version = "0.19", features = ["event-stream"] }
+crossterm = { version = "0.22", features = ["event-stream"] }
 
 # async / websockets
 tokio = { version = "1.0", features = ["time", "fs", "io-std", "io-util", "process", "macros", "rt-multi-thread"] }
@@ -25,16 +25,16 @@ futures-util = "0.3"
 
 # logging
 log = "0.4"
-simplelog = "0.9"
+simplelog = "0.10"
 
 # error management / utils
 anyhow = "1.0"
 thiserror = "1.0"
-semver = "0.11"
-typed-builder = "0.8"
+semver = "1.0"
+typed-builder = "0.9"
 
 # workspaces
-dirs = "3.0"
+dirs = "4.0"
 
 # fuzzy
 fuzzy-matcher = "0.3"
@@ -46,4 +46,4 @@ serde_yaml = "0.8"
 [dev-dependencies]
 tokio-test = "0.4"
 maplit = "1.0"
-pretty_assertions = "0.6"
+pretty_assertions = "1.0"

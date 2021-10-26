@@ -50,7 +50,7 @@ pub fn is_running(config: &DaemonConfig) -> bool {
     let mut system = sysinfo::System::new_with_specifics(RefreshKind::new());
     system.refresh_process(config.pid);
 
-    match system.get_process(config.pid) {
+    match system.process(config.pid) {
         Some(proc) => {
             let command = proc.cmd();
 

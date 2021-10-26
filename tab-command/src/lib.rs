@@ -6,7 +6,7 @@ use semver::Version;
 use crate::prelude::*;
 use service::{main::*, terminal::disable_raw_mode, terminal::reset_terminal_state};
 
-use simplelog::{TermLogger, TerminalMode};
+use simplelog::{ColorChoice, TermLogger, TerminalMode};
 
 use crate::bus::MainBus;
 use message::main::{MainRecv, MainShutdown};
@@ -31,6 +31,7 @@ pub fn command_main(args: ArgMatches, tab_version: &'static str) -> anyhow::Resu
             .set_time_format_str("%H:%M:%S%.3f CMD")
             .build(),
         TerminalMode::Stderr,
+        ColorChoice::Auto,
     )
     .unwrap();
 

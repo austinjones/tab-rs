@@ -57,12 +57,12 @@ fn edit(string: Option<String>) -> String {
     toml["custom"]["tab"]["when"] = value("tab --starship");
 
     let mut array = Array::default();
-    array.push("sh").ok();
+    array.push("sh");
     toml["custom"]["tab"]["shell"] = value(array);
 
     toml["custom"]["tab"]["format"] = value("[$output]($style) ");
     toml["custom"]["tab"]["style"] = value("bold blue");
     toml["custom"]["tab"].as_inline_table();
 
-    toml.to_string_in_original_order()
+    toml.to_string()
 }
