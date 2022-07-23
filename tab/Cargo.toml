@@ -31,7 +31,7 @@ log = "0.4"
 
 # used for install command
 tempfile = "3.2"
-dialoguer = "0.9"
+dialoguer = "0.10.1"
 toml_edit = "0.6"
 dirs = "4.0"
 which = "4.2"
