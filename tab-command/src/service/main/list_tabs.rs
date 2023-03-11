@@ -30,7 +30,7 @@ impl Service for MainListTabsService {
                 if let MainRecv::ListTabs = msg {
                     let workspace = await_state(&mut rx_workspace).await?;
 
-                    if workspace.errors.is_empty() {
+                    if !workspace.errors.is_empty() {
                         eprintln!("Workspace errors were found during startup.  Use `tab --check` for more details.");
                         eprintln!();
                     }
