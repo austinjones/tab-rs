@@ -16,11 +16,20 @@ tab-websocket = "0.5.0"
 lifeline = "0.6"
 postage = "0.4"
 
+# terminal escape sequence parsing, for scrollback pruning
+vte = "0.15"
+
 dirs = "4.0"
 serde_yaml = "0.8"
 
 # async / websockets
-tokio = { version = "1.0", features = ["macros", "sync", "time", "io-util", "rt-multi-thread"] }
+tokio = { version = "1.0", features = [
+    "macros",
+    "sync",
+    "time",
+    "io-util",
+    "rt-multi-thread",
+] }
 tokio-io = "0.1"
 async-trait = "0.1"
 

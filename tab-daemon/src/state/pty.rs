@@ -1,7 +1,7 @@
-use crate::service::pty::scrollback::ScrollbackBuffer;
+use crate::service::pty::scrollback::{ScrollbackBuffer, ScrollbackSnapshot};
 
 use std::sync::Arc;
-use tab_api::{chunk::OutputChunk, tab::TabId};
+use tab_api::tab::TabId;
 use tokio::sync::Mutex;
 
 /// The state of the pty connection, either None, or Assigned
@@ -64,12 +64,11 @@ impl PtyScrollback {
     }
 
     #[cfg(test)]
-    pub async fn push(&self, chunk: OutputChunk) {
+    pub async fn push(&self, chunk: tab_api::chunk::OutputChunk) {
         self.scrollback.lock().await.push(chunk);
     }
 
-    pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
-        let scrollback = self.scrollback.lock().await.clone_queue();
-        scrollback.into_iter()
+    pub async fn scrollback(&self) -> ScrollbackSnapshot {
+        self.scrollback.lock().await.snapshot()
     }
 }

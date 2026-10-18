@@ -1,4 +1,7 @@
-use crate::state::{assignment::Assignment, pty::PtyScrollback};
+use crate::{
+    service::pty::scrollback::ScrollbackSnapshot,
+    state::{assignment::Assignment, pty::PtyScrollback},
+};
 use std::sync::Arc;
 use tab_api::{
     chunk::{InputChunk, OutputChunk},
@@ -107,7 +110,7 @@ impl TabScrollback {
         self.scrollback.push(chunk).await;
     }
 
-    pub async fn scrollback(&self) -> impl Iterator<Item = OutputChunk> {
+    pub async fn scrollback(&self) -> ScrollbackSnapshot {
         self.scrollback.scrollback().await
     }
 }

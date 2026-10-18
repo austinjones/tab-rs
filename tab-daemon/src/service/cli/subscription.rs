@@ -52,7 +52,19 @@ impl Service for CliSubscriptionService {
 
                                 info!("Received scrollback for tab {}", id);
 
-                                for chunk in scrollback.scrollback().await {
+                                let snapshot = scrollback.scrollback().await;
+
+                                // the prelude restores terminal state, and is not part of the indexed stream
+                                if !snapshot.prelude.is_empty() {
+                                    let start = snapshot.chunks.front().map_or(0, |c| c.start());
+                                    let prelude = OutputChunk {
+                                        index: start,
+                                        data: snapshot.prelude,
+                                    };
+                                    tx.send(CliSubscriptionSend::Output(id, prelude)).await?;
+                                }
+
+                                for chunk in snapshot.chunks {
                                     index = Self::send_output(id, index, chunk, &mut tx).await?;
                                 }
 

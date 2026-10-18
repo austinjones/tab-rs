@@ -332,7 +332,7 @@ mod forward_tests {
             let msg = rx.recv().await;
             assert!(msg.is_some());
             if let CliSubscriptionRecv::Scrollback(scroll) = msg.unwrap() {
-                let mut iter = scroll.scrollback().await;
+                let mut iter = scroll.scrollback().await.chunks.into_iter();
                 assert_eq!(
                     Some(OutputChunk {
                         index: 0,

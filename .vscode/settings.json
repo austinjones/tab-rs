@@ -1,5 +1,7 @@
 {
-    "rust-analyzer.diagnostics.disabled": [
-        "unresolved-import"
-    ]
+  "rust-analyzer.diagnostics.disabled": ["unresolved-import"],
+  "chat.tools.terminal.autoApprove": {
+    "cargo build": true,
+    "cargo test": true
+  }
 }
